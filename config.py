@@ -5,12 +5,12 @@
 
 # Your "preferred projects list". Work will be split among these projects according to a given percentage (10, 20, 80).
 # For example, if you want 80% of your "preferred project crunching time" to go to a particular project, put in 80. These values must add up to 100.
-# If you just want to crunch the most profitable projects all the time, uncomment the next line (and comment out the subsequent one) to have no preferred projects:
-#preferred_projects={}
-preferred_projects={
-    'https://www.sidock.si/sidock/':20,
-    'https://www.project2.com':80,
-}
+# If you just want to crunch the most profitable projects all the time (default), leave as is. To customize weight for projects, comment out the next line (and un-comment the subsequent lines) and add projects according to format given:
+preferred_projects={}
+#preferred_projects={
+#    'https://www.sidock.si/sidock/':20,
+#    'https://www.project2.com':80,
+#}
 # percent of resources to dedicate to preferred projects
 preferred_projects_percent=10  # example: 80. This is ignored if preferred_projects has no projects in it. Rest of weight is assigned to most profitable project according to further settings below
 # projects on the ignored_projects list will always have their weight set to zero.
@@ -59,7 +59,7 @@ boinc_data_dir=None # Example: '/var/lib/boinc-client' or 'C:\\ProgramData\\BOIN
 gridcoin_data_dir=None # Example: '/home/user/.GridcoinResearch' or 'C:\\Users\\username\\AppData\\Roaming\\GridcoinResearch\\'. Only needed if in a non-standard location, otherwise None
 recalculate_stats_interval=60 # Interval in minutes to re-calculate stats. Default: 60
 price_check_interval=1440 # how often to check GRC price in minutes, minimum delay of 60 minutes between checks. Default is 1440 (24 hrs)
-log_level='WARNIGN' # Options are: 'DEBUG','INFO','WARNING','ERROR','NONE', default is 'WARNING'
+log_level='WARNING' # Options are: 'DEBUG','INFO','WARNING','ERROR','NONE', default is 'WARNING'
 max_logfile_size_in_mb=10 # Default: 10
 rolling_weight_window=60 # Use stats up to x days old for calculating intended weights vs actual crunch time, Default: 60. Note that "benchmarking" is applied to total time, not windowed time. Benchmarking will take 1% of ALL crunching time across ALL time history. This enables you set smaller "windows" and get faster reaction to weight changes without over-doing benchmarking.
 

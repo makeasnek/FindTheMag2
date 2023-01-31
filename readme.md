@@ -190,6 +190,7 @@ As of FindTheMag 2.0, it will fetch the latest stats from Gridcoinstats.eu. You 
 - This software is released under the license specified in the LICENSE file. It also incorporates components of other software, whose licenses are noted where imported in the directory structure.
 
 <h3>Privacy</h3>
+- 
 - This software will make web requests to several websites listing Gridcoin's current price. These requests include your IP address but do not include any other information outside of what loading a standard web page would include.
 - If you do not have the Gridcoin wallet installed and accessible, this software will make a web request to Gridcoinstats.eu or any other Gridcoin stats provider. Again, these requests include your IP address but do not include any other information outside of what loading a standard web page would include.
 - This program also checks this Github repository for updates. Again, these requests include your IP address but do not include any other information outside of what loading a standard web page would include.

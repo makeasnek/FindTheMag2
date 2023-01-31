@@ -64,6 +64,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
  - Run `python3 main.py`
 
 <h4>OS X</h4>
+
  - <b>Important</b> - If you want this tool to *control* BOINC on OS X: You must have the Gridcoin wallet installed and sidestaking to developer (script will offer to set this up for you) as the "crunching for dev" option does not work on OS X due to BOINC <a href="https://github.com/BOINC/boinc/issues/5069">not supporting</a> seperated installs on this platform.
  - Open a terminal and go to the folder you downloaded this tool into using `cd "/home/user/Downloads/FindTheMag"` or wherever you put it
  - Run `pip3 install -r requirements.txt`

@@ -1,0 +1,31 @@
+language: python
+matrix:
+  include:
+  - python: '3.6'
+  - python: '3.7'
+  - python: '3.8'
+  fast_finish: true
+dist: xenial
+sudo: true
+
+install:
+- pip install coverage
+- pip install coveralls
+- pip install -e .
+
+script:
+- coverage run --source=pyboinc setup.py test
+
+after_success:
+- coverage report
+- coveralls
+
+deploy:
+  provider: pypi
+  on:
+    branch: master
+    python: "3.8"
+  skip_existing: true
+  username: "nielstron"
+  password:
+    secure: "yh4UURTCp8JJ14AQ5bGeT9/IrddUEbIQD0ST+MgIG3IH2ii49Gss947TiYDkMcWd7tWFobrqVsDP8r6kwo9x7M/FDHqnFarclCD6PRzi3PYN8OUeRJpKpAXYYbqbRtUHxtS2lkK3mzyYyvr3eCT7TDLTyDO75bpyRifjKLsfARbT0CU9DBbLed305UgBnEUrwZH9dy7zYkCT+sto0F4LfdNhpbJAmT4IPRtngCgg9BEcdKxJaBZYOxQ4bsamDsu+8Ocwqe87GCnhnOIkxKqJ9ptkLKnOukvUwbCxlUZCZE39w31uzrW2Ml1/xXmjMxmSAstKjptdhSAFUeFG92pRufKUWZZI7DQK6NOfgP3HUz5pjwKJqn7hMREVl7Qa/IxPgEbDQ5HChmKrRMhRpfTHM9WfhiXy5Y9Yxcx2YH00dJYElw3LuEhXP+IhScBVtkZGmX8XxoVLYoxwm1/JL873zdsShv9ZCSgoe0cLFE7wAPlTdV2q9IQXd87YkaWuZtz6iOsKST+wKf2ergCuxCfXwEEQE9z7dswyfzLnPBxGVBXliv0M8avtRVOoiYFr21OAyJCMw4VMFfjWR0vJjzPiRh7tPMftWP9RGCvpqDmtZGLP6jhWIXGDDAyryj49L9lND8CgTJJv20nLftNrs2y3EEgLfYeicQXS5C0qzzzsPVI="

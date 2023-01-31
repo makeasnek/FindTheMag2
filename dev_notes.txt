@@ -1,0 +1,32 @@
+# DATABASE is used to track various counters etc during the program's operation. It is saved at opportune times
+# in the program's execution including when user issues a ctrl + c. It should only be used for variables which are
+# needed across executions or across functions
+# stored as stats.json in whatever directory the script is run from
+# DEV is same as CLIENT, just for developer's BOINC install
+
+DATABASE format:
+'GRCPRICELASTCHECKED':datetime.datetime # last time we checked GRC's price
+'GRCPRICE':float # last known average price of GRC
+'DEVTIMECOUNTER':float # counter for # of minutes we have managed BOINC crunching and it has been actively crunching, gets lowered by crunching under dev account
+'DEVTIMETOTAL': float # total amount of time crunched for dev
+'FTMTOTAL': float # total amount of time crunched for non-dev
+'LASTUPDATECHECK':datetime.datetime # last time we checked for updates from github
+'STATSLASTCALCULATED':datetime.datetime # last time we calculated stats
+'LASTGRIDCOINSTATSPROJECTCHECK':datetime.datetime, # last time we checked gridcoinstats for projects
+'GSPROJECTLIST':List[str] # cached project list from gridcoinstats
+'GSRESOLVERDICT':Dict[str,str] # cached project url resolver from gridcoinstats
+'STARTMAGHR':float # Total average mag/hr the first time this script was run
+'TABLE_SLEEP_REASON':str Sleep reason listed in pretty-printed table
+'TABLE_STATUS': str info/status str shown in table
+'CLIENT':{
+    'PROJECTURL':{ # Key is uppercased after running through resolve_boinc_url
+        'LAST_CHECKED':datetime.datetime,
+        'BACKOFF':int, # Time before we should check this project again, is doubled every time we receive a backoff again
+
+    }
+},
+'DEV':{
+}
+
+To diagnose which BOINC clients are up and running:
+Linux: sudo netstat -tuplen|grep boinc

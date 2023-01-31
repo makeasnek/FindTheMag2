@@ -1,0 +1,10 @@
+certifi==2022.5.18.1
+charset-normalizer==2.0.12
+DateTime==4.4
+idna==3.3
+pytz==2022.1
+requests==2.27.1
+typing==3.7.4.3
+urllib3==1.26.9
+xmltodict==0.13.0
+zope.interface==5.4.0

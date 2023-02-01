@@ -328,7 +328,7 @@ def update_check()->None:
     })
 
     # Get update status from Github
-    url='https://raw.githubusercontent.com/makeasnek/FindTheMag/blob/master/updates.txt'
+    url='https://raw.githubusercontent.com/makeasnek/FindTheMag2/main/updates.txt'
     try:
         resp = req.get(url,headers=headers).text
     except Exception as e:

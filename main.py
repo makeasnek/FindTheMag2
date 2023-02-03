@@ -1932,10 +1932,17 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if DATABASE.get('DEVTIMECOUNTER', 0) < 1 and not FORCE_DEV_MODE and dev_loop:
             return None
 
-        # Re-authorize in case we have become de-authorized since last run
-        authorize_response = loop.run_until_complete(rpc_client.authorize())
-        BOINC_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(
-            get_attached_projects(rpc_client))  # we need to re-fetch this as it's different for dev and client
+        # Re-authorize in case we have become de-authorized since last run. This is put in a try loop b/c sometimes it throws exceptions
+        while True:
+            try:
+                authorize_response = loop.run_until_complete(rpc_client.authorize())
+                BOINC_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(get_attached_projects(rpc_client))  # we need to re-fetch this as it's different for dev and client
+            except Exception as e:
+                print_and_log('Transient error connecting to BOINC, sleeping 30s','ERROR')
+                sleep(30)
+            else:
+                break
+
 
         # If we haven't re-calculated stats recently enough, do it
         stats_calc_delta = datetime.datetime.now() - DATABASE.get('STATSLASTCALCULATED',datetime.datetime(1997,3,3))

@@ -23,7 +23,7 @@ though earlier versions may work they are unsupported. If you just installed BOI
 
 Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> which this program uses extensively
 
-<b>If you only want to use this tool to get suggested project weights but not control BOINC directly:</b>
+<b>If you only want to use this tool to get stats and suggested project weights but not control BOINC directly:</b>
  * If you use an account manager like BAM:
    * Put each host into its own host group
    * Assign weight to projects in the host group

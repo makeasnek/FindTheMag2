@@ -36,6 +36,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
 
 <b>If you use this utility to control your BOINC crunching:</b>
  * **5% of your processing power will be donated to development**. I hope you will see that this is only a small portion of the efficiency gain that this tool brings you. And that this tool represents many hundreds of hours of work. You may set a custom dev fee in the config, but it cannot be smaller than 1%. This donated processing power is accomplished by crunching projects under the developer's login. Don't worry, all crunching power still goes towards science!
+ * You will see most of your project set to "no new tasks" except one, this is how FTM controls BOINC. Your "highest priority project" determined by expected crunch time vs actual (determined by project weight) will have tasks requested, and FTM will continue requesting tasks for each project until the work cache is full.
  * You can continue to use tools like BOINC Manager or BOINCTUI to monitor your crunching
  * You can stop the script at any time and regain manual control of your BOINC client, it will be reset to the settings which existed before FTM was run
  * It will respect all pre-existing BOINC settings you have such as when to crunch or use the network. All this tool really does is set projects to "no new tasks" and request work from projects.

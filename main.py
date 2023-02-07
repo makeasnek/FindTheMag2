@@ -2170,6 +2170,9 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             update_table()
             allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'project_allowmorework','project_url',highest_priority_project))
             update_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_update', 'project_url', highest_priority_project)) # update project
+            log.debug('Requesting work from {} added to debug no new tasks bug' + str(
+                highest_priority_project))  # TODO remove when this bug is fixed
+            log.debug('Update response is {}'.format(update_response))
             sleep(15)  # give BOINC time to update w project, I don't know a less hacky way to do this, suggestions are welcome
             DATABASE[mode][highest_priority_project.upper()]['LAST_CHECKED'] = datetime.datetime.now()
             # check if project should be backed off. If so, back it off.

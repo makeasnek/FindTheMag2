@@ -681,8 +681,24 @@ def stat_file_to_list(stat_file_abs_path: str) -> List[Dict[str, str]]:
         print('Error reading BOINC job log at '+stat_file_abs_path+' maybe it\'s corrupt? '+str(e))
         log.error('Error reading BOINC job log at ' + stat_file_abs_path + ' maybe it\'s corrupt? ' + str(e))
         return []
+def resolve_boinc_url_new(url:str):
+    '''
+    Note: Using resolve_boinc_url_new instead to use get to pass to BOINC, this is for other purposes.
+    Given URL, find BOINC's version with appropriate capitalization. If unable to find, print warning and return input
+    Prior to a specific BOINC version, RPC calls require capitalization to match identically.
+    '''
+    cleaned_search_url = url.upper().replace('HTTPS://', '').replace('HTTP://', '').replace('WWW.', '')
+    cleaned_search_url = cleaned_search_url.replace('WORLDCOMMUNITYGRID.ORG/BOINC', 'WORLDCOMMUNITYGRID.ORG')
+    if cleaned_search_url.endswith('/'):
+        cleaned_search_url = cleaned_search_url[:-1]
+    for found_url in chain(BOINC_PROJECT_LIST,ALL_BOINC_PROJECTS.keys()):
+        cleaned_found_url = found_url.upper().replace('HTTPS://', '').replace('HTTP://', '').replace('WWW.', '')
+        if cleaned_search_url == cleaned_found_url or cleaned_search_url in cleaned_found_url:
+            return found_url
+    return url
 def resolve_boinc_url(url:str,boinc_url_list:List[str]):
     '''
+    Note: Using resolve_boinc_url_new instead to use get to pass to BOINC, this is for other purposes.
     Given URL, find BOINC's version with appropriate capitalization. If unable to find, print warning and return input
     Prior to a specific BOINC version, RPC calls require capitalization to match identically.
     '''
@@ -690,7 +706,7 @@ def resolve_boinc_url(url:str,boinc_url_list:List[str]):
     cleaned_search_url=cleaned_search_url.replace('WORLDCOMMUNITYGRID.ORG/BOINC','WORLDCOMMUNITYGRID.ORG')
     if cleaned_search_url.endswith('/'):
         cleaned_search_url=cleaned_search_url[:-1]
-    for found_url in chain(BOINC_PROJECT_LIST,ALL_BOINC_PROJECTS.keys()):
+    for found_url in chain(ALL_BOINC_PROJECTS.keys(),BOINC_PROJECT_LIST):
         cleaned_found_url=found_url.upper().replace('HTTPS://','').replace('HTTP://','').replace('WWW.','')
         if cleaned_search_url==cleaned_found_url or cleaned_search_url in cleaned_found_url:
             return found_url
@@ -2100,6 +2116,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         else:
             project_loop=highest_priority_projects
         for highest_priority_project in project_loop:
+            boincified_url=resolve_boinc_url_new(highest_priority_project)
             benchmark_result=benchmark_check(project_url=highest_priority_project,combined_stats=combined_stats,benchmarking_minimum_wus=benchmarking_minimum_wus,benchmarking_minimum_time=benchmarking_minimum_time,benchmarking_delay_in_days=benchmarking_delay_in_days,skip_benchmarking=skip_benchmarking)
             profitability_result = profitability_check(grc_price=grc_price, exchange_fee=exchange_fee,
                                                        host_power_usage=host_power_usage,
@@ -2155,8 +2172,8 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                             log.error('Unable to attach dev account to {} bc not in DEV_PROJECT_DICT'.format(highest_priority_project))
                         continue
                     else:
-                        log.info('Attaching dev account to {}'.format(highest_priority_project))
-                        attach_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_attach', arg1='project_url',arg1_val=highest_priority_project, arg2='authenticator',arg2_val=DEV_PROJECT_DICT[converted_dev_project_url]))  # update project
+                        log.info('Attaching dev account to {}'.format(boincified_url))
+                        attach_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_attach', arg1='project_url',arg1_val=boincified_url, arg2='authenticator',arg2_val=DEV_PROJECT_DICT[converted_dev_project_url]))  # update project
                         sleep(30) # give it a chance to finish attaching
                         BOINC_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(
                             get_attached_projects(
@@ -2164,17 +2181,17 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                         highest_priority_project = resolve_boinc_url(highest_priority_project,
                                                                      ALL_BOINC_PROJECTS)  # this may have changed, so check
                         if len(BOINC_PROJECT_LIST)==0: # using this as a proxy for "failed attach"
-                            log.error('Appears to fail to attach to {}'.format(highest_priority_project))
+                            log.error('Appears to fail to attach to {}'.format(boincified_url))
                             continue
                         print('')
             project_name = ALL_BOINC_PROJECTS[highest_priority_project]
             DATABASE['TABLE_STATUS']='Allowing new tasks & updating {}'.format(project_name)
             log.info('Allowing new tasks and updating {}'.format(highest_priority_project))
             update_table()
-            allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'project_allowmorework','project_url',highest_priority_project))
-            update_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_update', 'project_url', highest_priority_project)) # update project
+            allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'project_allowmorework','project_url',boincified_url))
+            update_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_update', 'project_url', boincified_url)) # update project
             log.debug('Requesting work from {} added to debug no new tasks bug' + str(
-                highest_priority_project))
+                boincified_url))
             log.debug('Update response is {}'.format(update_response))
             sleep(15)  # give BOINC time to update w project, I don't know a less hacky way to do this, suggestions are welcome
             DATABASE[mode][highest_priority_project.upper()]['LAST_CHECKED'] = datetime.datetime.now()
@@ -2211,7 +2228,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         # Allow highest non-backedoff project to be non-NNTd.
         # This enables BOINC to fetch work if it's needed before our sleep period elapses
         if dont_nnt:
-            allow_this_project=resolve_boinc_url(dont_nnt,BOINC_PROJECT_LIST)
+            allow_this_project=resolve_boinc_url_new(dont_nnt)
             allow_response = loop.run_until_complete(
                 run_rpc_command(rpc_client, 'project_allowmorework', 'project_url', allow_this_project))
         custom_sleep(30,rpc_client,dev_loop=dev_loop)  # There's no reason to loop through all projects more than once every 30 minutes

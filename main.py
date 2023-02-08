@@ -688,7 +688,9 @@ def resolve_boinc_url(url:str,boinc_url_list:List[str]):
     '''
     cleaned_search_url=url.upper().replace('HTTPS://','').replace('HTTP://','').replace('WWW.','')
     cleaned_search_url=cleaned_search_url.replace('WORLDCOMMUNITYGRID.ORG/BOINC','WORLDCOMMUNITYGRID.ORG')
-    for found_url in chain(ALL_BOINC_PROJECTS.keys(),BOINC_PROJECT_LIST):
+    if cleaned_search_url.endswith('/'):
+        cleaned_search_url=cleaned_search_url[:-1]
+    for found_url in chain(BOINC_PROJECT_LIST,ALL_BOINC_PROJECTS.keys()):
         cleaned_found_url=found_url.upper().replace('HTTPS://','').replace('HTTP://','').replace('WWW.','')
         if cleaned_search_url==cleaned_found_url or cleaned_search_url in cleaned_found_url:
             return found_url
@@ -1399,7 +1401,7 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
         Returns TRUE if project should be backed off. False otherwise or if unable to determine
         """
         #Phrases which indicate project SHOULD be backed off
-        positive_phrases=['project requested delay','scheduler request failed','no tasks sent','last request too recent']
+        positive_phrases=['project requested delay','scheduler request failed','no tasks sent','last request too recent','An NVIDIA GPU is required to run tasks for this project']
         # Phrases which indicate project SHOULD NOT be backed off
         negative_phrases=["Not requesting tasks: don't need",'started download','Finished download of']
         # Phrases which indicate we can skip this log entry
@@ -1418,6 +1420,7 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
             'Upgrade to the latest driver to process tasks using your computer\'s GPU'
         ]
         for message in messages:
+            uppered_body=message['body'].upper()
             if project_name.upper() not in str(message).upper():
                 continue
             difference = datetime.datetime.now() - message['time']
@@ -1426,12 +1429,12 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
             if ignore_message(message,ignore_phrases):
                 continue
             for phrase in positive_phrases:
-                if phrase.upper() in message['body'].upper():
+                if phrase.upper() in uppered_body:
                     return True
             for phrase in negative_phrases:
-                if phrase.upper() in message['body'].upper():
+                if phrase.upper() in uppered_body:
                     return False
-            if 'NEEDS' in message['body'].upper() and 'BUT ONLY' in message['body'].upper() and 'IS AVAILABLE FOR USE' in message['body'].upper():
+            if 'NEEDS' in uppered_body and 'BUT ONLY' in uppered_body and 'IS AVAILABLE FOR USE' in uppered_body:
                 return True
             log.warning('Found unknown messagex: {}'.format(message['body']))
         log.warning('Unable to determine if project {} should be backed off, assuming no'.format(project_name))
@@ -2171,7 +2174,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'project_allowmorework','project_url',highest_priority_project))
             update_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_update', 'project_url', highest_priority_project)) # update project
             log.debug('Requesting work from {} added to debug no new tasks bug' + str(
-                highest_priority_project))  # TODO remove when this bug is fixed
+                highest_priority_project))
             log.debug('Update response is {}'.format(update_response))
             sleep(15)  # give BOINC time to update w project, I don't know a less hacky way to do this, suggestions are welcome
             DATABASE[mode][highest_priority_project.upper()]['LAST_CHECKED'] = datetime.datetime.now()

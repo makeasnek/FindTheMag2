@@ -2583,8 +2583,11 @@ if __name__ == '__main__':
         print_and_log('Sidestaking must be setup for BOINC control on OS X as "crunch for dev" is not an option. Re-run the script to set this up.','ERROR')
         quit()
 
-    # Backup user preferences
-    shutil.copy(override_path,override_dest_path)
+    # Backup user preferences.
+    try:
+        shutil.copy(override_path,override_dest_path)
+    except Exception as e:
+        log.warning('global_prefs_override.xml does not appear to exist, not backing up. Some users may not have one. Error: {}'.format(e))
 
     loop.run_until_complete(prefs_check(rpc_client))
     # NNT all projects

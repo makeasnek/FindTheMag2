@@ -2,3 +2,4 @@
 ## UPDATE FILE FOR FINDTHEMAG DO NOT DELETE THIS LINE
 1.0,0,Original Version
 2.0,0,Main version
+2.1,0,Update is strongly suggested fixes several major bugs in project handling

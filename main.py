@@ -2048,7 +2048,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                             run_rpc_command(rpc_client, 'set_gpu_mode', existing_gpu_mode))
                         break
         # If we are due to run under dev account, do it
-        if ((DATABASE.get('DEVTIMECOUNTER',1)/60>100 or FORCE_DEV_MODE) and not dev_loop) and (not check_sidestake_results or FORCE_DEV_MODE):
+        if ((max(DATABASE.get('DEVTIMECOUNTER',0),1)/60>100 or FORCE_DEV_MODE) and not dev_loop) and (not check_sidestake_results or FORCE_DEV_MODE):
             boinc_password=setup_dev_boinc() # Setup and start dev boinc
             DEV_BOINC_PASSWORD=boinc_password
             dev_rpc_client=None

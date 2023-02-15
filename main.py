@@ -1890,8 +1890,9 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if dev_loop:
             log.debug('Should not start dev crunching bc already in dev loop')
             return False
-        if not check_sidestake_results:
+        if check_sidestake_results:
             log.debug('Should skip dev mode bc check_sidestake_results')
+            return False
         if FORCE_DEV_MODE:
             log.debug('Should start dev crunching bc FORCE_DEV_MODE')
             return True

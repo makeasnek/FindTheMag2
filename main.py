@@ -1886,6 +1886,21 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     if mode not in DATABASE:
         DATABASE[mode]={}
 
+    def should_crunch_for_dev() -> bool:
+        if dev_loop:
+            log.debug('Should not start dev crunching bc already in dev loop')
+            return False
+        if not check_sidestake_results:
+            log.debug('Should skip dev mode bc check_sidestake_results')
+        if FORCE_DEV_MODE:
+            log.debug('Should start dev crunching bc FORCE_DEV_MODE')
+            return True
+        dev_time_counter_in_hours=max(DATABASE.get('DEVTIMECOUNTER', 0), 1) / 60
+        if dev_time_counter_in_hours > 100:
+            log.debug('Should start dev crunching due to time counter: {}'.format(dev_time_counter_in_hours))
+            return True
+        log.debug('Should not start dev crunching, current counter is: {}'.format(dev_time_counter_in_hours))
+        return False
     # Note yoyo@home does not support weak auth so it can't be added here
     DEV_PROJECT_DICT={
         'HTTPS://SECH.ME/BOINC/AMICABLE/':'48989_50328a1561506cd0dcd10476106fda82',
@@ -2057,7 +2072,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                             run_rpc_command(rpc_client, 'set_gpu_mode', existing_gpu_mode))
                         break
         # If we are due to run under dev account, do it
-        if ((max(DATABASE.get('DEVTIMECOUNTER',0),1)/60>100 or FORCE_DEV_MODE) and not dev_loop) and (not check_sidestake_results or FORCE_DEV_MODE):
+        if should_crunch_for_dev():
             boinc_password=setup_dev_boinc() # Setup and start dev boinc
             DEV_BOINC_PASSWORD=boinc_password
             dev_rpc_client=None

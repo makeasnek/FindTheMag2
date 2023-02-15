@@ -483,6 +483,9 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
     """
     Wait for BOINC to finish all pending xfers, return None when done
     """
+    max_loops=30
+    current_loops=0
+    loop_wait_in_seconds=30 # wait this long between loops
     def xfers_happening(xfer_list:list)->bool:
         """
         Returns True if any active xfers are happening, false if none are happening or if only stalled xfers exist
@@ -493,19 +496,22 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
             return False
         for xfer in xfer_list:
             if str(xfer['status'])=='0':
+                if 'persistent_file_xfer' in xfer:
+                    if float(xfer['persistent_file_xfer'].get('num_retries',0))>1:
+                        continue # assume xfers with multiple retries are stalled
                 return True
             else:
                 log.warning('Found xfer with unknown status: ' + str(xfer))
         return False
-
     # Every ten seconds we will request the list of file transfers from BOINC until there are none left
-    while True:
+    while current_loops<max_loops:
+        current_loops+=1
         # Ask BOINC for a list of file transfers
         allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'get_file_transfers'))
         cleaned_response=''
         if xfers_happening(allow_response):
             log.debug('xfers happening: {}'.format(str(allow_response)))
-            sleep(10)
+            sleep(loop_wait_in_seconds)
             continue
         # Remove whitespace etc
         if isinstance(allow_response,list):
@@ -518,6 +524,7 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
             else:
                 log.error('Unexpected response2 in wait_till_no_xfers: ' + str(cleaned_response))
         log.error('Unexpected response3 in wait_till_no_xfers: ' + str(cleaned_response))
+
 
 def get_config_parameters(gridcoin_dir:str)->Dict[str, str]:
     """
@@ -1881,7 +1888,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
 
     # Note yoyo@home does not support weak auth so it can't be added here
     DEV_PROJECT_DICT={
-        'HTTPS://SECH.ME/BOINC/AMICABLE/WEAK_AUTH.PHP':'48989_50328a1561506cd0dcd10476106fda82',
+        'HTTPS://SECH.ME/BOINC/AMICABLE/':'48989_50328a1561506cd0dcd10476106fda82',
         'HTTPS://ASTEROIDSATHOME.NET/BOINC/':'476179_e114636a09b4d451daacc9488c1f3b83',
         'HTTPS://EINSTEINATHOME.ORG/':'1043421_4a19901b420ccc1aab1df9021e59e5ee',
         'HTTPS://EINSTEIN.PHYS.UWM.EDU/':'1043421_4a19901b420ccc1aab1df9021e59e5ee',
@@ -2493,7 +2500,8 @@ if __name__ == '__main__':
         APPROVED_PROJECT_URLS = grc_client.get_approved_project_urls()
         mag_ratios = get_project_mag_ratios(grc_client,lookback_period)
     except Exception as e:
-        print_and_log('Unable to connect to Gridcoin wallet. Assuming it doesn\'t exist. Error: ' + str(e),'ERROR')
+        print_and_log('Unable to connect to Gridcoin wallet. Assuming it doesn\'t exist. Error: ','ERROR')
+        log.error('{}'.format(e))
         print('It is suggested to install the Gridcoin wallet for the most up-to-date magnitude information')
         print('Otherwise, we will fetch data from gridcoinstats.eu which is limited to once per day')
         log.warning('Unable to connect to gridcoin wallet! {} Trying web-based option...'.format(e))

@@ -1455,11 +1455,13 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
                 continue
             for phrase in positive_phrases:
                 if phrase.upper() in uppered_body:
+                    log.debug('Backing off {} bc {} in logs'.format(project_name, phrase))
                     return True
             for phrase in negative_phrases:
                 if phrase.upper() in uppered_body:
                     return False
             if 'NEEDS' in uppered_body and 'BUT ONLY' in uppered_body and 'IS AVAILABLE FOR USE' in uppered_body:
+                log.debug('Backing off {} bc NEEDS BUT ONLY AVAILABLE FOR USE in logs'.format(project_name), 'DEBUG')
                 return True
             log.warning('Found unknown messagex: {}'.format(message['body']))
         log.warning('Unable to determine if project {} should be backed off, assuming no'.format(project_name))
@@ -2172,7 +2174,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             if minutes_since_last_project_check < DATABASE[mode].get(highest_priority_project.upper(), {}).get('BACKOFF', 0):
                 DATABASE['TABLE_STATUS']='Skipping {} due to backoff period...'.format({highest_priority_project})
                 update_table()
-                log.debug('Skipping project {} due to backoff period...'.format({highest_priority_project}))
+                log.debug('Skipping project {} due to backoff period... minutes_since is {}'.format(highest_priority_project,minutes_since_last_project_check))
                 continue
             DATABASE['TABLE_STATUS']='Waiting for xfers to complete..'
             update_table()

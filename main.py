@@ -1425,7 +1425,8 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
         Returns TRUE if project should be backed off. False otherwise or if unable to determine
         """
         #Phrases which indicate project SHOULD be backed off
-        positive_phrases=['project has no tasks available','project requested delay','scheduler request failed','no tasks sent','last request too recent','An NVIDIA GPU is required to run tasks for this project']
+        # removed 'project requested delay' from positive phrases because projects always provide this, even if work was provided!
+        positive_phrases=['project has no tasks available','scheduler request failed','no tasks sent','last request too recent','An NVIDIA GPU is required to run tasks for this project']
         # Phrases which indicate project SHOULD NOT be backed off
         negative_phrases=["Not requesting tasks: don't need",'started download','Finished download of']
         # Phrases which indicate we can skip this log entry

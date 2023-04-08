@@ -1,4 +1,6 @@
 # FindTheMag
+**IMPORTANT: SECURITY UPDATE APR 2023. If you used FindTheMag to enable RPC on your Gridcoin client, it set an incorrect flag in your gridcoinresearch.conf file. Edit this file to remove the line starting with allowip. This line allowed other machines on your LAN (or the wider internet if your machine is not behind a NAT/firewall) to talk to your wallet's RPC port. It did NOT enable access to your wallet since commands were only able to be issued from localhost, but that port never should have been open in the first place. My apologies for the mixup. In my defense, the documentation for this on the Gridcoin site was really unintuitive and I will be putting in a pull request to fix this asap.**
+
 FindTheMag is a powerful utility which prints statistics from your BOINC client and offers suggestions to optimize your crunching. If you ask it to, it will also control BOINC to crunch projects according to your
 preferences. It even has options to only crunch according to profitability and/or temperature.
 

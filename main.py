@@ -57,7 +57,7 @@ benchmarking_minimum_time:float=10
 benchmarking_delay_in_days:float=160
 skip_benchmarking:bool=False
 dev_fee:float=.05
-VERSION=2.1
+VERSION=2.2
 DEV_RPC_PORT=31418
 log_level='WARNING'
 start_temp:int=65
@@ -2497,7 +2497,6 @@ if __name__ == '__main__':
                     print('You don\'t need to remember these.')
                     print('Modifying config file...')
                     myfile.write("rpcport=9876\n")
-                    myfile.write("rpcallowip=127.0.0.1\n")
                     myfile.write("server=1\n")
                     myfile.write("rpcuser=" + rpc_user + '\n')
                     myfile.write("rpcpassword=" + gridcoin_rpc_password + '\n')

@@ -126,6 +126,10 @@ Then you can get profitability (mag/hr):
 
 profitability = (total credits earned / time those credits took) * mag ratio 
 
+<b>What if a project gets greylisted?</b>
+
+FindTheMag will notice and crunch accordingly. If you have that project in your preferred projects, it will continue to be assigned weight. But if it's just a "mining" project, it will not be crunched.
+
 <b>Why is it setting all these projects weights to 1?</b>
 
 So that it can gradually accumulate enough stats to determine the profitability of these projects, and so those stats

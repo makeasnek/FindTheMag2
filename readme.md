@@ -1,5 +1,5 @@
 # FindTheMag
-**IMPORTANT: SECURITY UPDATE APR 7 2023. If you used FindTheMag to enable RPC on your Gridcoin client prior to this date, it set an incorrect flag in your gridcoinresearch.conf file. Edit this file to remove the line starting with allowip. This line allowed other machines on your LAN (or the wider internet if your machine is not behind a NAT/firewall) to talk to your wallet's RPC port. It did NOT enable access to your wallet since commands were only able to be issued from localhost, but that port never should have been open in the first place. My apologies for the mixup. In my defense, the documentation for this on the Gridcoin site was really unintuitive and I will be putting in a pull request to fix this asap.**
+**IMPORTANT: SECURITY UPDATE APR 7 2023.** If you used FindTheMag to enable RPC on your Gridcoin client prior to this date, it set an incorrect flag in your gridcoinresearch.conf file. Edit this file to remove the line starting with allowip. This line allowed other machines on your LAN (or the wider internet if your machine is not behind a NAT/firewall. 99% of home user are) to talk to your wallet's RPC port. **It did NOT enable access to your wallet** since commands were only able to be issued from localhost, but that port never should have been open in the first place. My apologies for the error on my part. In my defense, the documentation for this on the Gridcoin site was pretty confusing. It has now been fixed there as well.
 
 FindTheMag is a powerful utility which prints statistics from your BOINC client and offers suggestions to optimize your crunching. If you ask it to, it will also control BOINC to crunch projects according to your
 preferences. It even has options to only crunch according to profitability and/or temperature.
@@ -45,7 +45,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
  * It is **strongly suggested** to have at least 10GB of free space for BOINC and that you allow BOINC to download at least 1 day of "extra" work. This helps project servers even out load and prevents this tool from getting confused. If you have a very small work cache and have profitability control enabled, you may occasionally run dry on work which is no fun. Otherwise, everything should be fine.
 
 <b>How dev fee/crunching for dev works</b>
- * The dev fee by design does not kick in until you already have 100 hours of FTM usage under your belt. So it does come with a free trial! The revenue of the dev fee also supports Gridcoinstats which graciously hosts the stats needed for this tool to run, and to the Gridcoin foundation/community wallet.
+ * The dev fee by design does not kick in until you already have around 1000 hours of FTM usage under your belt. So it does come with a free trial! The revenue of the dev fee also supports Gridcoinstats which graciously hosts the stats needed for this tool to run, and to the Gridcoin foundation/community wallet.
  * The dev fee portion is skipped if you have elected to sidestake to the dev instead. This is suggested as it is simpler and will save you the disk space of a secondary BOINC install
  * Crunching for dev works by making a seperate BOINC install contained in the FindTheMag folder, set to take up no more than 10GB space. This BOINC install is attached to projects using the developer's username.
  * The secondary BOINC installed used to crunch for dev will respect the same settings your normal BOINC install is set to (whether or not to use GPU, # of cores, etc)
@@ -94,6 +94,14 @@ have enabled GDPR export on projects which require it. See https://gridcoin.us/g
 <b>I'm getting some error while running the tool or need to contact you</b>
 
 Open an issue here on github or email makeasnek{at}gmail.com.
+
+<b>All my projects are set to "no new tasks"</b>
+
+This behaviour is expected, it will leave the highest priority project to "allow new tasks" and the rest to "no new tasks". It occasionally cycles through all projects so you never run dry on work.
+
+<b>I have no tasks?</b>
+
+This is probably because you set ONLY_BOINC_IF_PROFITABLE to True in your config.py and no profitable projects were attached. Otherwise, if your projects actually have tasks available, it's a bug please report it.
 
 <b>My BOINC client doesn't seem to be crunching according to the weight I assigned?</b>
 

@@ -222,7 +222,7 @@ def safe_exit(arg1,arg2)->None:
             print('Permission error restoring original BOINC preferences {}'.format(e))
             log.error('Permission error restoring original BOINC preferences {}'.format(e))
             print('Be sure you have permission to edit this file')
-            print("Linux users try 'sudo chown your_username {}' to fix this error".format(override_path))
+            print("Linux users try  'sudo usermod -aG boinc your_username_here' to fix this error".format(override_path))
         except Exception as e:
             print('Error restoring original BOINC preferences {}'.format(e))
             log.error('Error restoring original BOINC preferences {}'.format(e))
@@ -1504,6 +1504,17 @@ async def get_attached_projects(rpc_client: libs.pyboinc.rpc_client)->Tuple[List
         else:
             project_names[project.master_url]=project.project_name
     return found_projects,project_names
+async def verify_boinc_connection(rpc_client:libs.pyboinc.rpc_client)->bool:
+    """
+    Checks if a BOINC client can be connected to and authorized.
+    Returns True if it can, False if it can't.
+    """
+    authorize_response = await rpc_client.authorize()
+    req = ET.Element('get_global_prefs_working')
+    response = await rpc_client._request(req)
+    if 'unauthorized' in str(response):
+        return False
+    return True
 async def prefs_check(rpc_client: libs.pyboinc.rpc_client)->dict:
     # authorize BOINC client
     authorize_response = await rpc_client.authorize()
@@ -2410,8 +2421,8 @@ if __name__ == '__main__':
 
     # auto-detect password for BOINC RPC if it exists and user didn't know
     # BOINC on Windows automatically generates an RPC password
+    auth_location = os.path.join(boinc_data_dir, 'gui_rpc_auth.cfg')
     if not boinc_password:
-        auth_location = os.path.join(boinc_data_dir, 'gui_rpc_auth.cfg')
         try:
             if os.path.exists(auth_location):
                 with open(auth_location, 'r') as file:
@@ -2617,6 +2628,14 @@ if __name__ == '__main__':
     except Exception as e:
         log.warning('global_prefs_override.xml does not appear to exist, not backing up. Some users may not have one. Error: {}'.format(e))
 
+    verification_result = loop.run_until_complete(verify_boinc_connection(rpc_client))
+    if not verification_result:
+        print_and_log('Error connecting to BOINC client, does your gui_rpc_auth.cfg specify a password or a non-standard port?\n If so, be sure to include it in your config.py')
+        print('You can find your gui_rpc_auth.cfg at {}'.format(auth_location))
+        print('Linux users: make sure your username is in the BOINC group so FTM can access your BOINC config file')
+        print('sudo usermod -aG boinc your_username_here')
+        print('Note that you will need to restart your computer after changing your group permissions')
+        answer=input('Press enter to quit')
     loop.run_until_complete(prefs_check(rpc_client))
     # NNT all projects
     nnt_response = loop.run_until_complete(nnt_all_projects(rpc_client))

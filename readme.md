@@ -166,7 +166,7 @@ tool to directly control BOINC, it will work to make sure your CPU and GPU are a
 
 <b>What about if my hardware changes? If I add/remove a CPU/GPU?</b>
 
-If you add hardware, FTM's estimate of each project's profitability will gradually approach the "new" number. If you remove hardware, there is a chance it never will, particularly if you have removed a GPU and not replaced it with another. This is because FTM will keep trying to request from GPU-only projects, get no new WUs, and therefore never update its stats. For this reason, if you remove a GPU, I would suggest re-installing BOINC and FTM to start fresh with your stats.
+If you add hardware, FTM's estimate of each project's profitability will gradually approach the "new" number. If you remove hardware, there is a chance it never will, particularly if you have removed a GPU and not replaced it with another. This is because FTM will keep trying to request from GPU-only projects, get no new WUs, and therefore never update its stats. For this reason, if you remove a GPU, I would suggest removing and re-adding the projects in BOINC reinstalling FTM to reset your stats.
 
 <b>How often should I re-check my stats with this?</b>
 

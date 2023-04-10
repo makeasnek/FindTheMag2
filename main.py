@@ -2635,12 +2635,13 @@ if __name__ == '__main__':
 
     verification_result = loop.run_until_complete(verify_boinc_connection(rpc_client))
     if not verification_result:
-        print_and_log('Error connecting to BOINC client, does your gui_rpc_auth.cfg specify a password or a non-standard port?\n If so, be sure to include it in your config.py')
+        print_and_log('Error connecting to BOINC client, does your gui_rpc_auth.cfg specify a password or a non-standard port?\n If so, be sure to include it in your config.py','ERROR')
         print('You can find your gui_rpc_auth.cfg at {}'.format(auth_location))
         print('Linux users: make sure your username is in the BOINC group so FTM can access your BOINC config file')
         print('sudo usermod -aG boinc your_username_here')
         print('Note that you will need to restart your computer after changing your group permissions')
         answer=input('Press enter to quit')
+        quit()
     loop.run_until_complete(prefs_check(rpc_client))
     # NNT all projects
     nnt_response = loop.run_until_complete(nnt_all_projects(rpc_client))

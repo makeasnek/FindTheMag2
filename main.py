@@ -223,9 +223,14 @@ def safe_exit(arg1,arg2)->None:
             log.error('Permission error restoring original BOINC preferences {}'.format(e))
             print('Be sure you have permission to edit this file')
             print("Linux users try  'sudo usermod -aG boinc your_username_here' to fix this error".format(override_path))
+            print('Note that you will need to restart your machine for these changes to take effect')
         except Exception as e:
             print('Error restoring original BOINC preferences {}'.format(e))
             log.error('Error restoring original BOINC preferences {}'.format(e))
+            print('Be sure you have permission to edit this file')
+            print(
+                "Linux users try  'sudo usermod -aG boinc your_username_here' to fix this error".format(override_path))
+            print('Note that you will need to restart your machine for these changes to take effect')
         else:
             os.remove(override_dest_path)
 

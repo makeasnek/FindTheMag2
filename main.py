@@ -1536,9 +1536,9 @@ async def prefs_check(rpc_client: libs.pyboinc.rpc_client)->dict:
     if (max_gb<10 and max_gb!=0) or used_max_gb<9.5:
         print("BOINC is configured to use less than 10GB, this tool will not run with <10GB allocated in order to prevent requesting base project files from projects too often.")
         log.error("BOINC is configured to use less than 10GB, this tool will not run with <10GB allocated in order to prevent requesting base project files from projects too often.")
-        print('If you have configured BOINC to be able to use >=10GB and still get this message, it is because you are low on disk space and BOINC is responding to settings such as "don\t use greater than X% of space" or "leave x% free"')
+        print('If you have configured BOINC to be able to use >=10GB and still get this message, it is because you are low on disk space and BOINC is responding to settings such as "don\'t use greater than X% of space" or "leave x% free"')
         log.error(
-            'If you have configured BOINC to be able to use >=10GB and still get this message, it is because you are low on disk space and BOINC is responding to settings such as "don\t use greater than X% of space" or "leave x% free"')
+            'If you have configured BOINC to be able to use >=10GB and still get this message, it is because you are low on disk space and BOINC is responding to settings such as "don\'t use greater than X% of space" or "leave x% free"')
         print('Press enter to quit')
         input()
         quit()

@@ -415,7 +415,7 @@ def get_grc_price()->float:
 
     # Get price from coingecko
     url = 'https://www.coingecko.com/en/coins/gridcoin-research'
-    regex = re.compile('(Current price of Gridcoin is USD \$)(\d*\.\d*)( with)')
+    regex = re.compile('(data-coin-symbol="grc" data-target="price.price">\$)(\d*.\d*)',flags=re.MULTILINE|re.IGNORECASE)
     resp = ''
     try:
         resp = req.get(url, headers=headers).text
@@ -427,8 +427,8 @@ def get_grc_price()->float:
         log.info('Found GRC price of {} from coingecko'.format(answer))
         found_prices.append(answer)
     else:
-        DATABASE['TABLE_STATUS']='Error getting info from goingecko'
-        log.error('Error getting info from goingecko')
+        DATABASE['TABLE_STATUS']='Error getting info from coingecko'
+        log.error('Error getting info from coingecko')
     # Return average of all found prices
     if len(found_prices)>0:
         DATABASE['TABLE_STATUS'] = 'Found GRC price {}'.format(sum(found_prices)/len(found_prices))

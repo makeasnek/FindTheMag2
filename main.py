@@ -2521,7 +2521,15 @@ if __name__ == '__main__':
                 input('')
 
     #Get project list from BOINC
-    rpc_client = loop.run_until_complete(setup_connection(boinc_ip,boinc_password,boinc_port)) # setup BOINC RPC connection
+    rpc_client=None
+    try:
+        rpc_client = loop.run_until_complete(setup_connection(boinc_ip,boinc_password,boinc_port)) # setup BOINC RPC connection
+    except Exception as e:
+        print_and_log('Error: Unable to connect to BOINC client, quitting now','ERROR')
+        quit()
+    if not rpc_client: # this was just added so pycharm would stop complaining about rpc_client not being declared
+        print_and_log('Error connecting to BOINC client, quitting now', 'ERROR')
+        quit()
     BOINC_PROJECT_LIST,BOINC_PROJECT_NAMES = loop.run_until_complete(get_attached_projects(rpc_client)) # get project list from BOINC client directly. This is needed for correct capitalization
     ALL_BOINC_PROJECTS=loop.run_until_complete(get_all_projects(rpc_client))
 

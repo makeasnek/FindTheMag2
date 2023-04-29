@@ -442,9 +442,9 @@ def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
     """
 
     # Return cached version if we have it and requested it < 24 hrs ago
-    log.debug('Returning cached version of gridcoinstats data')
     delta=datetime.datetime.now()-DATABASE.get('LASTGRIDCOINSTATSPROJECTCHECK',datetime.datetime(1993,3,3))
     if abs(delta.days)<1 and 'GSPROJECTLIST' in DATABASE and 'GSRESOLVERDICT' in DATABASE:
+        log.debug('Returning cached version of gridcoinstats data')
         return DATABASE['GSPROJECTLIST'],DATABASE['GSRESOLVERDICT']
 
     # Otherwise, request it
@@ -1448,7 +1448,8 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
             'master file download succeeded',
             'fetching scheduler list',
             'Upgrade to the latest driver to process tasks using your computer\'s GPU',
-            'not started and deadline has passed'
+            'not started and deadline has passed',
+            'Project requested delay of'
         ]
         for message in messages:
             uppered_body=message['body'].upper()

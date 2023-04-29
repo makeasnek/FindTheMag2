@@ -1,7 +1,14 @@
 # FindTheMag
-**IMPORTANT: SECURITY UPDATE APR 7 2023.** If you used FindTheMag to enable RPC on your Gridcoin client prior to this date, it set an incorrect flag in your gridcoinresearch.conf file. Edit this file to remove the line starting with allowip. This line allowed other machines on your LAN (or the wider internet if your machine is not behind a NAT/firewall. 99% of home user are) to talk to your wallet's RPC port. **It did NOT enable access to your wallet** since commands were only able to be issued from localhost, but that port never should have been open in the first place. My apologies for the error on my part. In my defense, the documentation for this on the Gridcoin site was pretty confusing. It has now been fixed there as well.
+**IMPORTANT: SECURITY UPDATE APR 7 2023.** If you used FindTheMag to enable RPC on your Gridcoin client prior to this 
+date, it set an incorrect flag in your gridcoinresearch.conf file. Edit this file to remove the line starting with 
+allowip. This line allowed other machines on your LAN (or the wider internet if your machine is not behind a NAT/firewall.
+99% of home user are) to talk to your wallet's RPC port. **It did NOT enable access to your wallet** since commands 
+were only able to be issued from localhost, but that port never should have been open in the first place. My apologies 
+for the error on my part. In my defense, the documentation for this on the Gridcoin site was pretty confusing. It has 
+now been fixed there as well.
 
-FindTheMag is a powerful utility which prints statistics from your BOINC client and offers suggestions to optimize your crunching. If you ask it to, it will also control BOINC to crunch projects according to your
+FindTheMag is a powerful utility which prints statistics from your BOINC client and offers suggestions to optimize your
+crunching. If you ask it to, it will also control BOINC to crunch projects according to your
 preferences. It even has options to only crunch according to profitability and/or temperature.
 
 You can group BOINC projects into two groups: 
@@ -11,17 +18,24 @@ amount of GRC possible. In the event that your preferred project(s) happen to be
 assign all project weight to them.
 
 FindTheMag uses your own BOINC client's stats to determine which projects get the most credit per hour on your machine. 
-It then figures out which projects earn you the most Gridcoin. [Quickmag](http://quickmag.ml/cgi-bin/script.cgi) is a similar tool which will estimate the most profitable projects for your hardware based on the performance of other crunchers with similar hardware. It's useful and elegant. You should check it out.
+It then figures out which projects earn you the most Gridcoin. [Quickmag](http://quickmag.ml/cgi-bin/script.cgi) is a 
+similar tool which will estimate the most profitable projects for your hardware based on the performance of other 
+crunchers with similar hardware. It's useful and elegant. You should check it out.
 
 <b>If you find this tool useful</b>, consider sidestaking or donating
 some GRC to me at RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K
 
 This tool's accuracy improves the longer you have been running BOINC. It will automatically set all Gridcoin-approved 
-projects to a weight of one (if you have BOINC control enabled and are attached to all projects) so they will continue to use a small portion of your processing power (total of 1% of all crunching time), each time increasing the accuracy of the tool.
+projects to a weight of one (if you have BOINC control enabled and are attached to all projects) so they will continue
+to use a small portion of your processing power (total of 1% of all crunching time), each time increasing the accuracy of the tool.
 
-It is strongly suggested to have the Gridcoin wallet running on your machine (fully synced). If you do not have it installed, it will try to fetch statistics from gridcoinstats.eu. This is less reliable in case of network issues and is limited to once per day. 
-The wallet doesn't need any coins in it, just an up-to-date copy of the blockchain. Your machine also requires **python 3.8 or higher**,
-though earlier versions may work they are unsupported. If you just installed BOINC, this tool takes about 48 hours to start working as we have to wait for projects to grant you credit for your work. Though really a week's worth of data is about the minimum you'd need to get useful information from this tool.
+It is strongly suggested to have the Gridcoin wallet running on your machine (fully synced). If you do not have it 
+installed, it will try to fetch statistics from gridcoinstats.eu. This is less reliable in case of network issues and 
+is limited to once per day. The wallet doesn't need any coins in it, just an up-to-date copy of the blockchain. Your
+machine also requires **python 3.8 or higher**, though earlier versions may work they are unsupported. If you just 
+installed BOINC, this tool takes about 48 hours to start working as we have to wait for projects to grant you credit 
+for your work. Though really a week's worth of data is about the minimum you'd need to get useful information from this
+tool.
 
 Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> which this program uses extensively
 
@@ -36,11 +50,11 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
    * There is no way to set project weight outside of logging in to each project manually and setting it there. 
    * You can still use this tool to find out the mag/hr of various projects and "no new tasks" projects you have no interest in crunching either because of low mag/hr or because they are not your preferred projects. This can be done locally on your BOINC client.
 
-<b>If you use this utility to control your BOINC crunching:</b>
+<b>If you use this utility to directly control your BOINC crunching:</b>
  * **5% of your processing power will be donated to development**. I hope you will see that this is only a small portion of the efficiency gain that this tool brings you. And that this tool represents many hundreds of hours of work. You may set a custom dev fee in the config, but it cannot be smaller than 1%. This donated processing power is accomplished by crunching projects under the developer's login. Don't worry, all crunching power still goes towards science!
  * You will see most of your project set to "no new tasks" except one, this is how FTM controls BOINC. Your "highest priority project" determined by expected crunch time vs actual (determined by project weight) will have tasks requested, and FTM will continue requesting tasks for each project until the work cache is full.
  * You can continue to use tools like BOINC Manager or BOINCTUI to monitor your crunching
- * You can stop the script at any time and regain manual control of your BOINC client, it will be reset to the settings which existed before FTM was run
+ * You can stop the script at any time and regain manual control of your BOINC client, it will be reset to the settings which existed before FTM was run. This means that if you edit BOINC's preferences (such as computing preferences) while FTM is running, FTM will reset those settings upon being closed.
  * It will respect all pre-existing BOINC settings you have such as when to crunch or use the network. All this tool really does is set projects to "no new tasks" and request work from projects.
  * It is **strongly suggested** to have at least 10GB of free space for BOINC and that you allow BOINC to download at least 1 day of "extra" work. This helps project servers even out load and prevents this tool from getting confused. If you have a very small work cache and have profitability control enabled, you may occasionally run dry on work which is no fun. Otherwise, everything should be fine.
 

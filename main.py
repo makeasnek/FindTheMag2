@@ -42,7 +42,9 @@ boinc_ip: str = "127.0.0.1"
 boinc_port: int = 31416
 boinc_username: Union[str, None] = None
 boinc_password: Union[str, None] = None
-min_recheck_time: int = 30  # minimum time in minutes before re-asking a project for work who previously said they were out
+# minimum time in minutes before re-asking a project for work who previously said
+# they were out
+min_recheck_time: int = 30
 abort_unstarted_tasks: bool = False
 recalculate_stats_interval: int = 60
 price_check_interval: int = 720
@@ -86,7 +88,8 @@ DATABASE[
 SCRIPTED_RUN: bool = False
 SKIP_TABLE_UPDATES: bool = False
 HOST_COST_PER_HOUR = (host_power_usage / 1000) * local_kwh
-# Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
+# Translates BOINC's CPU and GPU Mode replies into English. Note difference between 
+# keys integer vs string.
 CPU_MODE_DICT = {1: "always", 2: "auto", 3: "never"}
 GPU_MODE_DICT = {"1": "always", "2": "auto", "3": "never"}
 DEV_BOINC_PASSWORD = ""  # this is only used for printing to table, not used elsewhere
@@ -237,9 +240,11 @@ def safe_exit(arg1, arg2) -> None:
     arg1/2 required by the signal handler library, but aren't used for anything inside this function
     """
 
+    # This is needed in case this function is called while main loop is still waiting
+    # for an RPC command etc
     new_loop = (
         asyncio.get_event_loop()
-    )  # this is needed in case this function is called while main loop is still waiting for an RPC command etc
+    )  
     print_and_log("Program exiting gracefully", "INFO")
 
     # Backup most recent database save then save database to json file
@@ -320,7 +325,8 @@ async def is_boinc_crunching(rpc_client: libs.pyboinc.rpc_client) -> bool:
     reply = await run_rpc_command(rpc_client, "get_cc_status")
     task_suspend_reason = int(reply["task_suspend_reason"])
     if task_suspend_reason != 0:
-        # These are documented at https://github.com/BOINC/boinc/blob/73a7754e7fd1ae3b7bf337e8dd42a7a0b42cf3d2/android/BOINC/app/src/main/java/edu/berkeley/boinc/utils/BOINCDefs.kt
+        # These are documented at 
+        # https://github.com/BOINC/boinc/blob/73a7754e7fd1ae3b7bf337e8dd42a7a0b42cf3d2/android/BOINC/app/src/main/java/edu/berkeley/boinc/utils/BOINCDefs.kt
         log.debug(
             "Determined BOINC client is not crunching task_suspend_reason: {}".format(
                 task_suspend_reason
@@ -616,7 +622,8 @@ def wait_till_no_xfers(rpc_client: libs.pyboinc.rpc_client) -> None:
                 log.warning("Found xfer with unknown status: " + str(xfer))
         return False
 
-    # Every ten seconds we will request the list of file transfers from BOINC until there are none left
+    # Every ten seconds we will request the list of file transfers from BOINC until 
+    # there are none left
     while current_loops < max_loops:
         current_loops += 1
         # Ask BOINC for a list of file transfers
@@ -1023,7 +1030,8 @@ def config_files_to_stats(
         )
         stat_list = stat_file_to_list(statsfile)
         log.debug("In statsfile for " + project_url)
-        # Compute the first and last date in the stats file. Currently not used but does work
+        # Compute the first and last date in the stats file. Currently not used but 
+        # does work
         startdate = str(
             datetime.datetime.fromtimestamp(float(stat_list[0]["STARTTIME"])).strftime(
                 "%m-%d-%Y"
@@ -1881,7 +1889,9 @@ async def check_log_entries(
                         else:
                             if (
                                 not gpu_full
-                            ):  # if GPU is not mentioned in log, this would always happen so using this to stop erroneous messages
+                            ):  
+                                # if GPU is not mentioned in log, this would always 
+                                # happen so using this to stop erroneous messages
                                 # print('GPU cache appears not full {}'.format(message['body']))
                                 log.debug(
                                     "GPU cache appears not full {}".format(
@@ -1938,7 +1948,8 @@ async def check_log_entries_for_backoff(
         Returns TRUE if project should be backed off. False otherwise or if unable to determine
         """
         # Phrases which indicate project SHOULD be backed off
-        # removed 'project requested delay' from positive phrases because projects always provide this, even if work was provided!
+        # - removed 'project requested delay' from positive phrases because 
+        #   projects always provide this, even if work was provided!
         positive_phrases = [
             "project has no tasks available",
             "scheduler request failed",
@@ -2052,7 +2063,9 @@ async def get_attached_projects(
         found_projects.append(project.master_url)
         if isinstance(
             project.project_name, bool
-        ):  # this happens if project is "attached" but unable to communicate w project due to it being down or some other issue
+        ):  
+            # this happens if project is "attached" but unable to communicate with
+            # the project due to it being down or some other issue
             project_names[project.master_url] = project.master_url
         else:
             project_names[project.master_url] = project.project_name
@@ -2604,7 +2617,8 @@ def boinc_loop(
     """
     if not client_rpc_client:
         client_rpc_client = rpc_client
-    # these variables are referenced outside the loop (or in recursive calls of the loop) so should be made global
+    # These variables are referenced outside the loop 
+    # (or in recursive calls of the loop) so should be made global
     global combined_stats
     global final_project_weights
     global total_preferred_weight
@@ -2674,7 +2688,8 @@ def boinc_loop(
         Function to update table printed to user.
         :param status = Most recent status "waiting for xfers, starting crunching on x, etc"
         """
-        # don't update table in dev loop because all our variables reference dev install not main one
+        # don't update table in dev loop because all our variables reference 
+        # dev install not main one
         if dev_loop or SKIP_TABLE_UPDATES:
             return
         rename_dict = {
@@ -2743,7 +2758,8 @@ def boinc_loop(
         if DATABASE.get("DEVTIMECOUNTER", 0) < 1 and not FORCE_DEV_MODE and dev_loop:
             return None
 
-        # Re-authorize in case we have become de-authorized since last run. This is put in a try loop b/c sometimes it throws exceptions
+        # Re-authorize in case we have become de-authorized since last run. This is 
+        # put in a try loop b/c sometimes it throws exceptions
         while True:
             try:
                 authorize_response = loop.run_until_complete(rpc_client.authorize())
@@ -2769,7 +2785,8 @@ def boinc_loop(
             log.debug("Calculating stats..")
             DATABASE["STATSLASTCALCULATED"] = datetime.datetime.now()
             combined_stats = config_files_to_stats(boinc_data_dir)
-            # total_time = combined_stats_to_total_time(combined_stats) # Not sure what this line did but commented out, we'll see if anything breaks
+            # Not sure what this line did but commented out, we'll see if anything breaks
+            #total_time = combined_stats_to_total_time(combined_stats) 
             (
                 combined_stats,
                 final_project_weights,
@@ -2814,7 +2831,8 @@ def boinc_loop(
             DATABASE["GRCPRICE"] = grc_price
         else:
             grc_price = DATABASE["GRCPRICE"]
-        # Check profitability of all projects, if none profitable (and user doesn't want unprofitable crunching), sleep for 1hr
+        # Check profitability of all projects, if none profitable 
+        # (and user doesn't want unprofitable crunching), sleep for 1hr
         if only_BOINC_if_profitable and not dev_loop:
             profitability_list = []
             for project in highest_priority_projects:
@@ -2852,7 +2870,8 @@ def boinc_loop(
                 sleep(60 * 60)
                 continue
 
-        # If we have enabled temperature control, verify that crunching is allowed at current temp
+        # If we have enabled temperature control, verify that crunching is 
+        # allowed at current temp
         if enable_temp_control:
             # Get BOINC's starting CPU and GPU modes
             existing_mode_info = loop.run_until_complete(
@@ -2877,7 +2896,8 @@ def boinc_loop(
             if not temp_check():
                 while True:  # Keep sleeping until we pass a temp check
                     log.debug("Sleeping due to temperature")
-                    # Put BOINC into sleep mode, automatically reverting if script closes unexpectedly
+                    # Put BOINC into sleep mode, automatically reverting if 
+                    # script closes unexpectedly
                     sleep_interval = str(int(((60 * temp_sleep_time) + 60)))
                     loop.run_until_complete(
                         run_rpc_command(
@@ -2913,7 +2933,8 @@ def boinc_loop(
             if boinc_password == "ERROR":
                 log.error("Error setting up crunching to developer account")
             else:
-                # setup dev RPC connection, it may take a few tries while we wait for it to come online
+                # setup dev RPC connection, it may take a few tries while we 
+                # wait for it to come online
                 tries = 1
                 tries_max = 5
                 dev_rpc_client = None
@@ -2938,9 +2959,12 @@ def boinc_loop(
                     if tries > tries_max:
                         log.error("Giving up on connecting to BOINC dev client")
             if dev_rpc_client:
-                # Set main BOINC to suspend until we're done crunching in dev mode. It will automatically re-enable itself in 100x the time if nothing is done
-                # This allows for non-graceful exits of this script to not brick client's BOINC and considerations that dev account may not be crunching full time if client
-                # is actively using computer.
+                # Set main BOINC to suspend until we're done crunching in dev mode. 
+                # It will automatically re-enable itself in 100x the time if nothing 
+                # is done.
+                # This allows for non-graceful exits of this script to not brick 
+                # client's BOINC and considerations that dev account may not be 
+                # crunching full time if client is actively using computer.
                 existing_mode_info = loop.run_until_complete(
                     run_rpc_command(rpc_client, "get_cc_status")
                 )
@@ -3003,8 +3027,8 @@ def boinc_loop(
                     run_rpc_command(rpc_client, "set_run_mode", existing_cpu_mode)
                 )
 
-        # loop through each project in order of priority and request new tasks if not backed off
-        # stopping looping if cache becomes full
+        # loop through each project in order of priority and request new tasks if 
+        # not backed off, stopping looping if cache becomes full
         dont_nnt = None
         if dev_loop:
             project_loop = dev_project_weights
@@ -3046,7 +3070,8 @@ def boinc_loop(
                     )
                 )
                 continue
-            # If user has set to only mine highest mag project if profitable and it's not profitable or in benchmarking mode, skip
+            # If user has set to only mine highest mag project if profitable and 
+            # it's not profitable or in benchmarking mode, skip
             if (
                 only_mine_if_profitable
                 and not profitability_result
@@ -3066,12 +3091,15 @@ def boinc_loop(
                 )
                 continue
 
+            # make sure we are using correct URL, BOINC requires capitalization to 
+            # be exact
             highest_priority_project = resolve_boinc_url(
                 highest_priority_project, ALL_BOINC_PROJECTS
-            )  # make sure we are using correct URL, BOINC requires capitalization to be exact
+            )  
             if highest_priority_project.upper() not in DATABASE[mode]:
                 DATABASE[mode][highest_priority_project.upper()] = {}
-            # skip checking project if we have a backoff counter going and it hasn't been long enough
+            # skip checking project if we have a backoff counter going and it 
+            # hasn't been long enough
             time_since_last_project_check = datetime.datetime.now() - DATABASE[mode][
                 highest_priority_project.upper()
             ].get("LAST_CHECKED", datetime.datetime(1997, 6, 21, 18, 25, 30))
@@ -3107,9 +3135,11 @@ def boinc_loop(
 
                 # on first run, there is no project list
                 if isinstance(get_project_list, list):
+                    # convert to simple list of strings so we can check if 
+                    # project URL is in list
                     converted_project_list = project_list_to_project_list(
                         get_project_list
-                    )  # convert to simple list of strings so we can check if project URL is in list
+                    )  
                 else:
                     log.warning(
                         "Dev BOINC shows empty project list, this is normal on first run"
@@ -3184,15 +3214,18 @@ def boinc_loop(
                 + str(boincified_url)
             )
             log.debug("Update response is {}".format(update_response))
+            # give BOINC time to update w project, I don't know a less hacky way to 
+            # do this, suggestions are welcome
             sleep(
                 15
-            )  # give BOINC time to update w project, I don't know a less hacky way to do this, suggestions are welcome
+            )  
             DATABASE[mode][highest_priority_project.upper()][
                 "LAST_CHECKED"
             ] = datetime.datetime.now()
             # check if project should be backed off. If so, back it off.
             # This is an exponentially increasing backoff with a maximum time of 1 day
-            # Projects are backed off if they request it, if they are unresponsive/down, or if no work is available
+            # Projects are backed off if they request it, if they are 
+            # unresponsive/down, or if no work is available
             backoff_response = loop.run_until_complete(
                 check_log_entries_for_backoff(rpc_client, project_name=project_name)
             )
@@ -3215,7 +3248,10 @@ def boinc_loop(
 
                 if (
                     not dont_nnt
-                ):  # if we didn't get a backoff signal and we haven't picked a project to leave non-NNTed during sleeping of loop, pick this one for that purpose
+                ):  
+                    # if we didn't get a backoff signal and we haven't picked 
+                    # a project to leave non-NNTed during sleeping of loop, 
+                    # pick this one for that purpose
                     dont_nnt = highest_priority_project.upper()
 
             # re-NNT all projects
@@ -3236,7 +3272,8 @@ def boinc_loop(
                 break
 
         # Allow highest non-backedoff project to be non-NNTd.
-        # This enables BOINC to fetch work if it's needed before our sleep period elapses
+        # This enables BOINC to fetch work if it's needed before our 
+        # sleep period elapses
         if dont_nnt:
             allow_this_project = resolve_boinc_url_new(dont_nnt)
             allow_response = loop.run_until_complete(
@@ -3247,9 +3284,10 @@ def boinc_loop(
                     allow_this_project,
                 )
             )
+        # There's no reason to loop through all projects more than once every 30 minutes
         custom_sleep(
             30, rpc_client, dev_loop=dev_loop
-        )  # There's no reason to loop through all projects more than once every 30 minutes
+        )  
 
 
 def print_and_log(msg: str, log_level: str) -> None:
@@ -3304,9 +3342,11 @@ if __name__ == "__main__":
     del python_major
     log.debug("Python version {}".format(platform.python_version()))
 
+    # shut down dev client is it's running. This is useful if program shuts 
+    # down unexpectedly
     shutdown_dev_client(
         quiet=True
-    )  # shut down dev client is it's running. This is useful if program shuts down unexpectedly
+    )  
 
     # Load long-term stats
     if os.path.exists("stats.json"):
@@ -3584,12 +3624,15 @@ if __name__ == "__main__":
         quit()
     if (
         not rpc_client
-    ):  # this was just added so pycharm would stop complaining about rpc_client not being declared
+    ):  # this was just added so pycharm would stop complaining about 
+        # rpc_client not being declared
         print_and_log("Error connecting to BOINC client, quitting now", "ERROR")
         quit()
+    # get project list from BOINC client directly. This is needed for 
+    # correct capitalization
     BOINC_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(
         get_attached_projects(rpc_client)
-    )  # get project list from BOINC client directly. This is needed for correct capitalization
+    )  
     ALL_BOINC_PROJECTS = loop.run_until_complete(get_all_projects(rpc_client))
 
     # Get project list from Gridcoin wallet and/or gridcoinstats
@@ -3804,10 +3847,13 @@ if __name__ == "__main__":
     priority_results = {}
     highest_priority_project = ""
     highest_priority_projects = []
+    # force calculation of stats at first run since they are not cached in DB
     DATABASE["STATSLASTCALCULATED"] = datetime.datetime(
         1997, 3, 3
-    )  # force calculation of stats at first run since they are not cached in DB
-    # While we don't have enough tasks, continue cycling through project list and updating. If we have cycled through all projects, get_highest_priority_project will stall to prevent requesting too often
+    )  
+    # While we don't have enough tasks, continue cycling through project list and 
+    # updating. If we have cycled through all projects, get_highest_priority_project
+    # will stall to prevent requesting too often
     boinc_loop(False, rpc_client)
     # Restore user prefs
     safe_exit(None, None)

@@ -6,4 +6,5 @@
 /global_prefs_override_backup.xml
 /.idea/
 /venv/
+/.git-blame-ignore-revs
 scratch.py

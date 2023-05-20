@@ -26,7 +26,7 @@ from requests.auth import HTTPBasicAuth
 from typing import List, Union, Dict, Tuple, Any
 import sys, signal
 
-# ignore deprecation warnings in Windows
+# Ignore deprecation warnings in Windows
 import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -42,7 +42,7 @@ boinc_ip: str = "127.0.0.1"
 boinc_port: int = 31416
 boinc_username: Union[str, None] = None
 boinc_password: Union[str, None] = None
-# minimum time in minutes before re-asking a project for work who previously said
+# Minimum time in minutes before re-asking a project for work who previously said
 # they were out
 min_recheck_time: int = 30
 abort_unstarted_tasks: bool = False
@@ -75,16 +75,16 @@ lookback_period = 30
 
 # Some globals we need. I try to have all globals be ALL CAPS
 FORCE_DEV_MODE = (
-    False  # used for debugging purposes to force crunching under dev account
+    False  # Used for debugging purposes to force crunching under dev account
 )
 BOINC_PROJECT_NAMES = {}
 DATABASE = {}
 DATABASE[
     "TABLE_SLEEP_REASON"
-] = ""  # sleep reason printed in table, must be reset at script start
+] = ""  # Sleep reason printed in table, must be reset at script start
 DATABASE[
     "TABLE_STATUS"
-] = ""  # info status printed in table, must be reset at script start
+] = ""  # Info status printed in table, must be reset at script start
 SCRIPTED_RUN: bool = False
 SKIP_TABLE_UPDATES: bool = False
 HOST_COST_PER_HOUR = (host_power_usage / 1000) * local_kwh
@@ -92,19 +92,19 @@ HOST_COST_PER_HOUR = (host_power_usage / 1000) * local_kwh
 # keys integer vs string.
 CPU_MODE_DICT = {1: "always", 2: "auto", 3: "never"}
 GPU_MODE_DICT = {"1": "always", "2": "auto", "3": "never"}
-DEV_BOINC_PASSWORD = ""  # this is only used for printing to table, not used elsewhere
+DEV_BOINC_PASSWORD = ""  # This is only used for printing to table, not used elsewhere
 DEV_LOOP_RUNNING = False
 
-# import user settings from config
+# Import user settings from config
 try:
     from config import *
 except Exception as e:
     print("Error opening config.py, using defaults! Error is: {}".format(e))
-# if user has no preferred projects, their % of crunching should be 0
+# If user has no preferred projects, their % of crunching should be 0
 if len(preferred_projects) == 0:
     preferred_projects_percent: float = 0
 
-# setup logging
+# Setup logging
 log = logging.getLogger()
 if log_level == "NONE":
     log.addHandler(logging.NullHandler())
@@ -133,7 +133,7 @@ class GridcoinClientConnection:
         rpc_user: str = None,
         rpc_password: str = None,
     ):
-        self.configfile = config_file  # absolute path to the client config file
+        self.configfile = config_file  # Absolute path to the client config file
         self.ipaddress = ip_address
         self.rpc_port = rpc_port
         self.rpcuser = rpc_user
@@ -198,7 +198,7 @@ class BoincClientConnection:
         if config_dir is None:
             self.config_dir = "/var/lib/boinc-client"
         else:
-            self.config_dir = config_dir  # absolute path to the client config dir
+            self.config_dir = config_dir  # Absolute path to the client config dir
         self.ip_address = ip_address
         self.port = port
         self.rpc_user = rpc_user
@@ -223,10 +223,10 @@ def shutdown_dev_client(quiet: bool = False) -> None:
     try:
         dev_rpc_client = exit_loop.run_until_complete(
             setup_connection(boinc_ip, boinc_password, port=DEV_RPC_PORT)
-        )  # setup dev BOINC RPC connection
+        )  # Setup dev BOINC RPC connection
         authorize_response = exit_loop.run_until_complete(
             dev_rpc_client.authorize()
-        )  # authorize dev RPC connection
+        )  # Authorize dev RPC connection
         shutdown_response = exit_loop.run_until_complete(
             run_rpc_command(dev_rpc_client, "quit")
         )
@@ -602,7 +602,7 @@ def wait_till_no_xfers(rpc_client: libs.pyboinc.rpc_client) -> None:
     """
     max_loops = 30
     current_loops = 0
-    loop_wait_in_seconds = 30  # wait this long between loops
+    loop_wait_in_seconds = 30  # Wait this long between loops
 
     def xfers_happening(xfer_list: list) -> bool:
         """
@@ -616,7 +616,7 @@ def wait_till_no_xfers(rpc_client: libs.pyboinc.rpc_client) -> None:
             if str(xfer["status"]) == "0":
                 if "persistent_file_xfer" in xfer:
                     if float(xfer["persistent_file_xfer"].get("num_retries", 0)) > 1:
-                        continue  # assume xfers with multiple retries are stalled
+                        continue  # Assume xfers with multiple retries are stalled
                 return True
             else:
                 log.warning("Found xfer with unknown status: " + str(xfer))
@@ -751,12 +751,12 @@ def projecturlfromstatsfile(
     """
     Guess a project url from the name of a stats file
     """
-    # remove extraneous information from name
+    # Remove extraneous information from name
     statsfilename = statsfilename.replace("job_log_", "")
     statsfilename = statsfilename.split("_")[0]
     statsfilename = statsfilename.replace(".txt", "")
 
-    # check if name is in any known URLs
+    # Check if name is in any known URLs
     for knownurl in approved_project_urls:
         if statsfilename.upper() in knownurl:
             return knownurl
@@ -767,7 +767,7 @@ def projecturlfromstatsfile(
         if statsfilename.upper() in knownurl.upper():
             return (
                 knownurl.upper()
-            )  # we have to upper these as they are not uppered by default
+            )  # We have to upper these as they are not uppered by default
     print(
         "WARNING: Found stats file "
         + statsfilename
@@ -801,7 +801,7 @@ def project_url_from_credit_history_file(
             return knownurl
     for knownurl in boinc_projects_list:
         if filename.upper() in knownurl.upper():
-            return knownurl.upper()  # have to upper as this list is not uppered
+            return knownurl.upper()  # Have to upper as this list is not uppered
     print(
         "WARNING: Found credit history file "
         + filename
@@ -955,7 +955,7 @@ async def run_rpc_command(
     """
     full_command = "{} {} {} {}".format(
         command, arg1, arg1_val, arg2, arg2_val
-    )  # added for debugging purposes
+    )  # Added for debugging purposes
     log.debug("Running BOINC rpc request " + full_command)
     req = ET.Element(command)
     if arg1 is not None:
@@ -1011,7 +1011,7 @@ def config_files_to_stats(
     credit_history_files: List[str] = []
     return_stats = {}
 
-    # find files to search through, add them to lists
+    # Find files to search through, add them to lists
     for file in os.listdir(config_dir_abs_path):
         if "job_log" in file:
             stats_files.append(os.path.join(config_dir_abs_path, file))
@@ -1065,7 +1065,7 @@ def config_files_to_stats(
             wu_history[date]["TOTALWUS"] += 1
             wu_history[date]["total_wall_time"] += float(wu["WALLTIME"])
             wu_history[date]["total_cpu_time"] += float(wu["CPUTIME"])
-    # process credit logs
+    # Process credit logs
     for credit_history_file in credit_history_files:
         project_url = project_url_from_credit_history_file(
             os.path.basename(credit_history_file),
@@ -1118,7 +1118,7 @@ def config_files_to_stats(
             if "CREDITAWARDED" not in credit_history[date]:
                 credit_history[date]["CREDITAWARDED"] = 0
             credit_history[date]["CREDITAWARDED"] += delta_credits
-    # find averages
+    # Find averages
     for project_url, parent_dict in return_stats.items():
         total_wus = 0
         total_credit = 0
@@ -1147,9 +1147,9 @@ def config_files_to_stats(
             avg_credit_per_task = 0
             credits_per_hour = 0
         else:
-            total_cpu_time = total_cpu_time / 60 / 60  # convert to hours
-            total_wall_time = total_wall_time / 60 / 60  # convert to hours
-            x_day_wall_time = x_day_wall_time / 60 / 60  # convert to hours
+            total_cpu_time = total_cpu_time / 60 / 60  # Convert to hours
+            total_wall_time = total_wall_time / 60 / 60  # Convert to hours
+            x_day_wall_time = x_day_wall_time / 60 / 60  # Convert to hours
             avg_wall_time = total_wall_time / total_wus
             avg_cpu_time = total_cpu_time / total_wus
             avg_credit_per_task = total_credit / total_wus
@@ -1235,7 +1235,7 @@ def get_most_mag_efficient_projects(
     try:
         highest_project = next(
             iter(combinedstats)
-        )  # first project is the "highest project" until we test others against it
+        )  # First project is the "highest project" until we test others against it
     except Exception as e:
         if not quiet:
             print(
@@ -1248,7 +1248,7 @@ def get_most_mag_efficient_projects(
         )
         return []
 
-    # find the highest project
+    # Find the highest project
     for project_url, project_stats in combinedstats.items():
         current_mag_per_hour = project_stats["COMPILED_STATS"]["AVGMAGPERHOUR"]
         highest_mag_per_hour = combinedstats[highest_project]["COMPILED_STATS"][
@@ -1274,7 +1274,7 @@ def get_most_mag_efficient_projects(
         )
     return_list.append(highest_project)
 
-    # then compare other projects to it to see if any are within 10% of it
+    # Then compare other projects to it to see if any are within 10% of it
     highest_avg_mag = combinedstats[highest_project]["COMPILED_STATS"]["AVGMAGPERHOUR"]
     minimum_for_inclusion = highest_avg_mag - (highest_avg_mag * 0.10)
     for project_url, project_stats in combinedstats.items():
@@ -1373,7 +1373,7 @@ def get_project_mag_ratios(
                 if i == 0:
                     projects[project_name] = []
                 else:
-                    continue  # skip projects which are on greylist
+                    continue  # Skip projects which are on greylist
             projects[project_name].append(project_stats["rac"])
     for project_name, project_racs in projects.items():
         average_rac = sum(project_racs) / len(project_racs)
@@ -1428,10 +1428,10 @@ def print_table(
     if len(table_dict) == 0:
         return
     headings = []
-    heading_length: Dict[str, int] = {}  # length of each heading column
+    heading_length: Dict[str, int] = {}  # Length of each heading column
     values = {}
     working_dict = copy.deepcopy(table_dict)
-    # convert urls to nice names, add USD/GRC/hr
+    # Convert urls to nice names, add USD/GRC/hr
     for url in list(working_dict.keys()):
         name = project_url_to_name(url, ALL_BOINC_PROJECTS)
         if not name:
@@ -1440,7 +1440,7 @@ def print_table(
         working_dict[name] = stats
         if name != url:
             del working_dict[url]
-        # add usd/grc/hr to each project
+        # Add usd/grc/hr to each project
         if working_dict[name].get("MAG/HR"):
             grc_per_hour = float(working_dict[name].get("MAG/HR", 0)) / 4
             grc_per_day = (float(working_dict[name].get("MAG/HR", 0)) / 4) * 24
@@ -1460,7 +1460,7 @@ def print_table(
                 working_dict[name]["USD/HR R/P"] = "0"
             del working_dict[name]["MAG/HR"]
 
-    # figure out table headings
+    # Figure out table headings
     for url, stats in working_dict.items():
         for key, value in stats.items():
             if key not in headings:
@@ -1475,20 +1475,20 @@ def print_table(
 
     longest_url = len(max(working_dict.keys(), key=len))
     table_width = longest_url + len(str(values.keys()))
-    # print header
-    ## print first line
+    # Print header
+    ## Print first line
     print("*" * table_width)
     print("*" + center_align("FINDTHEMAG V2.0", table_width - 2) + "*")
     print("*" * table_width)
 
-    ## print rest of header
+    ## Print rest of header
     padding_str = " " * (longest_url + 1)
     print("*" + padding_str, end="|")
     for heading in headings:
         print(center_align(heading, heading_length[heading]) + "|", end="")
     print("")
 
-    # print contents
+    # Print contents
     sortedprojects = sorted(
         working_dict.keys(),
         key=lambda a: float(working_dict[a].get(sortby, 0)),
@@ -1504,7 +1504,7 @@ def print_table(
             print(left_align(value, heading_length[heading]), end="|")
         print("")
 
-    # print bottom bar
+    # Print bottom bar
     print("*" * table_width)
     if not sleep_reason:
         sleep_reason = "NONE"
@@ -1531,7 +1531,7 @@ def print_table(
                 DEV_BOINC_PASSWORD
             )
         )
-    # print improved stats
+    # Print improved stats
     addl = ""
     curr_avg_mag = get_avg_mag_hr(combined_stats)
     if curr_avg_mag > DATABASE["STARTMAGHR"] and DATABASE["STARTMAGHR"] > 0:
@@ -1548,7 +1548,7 @@ def print_table(
             DATABASE["FTMTOTAL"] / 60, DATABASE["DEVTIMETOTAL"] / 60
         )
     )
-    # print final line
+    # Print final line
     if not check_sidestake_results:
         print(
             "Consider donating to this app's development directly or via sidestake: RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K. Sidestaking means you can skip crunching for dev"
@@ -1564,7 +1564,7 @@ def in_list(str, list) -> bool:
     search_str = search_str.replace("WWW.", "")
     search_str = search_str.replace(
         "WORLDCOMMUNITYGRID.ORG/BOINC/", "WORLDCOMMUNITYGRID.ORG"
-    )  # fix for WCG
+    )  # Fix for WCG
     for item in list:
         if search_str == item.upper() or search_str in item.upper():
             return True
@@ -1600,8 +1600,8 @@ def generate_stats(
         preferred_projects[url.upper()] = weight
     ignored_projects = [
         x.upper() for x in ignored_projects
-    ]  # uppercase ignored project url list
-    # ignore unattached projects if requested
+    ]  # Uppercase ignored project url list
+    # Ignore unattached projects if requested
     if ignore_unattached:
         for project in APPROVED_PROJECT_URLS:
             if not in_list(project, attached_list):
@@ -1642,13 +1642,13 @@ def generate_stats(
         total_preferred_weight = (preferred_projects_percent / 100) * 1000
         total_mining_weight = 1000 - total_preferred_weight
     total_mining_weight_remaining = total_mining_weight
-    # assign weight of 1 to all projects which didn't make the cut
+    # Assign weight of 1 to all projects which didn't make the cut
     for project_url in APPROVED_PROJECT_URLS:
         preferred_extract = get_project_from_dict(
             project_url, preferred_projects, "IGNOREME"
         )
         if preferred_extract:
-            continue  # exclude preferred projects
+            continue  # Exclude preferred projects
         if project_url in ignored_projects:
             final_project_weights[project_url] = 0
             dev_project_weights[project_url] = 0
@@ -1767,7 +1767,7 @@ async def kill_all_unstarted_tasks(
             b = ET.SubElement(req, "name")
             b.text = name
             response = await rpc_client._request(req)
-            parsed = parse_generic(response)  # returns True if successful
+            parsed = parse_generic(response)  # Returns True if successful
             a = "21"
         else:
             # print('Keeping task {}'.format(task))
@@ -1784,7 +1784,7 @@ async def nnt_all_projects(rpc_client: libs.pyboinc.rpc_client):
         a = ET.SubElement(req, "project_url")
         a.text = project
         response = await rpc_client._request(req)
-        parsed = parse_generic(response)  # returns True if successful
+        parsed = parse_generic(response)  # Returns True if successful
 
 
 async def check_log_entries(
@@ -1845,7 +1845,7 @@ async def check_log_entries(
             if project_name.upper() not in str(message).upper():
                 continue
             difference = datetime.datetime.now() - message["time"]
-            if difference.seconds > 60 * 5:  # if message is > 5 min old, skip
+            if difference.seconds > 60 * 5:  # If message is > 5 min old, skip
                 continue
             if project_name.upper() == message["project"].upper():
                 if (
@@ -1853,7 +1853,7 @@ async def check_log_entries(
                     in message["body"].upper()
                 ):
                     if "GPU" not in message["body"].upper():
-                        gpu_full = True  # if no GPU, GPU cache is always full
+                        gpu_full = True  # If no GPU, GPU cache is always full
                     if (
                         "CPU: job cache full".upper() in message["body"].upper()
                         or "Not requesting tasks: don't need (job cache full)".upper()
@@ -1890,7 +1890,7 @@ async def check_log_entries(
                             if (
                                 not gpu_full
                             ):  
-                                # if GPU is not mentioned in log, this would always 
+                                # If GPU is not mentioned in log, this would always 
                                 # happen so using this to stop erroneous messages
                                 # print('GPU cache appears not full {}'.format(message['body']))
                                 log.debug(
@@ -1913,9 +1913,9 @@ async def check_log_entries(
     message_count = int(parse_generic(msg_count_response))
     req = ET.Element("get_messages")
     a = ET.SubElement(req, "seqno")
-    a.text = str(message_count - 50)  # get ten most recent messages
+    a.text = str(message_count - 50)  # Get ten most recent messages
     messages_response = await rpc_client._request(req)
-    messages = parse_generic(messages_response)  # returns True if successful
+    messages = parse_generic(messages_response)  # Returns True if successful
     if cache_full(project_name, messages):
         return True
     return False
@@ -1985,7 +1985,7 @@ async def check_log_entries_for_backoff(
             if project_name.upper() not in str(message).upper():
                 continue
             difference = datetime.datetime.now() - message["time"]
-            if difference.seconds > 60 * 5:  # if message is > 5 min old, skip
+            if difference.seconds > 60 * 5:  # If message is > 5 min old, skip
                 continue
             if ignore_message(message, ignore_phrases):
                 continue
@@ -2024,12 +2024,12 @@ async def check_log_entries_for_backoff(
     message_count = int(parse_generic(msg_count_response))
     req = ET.Element("get_messages")
     a = ET.SubElement(req, "seqno")
-    a.text = str(message_count - 50)  # get ten most recent messages
+    a.text = str(message_count - 50)  # Get ten most recent messages
     messages_response = await rpc_client._request(req)
-    messages = parse_generic(messages_response)  # returns True if successful
+    messages = parse_generic(messages_response)  # Returns True if successful
     if project_name.upper() == "GPUGRID.NET":
         project_name = (
-            "GPUGRID"  # fix for log entries which show up under different name
+            "GPUGRID"  # Fix for log entries which show up under different name
         )
     return project_backoff(project_name, messages)
 
@@ -2042,14 +2042,14 @@ async def get_all_projects(rpc_client: libs.pyboinc.rpc_client) -> Dict[str, str
     messages_response = await rpc_client._request(req)
     project_status_reply = parse_generic(
         messages_response
-    )  # returns True if successful
+    )  # Returns True if successful
     found_projects = []
     project_names = {}
     for project in project_status_reply:
         project_names[project["url"]] = project["name"]
     project_names[
         "https://gene.disi.unitn.it/test/"
-    ] = "TN-Grid"  # added bc BOINC client does not list this project for some reason
+    ] = "TN-Grid"  # Added bc BOINC client does not list this project for some reason
     return project_names
 
 
@@ -2064,7 +2064,7 @@ async def get_attached_projects(
         if isinstance(
             project.project_name, bool
         ):  
-            # this happens if project is "attached" but unable to communicate with
+            # This happens if project is "attached" but unable to communicate with
             # the project due to it being down or some other issue
             project_names[project.master_url] = project.master_url
         else:
@@ -2086,16 +2086,16 @@ async def verify_boinc_connection(rpc_client: libs.pyboinc.rpc_client) -> bool:
 
 
 async def prefs_check(rpc_client: libs.pyboinc.rpc_client) -> dict:
-    # authorize BOINC client
+    # Authorize BOINC client
     authorize_response = await rpc_client.authorize()
-    # get prefs
+    # Get prefs
     req = ET.Element("get_global_prefs_working")
     response = await rpc_client._request(req)
-    parsed = parse_generic(response)  # returns True if successful
-    # get actual disk usage
+    parsed = parse_generic(response)  # Returns True if successful
+    # Get actual disk usage
     req = ET.Element("get_disk_usage")
     response = await rpc_client._request(req)
-    usage = parse_generic(response)  # returns True if successful
+    usage = parse_generic(response)  # Returns True if successful
     max_gb = int(float(parsed.get("disk_max_used_gb", 0)))
     used_max_gb = int(int(usage["d_allowed"]) / 1024 / 1024 / 1024)
     if (max_gb < 10 and max_gb != 0) or used_max_gb < 9.5:
@@ -2145,7 +2145,7 @@ def get_highest_priority_project(
     if not attached_projects:
         attached_projects = []
     priority_dict = {}
-    # calculate total time from stats
+    # Calculate total time from stats
     total_xday_time = 0
     total_time = 0
     for found_key, projectstats in combined_stats.items():
@@ -2178,7 +2178,7 @@ def get_highest_priority_project(
         else:
             if (
                 weight == 1
-            ):  # benchmarking projects should be over ALL time not just recent time
+            ):  # Benchmarking projects should be over ALL time not just recent time
                 existing_time = combined_stats_extract["COMPILED_STATS"][
                     "TOTALWALLTIME"
                 ]
@@ -2251,7 +2251,7 @@ def get_project_mag_ratios_from_url(
                 if i == 0:
                     projects[project_name] = []
                 else:
-                    continue  # skip projects which are on greylist
+                    continue  # Skip projects which are on greylist
             projects[project_name].append(project_stats["rac"])
     for project_name, project_racs in projects.items():
         average_rac = sum(project_racs) / len(project_racs)
@@ -2437,7 +2437,7 @@ def custom_sleep(sleep_time: float, boinc_rpc_client, dev_loop: bool = False):
             else:
                 DATABASE["DEVTIMECOUNTER"] += max(dev_fee, 0.01)
                 DATABASE["FTMTOTAL"] += 1
-        # save database every ten minutes or at end of routine
+        # Save database every ten minutes or at end of routine
         if str(elapsed).endswith("0") or elapsed + 1 >= sleep_time:
             save_stats(DATABASE)
         elapsed += 1
@@ -2488,9 +2488,9 @@ def setup_dev_boinc() -> str:
     """
     Do initial setup of and start dev boinc client. Returns RPC password or 'ERROR' if unable to start BOINC
     """
-    # check if dev BOINC directory exists
-    ## create if it doesn't
-    # start BOINC
+    # Check if dev BOINC directory exists
+    ## Create if it doesn't
+    # Start BOINC
     dev_path = os.path.abspath("DEVACCOUNT")
     boinc_executable = "/usr/bin/boinc"
     if "WINDOWS" in found_platform.upper():
@@ -2499,7 +2499,7 @@ def setup_dev_boinc() -> str:
         boinc_executable = "/Applications/BOINCManager.app/Contents/resources/boinc"
     if not os.path.exists("DEVACCOUNT"):
         os.mkdir(dev_path)
-    # update settings to match user settings from main BOINC install
+    # Update settings to match user settings from main BOINC install
     global_settings_path = os.path.join(boinc_data_dir, "global_prefs.xml")
     override_path = os.path.join(boinc_data_dir, "global_prefs_override.xml")
     override_dest_path = os.path.join(
@@ -2688,7 +2688,7 @@ def boinc_loop(
         Function to update table printed to user.
         :param status = Most recent status "waiting for xfers, starting crunching on x, etc"
         """
-        # don't update table in dev loop because all our variables reference 
+        # Don't update table in dev loop because all our variables reference 
         # dev install not main one
         if dev_loop or SKIP_TABLE_UPDATES:
             return
@@ -2706,8 +2706,8 @@ def boinc_loop(
             "AVGCPUTIME": "ACTIME",
         }
         ignore_list = ["MAGPERCREDIT"]
-        # generate table to print pretty
-        os.system("cls" if os.name == "nt" else "clear")  # clear terminal
+        # Generate table to print pretty
+        os.system("cls" if os.name == "nt" else "clear")  # Clear terminal
         table_dict = {}
         for project_url, stats_dict in combined_stats.items():
             table_dict[project_url] = {}
@@ -2765,7 +2765,7 @@ def boinc_loop(
                 authorize_response = loop.run_until_complete(rpc_client.authorize())
                 BOINC_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(
                     get_attached_projects(rpc_client)
-                )  # we need to re-fetch this as it's different for dev and client
+                )  # We need to re-fetch this as it's different for dev and client
             except Exception as e:
                 print_and_log(
                     "Transient error connecting to BOINC, sleeping 30s", "ERROR"
@@ -2781,7 +2781,7 @@ def boinc_loop(
         if (
             (abs(stats_calc_delta.days) * 24 * 60)
             + (abs(stats_calc_delta.seconds) / 60)
-        ) > recalculate_stats_interval:  # only re-calculate stats every x minutes
+        ) > recalculate_stats_interval:  # Only re-calculate stats every x minutes
             log.debug("Calculating stats..")
             DATABASE["STATSLASTCALCULATED"] = datetime.datetime.now()
             combined_stats = config_files_to_stats(boinc_data_dir)
@@ -2812,7 +2812,7 @@ def boinc_loop(
             log.debug(
                 "Highest priority projects are: " + str(highest_priority_projects)
             )
-            # print some pretty stats
+            # Print some pretty stats
             update_table()
 
         log.info("Highest priority project is {}".format(highest_priority_projects[0]))
@@ -2933,7 +2933,7 @@ def boinc_loop(
             if boinc_password == "ERROR":
                 log.error("Error setting up crunching to developer account")
             else:
-                # setup dev RPC connection, it may take a few tries while we 
+                # Setup dev RPC connection, it may take a few tries while we 
                 # wait for it to come online
                 tries = 1
                 tries_max = 5
@@ -2944,10 +2944,10 @@ def boinc_loop(
                             setup_connection(
                                 boinc_ip, boinc_password, port=DEV_RPC_PORT
                             )
-                        )  # setup dev BOINC RPC connection
+                        )  # Setup dev BOINC RPC connection
                         authorize_response = loop.run_until_complete(
                             dev_rpc_client.authorize()
-                        )  # authorize dev RPC connection
+                        )  # Authorize dev RPC connection
                     except Exception as e:
                         log.error("Error connecting to BOINC dev client {}".format(e))
                     else:
@@ -3010,16 +3010,16 @@ def boinc_loop(
                     rpc_client=dev_rpc_client,
                     client_rpc_client=rpc_client,
                     time=DATABASE["DEVTIMECOUNTER"],
-                )  # run the BOINC loop :)
+                )  # Run the BOINC loop :)
                 update_table()
                 authorize_response = loop.run_until_complete(
                     dev_rpc_client.authorize()
-                )  # authorize dev RPC connection
+                )  # Authorize dev RPC connection
                 loop.run_until_complete(
                     run_rpc_command(dev_rpc_client, "quit")
-                )  # quit dev client
+                )  # Quit dev client
                 DEV_LOOP_RUNNING = False
-                # re-enable client BOINC
+                # Re-enable client BOINC
                 loop.run_until_complete(
                     run_rpc_command(rpc_client, "set_gpu_mode", existing_gpu_mode)
                 )
@@ -3091,14 +3091,14 @@ def boinc_loop(
                 )
                 continue
 
-            # make sure we are using correct URL, BOINC requires capitalization to 
+            # Make sure we are using correct URL, BOINC requires capitalization to 
             # be exact
             highest_priority_project = resolve_boinc_url(
                 highest_priority_project, ALL_BOINC_PROJECTS
             )  
             if highest_priority_project.upper() not in DATABASE[mode]:
                 DATABASE[mode][highest_priority_project.upper()] = {}
-            # skip checking project if we have a backoff counter going and it 
+            # Skip checking project if we have a backoff counter going and it 
             # hasn't been long enough
             time_since_last_project_check = datetime.datetime.now() - DATABASE[mode][
                 highest_priority_project.upper()
@@ -3126,16 +3126,16 @@ def boinc_loop(
             log.info("Waiting for any xfers to complete...")
             dl_response = wait_till_no_xfers(
                 rpc_client
-            )  # wait until all network activity has concluded
-            # if in dev_loop, attach to project if needed
+            )  # Wait until all network activity has concluded
+            # If in dev_loop, attach to project if needed
             if dev_loop:
                 get_project_list = loop.run_until_complete(
                     run_rpc_command(rpc_client, "get_project_status")
                 )
 
-                # on first run, there is no project list
+                # On first run, there is no project list
                 if isinstance(get_project_list, list):
-                    # convert to simple list of strings so we can check if 
+                    # Convert to simple list of strings so we can check if 
                     # project URL is in list
                     converted_project_list = project_list_to_project_list(
                         get_project_list
@@ -3149,7 +3149,7 @@ def boinc_loop(
                 if not project_in_list_check(
                     highest_priority_project, converted_project_list
                 ):
-                    # yoyo will never be in project dict due to not supporting weak auth
+                    # Yoyo will never be in project dict due to not supporting weak auth
                     converted_dev_project_url = project_to_dev_project(
                         highest_priority_project, DEV_PROJECT_DICT
                     )
@@ -3172,20 +3172,20 @@ def boinc_loop(
                                 arg2="authenticator",
                                 arg2_val=DEV_PROJECT_DICT[converted_dev_project_url],
                             )
-                        )  # update project
-                        sleep(30)  # give it a chance to finish attaching
+                        )  # Update project
+                        sleep(30)  # Give it a chance to finish attaching
                         (
                             BOINC_PROJECT_LIST,
                             BOINC_PROJECT_NAMES,
                         ) = loop.run_until_complete(
                             get_attached_projects(rpc_client)
-                        )  # we need to re-fetch this as it's now changed
+                        )  # We need to re-fetch this as it's now changed
                         highest_priority_project = resolve_boinc_url(
                             highest_priority_project, ALL_BOINC_PROJECTS
-                        )  # this may have changed, so check
+                        )  # This may have changed, so check
                         if (
                             len(BOINC_PROJECT_LIST) == 0
-                        ):  # using this as a proxy for "failed attach"
+                        ):  # Using this as a proxy for "failed attach"
                             log.error(
                                 "Appears to fail to attach to {}".format(boincified_url)
                             )
@@ -3208,13 +3208,13 @@ def boinc_loop(
                 run_rpc_command(
                     rpc_client, "project_update", "project_url", boincified_url
                 )
-            )  # update project
+            )  # Update project
             log.debug(
                 "Requesting work from {} added to debug no new tasks bug"
                 + str(boincified_url)
             )
             log.debug("Update response is {}".format(update_response))
-            # give BOINC time to update w project, I don't know a less hacky way to 
+            # Give BOINC time to update w project, I don't know a less hacky way to 
             # do this, suggestions are welcome
             sleep(
                 15
@@ -3222,7 +3222,7 @@ def boinc_loop(
             DATABASE[mode][highest_priority_project.upper()][
                 "LAST_CHECKED"
             ] = datetime.datetime.now()
-            # check if project should be backed off. If so, back it off.
+            # Check if project should be backed off. If so, back it off.
             # This is an exponentially increasing backoff with a maximum time of 1 day
             # Projects are backed off if they request it, if they are 
             # unresponsive/down, or if no work is available
@@ -3244,17 +3244,17 @@ def boinc_loop(
                 log.debug("Waiting for any xfers to complete...")
                 dl_response = wait_till_no_xfers(
                     rpc_client
-                )  # wait until all network activity has concluded
+                )  # Wait until all network activity has concluded
 
                 if (
                     not dont_nnt
                 ):  
-                    # if we didn't get a backoff signal and we haven't picked 
+                    # If we didn't get a backoff signal and we haven't picked 
                     # a project to leave non-NNTed during sleeping of loop, 
                     # pick this one for that purpose
                     dont_nnt = highest_priority_project.upper()
 
-            # re-NNT all projects
+            # Re-NNT all projects
             nnt_response = loop.run_until_complete(
                 nnt_all_projects(rpc_client)
             )  # NNT all projects
@@ -3318,7 +3318,7 @@ def create_default_database() -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    wallet_running = True  # switches to false if we have issues connecting
+    wallet_running = True  # Switches to false if we have issues connecting
 
     # Verify we are in appropriate python environment
     python_major = sys.version_info.major
@@ -3342,7 +3342,7 @@ if __name__ == "__main__":
     del python_major
     log.debug("Python version {}".format(platform.python_version()))
 
-    # shut down dev client is it's running. This is useful if program shuts 
+    # Shut down dev client is it's running. This is useful if program shuts 
     # down unexpectedly
     shutdown_dev_client(
         quiet=True
@@ -3391,7 +3391,7 @@ if __name__ == "__main__":
     update_check()  # Check for updates to FTM
     combined_stats = {}
     APPROVED_PROJECT_URLS = []
-    # combined_stats has format:
+    # Combined_stats has format:
     #    COMBINED_STATS_EXAMPLE = {
     #        'HTTP://PROJECT.COM/PROJECT': {
     #            'COMPILED_STATS': {
@@ -3437,7 +3437,7 @@ if __name__ == "__main__":
                 Path.home(), "AppData\Roaming\GridcoinResearch\\"
             )
 
-    # check that directories exist
+    # Check that directories exist
     log.info("Guessing BOINC data dir is " + str(boinc_data_dir))
     if not os.path.isdir(boinc_data_dir):
         print(
@@ -3477,7 +3477,7 @@ if __name__ == "__main__":
         if not SCRIPTED_RUN:
             input("Press enter to continue")
 
-    # auto-detect password for BOINC RPC if it exists and user didn't know
+    # Auto-detect password for BOINC RPC if it exists and user didn't know
     # BOINC on Windows automatically generates an RPC password
     auth_location = os.path.join(boinc_data_dir, "gui_rpc_auth.cfg")
     if not boinc_password:
@@ -3618,17 +3618,17 @@ if __name__ == "__main__":
     try:
         rpc_client = loop.run_until_complete(
             setup_connection(boinc_ip, boinc_password, boinc_port)
-        )  # setup BOINC RPC connection
+        )  # Setup BOINC RPC connection
     except Exception as e:
         print_and_log("Error: Unable to connect to BOINC client, quitting now", "ERROR")
         quit()
     if (
         not rpc_client
-    ):  # this was just added so pycharm would stop complaining about 
+    ):  # This was just added so pycharm would stop complaining about 
         # rpc_client not being declared
         print_and_log("Error connecting to BOINC client, quitting now", "ERROR")
         quit()
-    # get project list from BOINC client directly. This is needed for 
+    # Get project list from BOINC client directly. This is needed for 
     # correct capitalization
     BOINC_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(
         get_attached_projects(rpc_client)
@@ -3717,7 +3717,7 @@ if __name__ == "__main__":
         mag_ratios=mag_ratios,
     )
     log.debug("Printing pretty stats...")
-    # calculate starting efficiency stats
+    # Calculate starting efficiency stats
     if "STARTMAGHR" not in DATABASE:
         DATABASE["STARTMAGHR"] = get_avg_mag_hr(combined_stats)
     else:
@@ -3738,7 +3738,7 @@ if __name__ == "__main__":
                     original_avg_mag_hr, current_avg_mag_hr
                 )
             )
-    # generate table to print pretty
+    # Generate table to print pretty
     table_dict = {}
     for project_url, stats_dict in combined_stats.items():
         table_dict[project_url] = {}
@@ -3847,7 +3847,7 @@ if __name__ == "__main__":
     priority_results = {}
     highest_priority_project = ""
     highest_priority_projects = []
-    # force calculation of stats at first run since they are not cached in DB
+    # Force calculation of stats at first run since they are not cached in DB
     DATABASE["STATSLASTCALCULATED"] = datetime.datetime(
         1997, 3, 3
     )  

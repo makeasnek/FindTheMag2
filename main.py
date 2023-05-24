@@ -136,6 +136,13 @@ class GridcoinClientConnection:
 
     A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently 
     quite barebones.
+
+    Args:
+        config_file:
+        ip_address:
+        rpc_port:
+        rpc_user:
+        rpc_password:
     """
 
     def __init__(
@@ -155,6 +162,18 @@ class GridcoinClientConnection:
     def run_command(
         self, command: str, arguments: List[Union[str, bool]] = None
     ) -> dict:
+        """Send command to local Gridcoin wallet
+
+        Sends specifified Gridcoin command to the Gridcoin wallet instance and
+        retrieves result of the command execution.
+
+        Args:
+            command:
+            arguments:
+
+        Returns: 
+            Response from command execution.
+        """
         if not arguments:
             arguments = []
         credentials = None
@@ -175,8 +194,13 @@ class GridcoinClientConnection:
         return response.json()
 
     def get_approved_project_urls(self) -> List[str]:
-        """
-        :return: A list of UPPERCASED project URLs using gridcoin command listprojects
+        """Retrieves list of projects appoved for Gridcoin.
+
+        Retrieves the list of projects from the local Gridcoin wallet that are
+        approved for earning Gridcoin.
+
+        Returns: 
+            A list of UPPERCASED project URLs using gridcoin command listprojects
         """
         return_list = []
         all_projects = self.run_command("listprojects")
@@ -185,8 +209,15 @@ class GridcoinClientConnection:
         return return_list
 
     def project_name_to_url(self, searchname: str) -> Union[str, None]:
-        """
+        """Return project URL.
+
         Convert a project name into its project url, then UPPERCASE it
+        
+        Args:
+            searchname:
+
+        Returns:
+            A uppercase project URL.
         """
         all_projects = self.run_command("listprojects")
         for found_project_name, project_dict in all_projects["result"].items():
@@ -196,7 +227,8 @@ class GridcoinClientConnection:
 
 
 class BoincClientConnection:
-    """
+    """Access to BOINC client configuration files.
+
     A simple class for grepping BOINC config files etc. Doesn't do any RPC communication
     """
 
@@ -218,8 +250,9 @@ class BoincClientConnection:
         self.rpc_password = rpc_password
 
     def get_project_list(self) -> List[str]:
-        """
-        :return: UPPERCASED list of project URLs. This is all of them, not just ones which are attached
+        """Retrieve the list of projects supported by the BOINC client
+
+        Returns: UPPERCASED list of project URLs. This is all of them, not just ones which are attached
         """
         project_list_file = os.path.join(self.config_dir, "all_projects_list.xml")
         return_list = []
@@ -231,6 +264,13 @@ class BoincClientConnection:
 
 
 def shutdown_dev_client(quiet: bool = False) -> None:
+    """Shutdown developer BOINC client.
+
+    Sends RPC quit command to running dev BOINC client.
+
+    Raises: 
+        Exception: An error occured shutting down the dev BOINC client.
+    """
     exit_loop = asyncio.get_event_loop()
     log.info("Attempting to shut down dev client at safe_exit...")
     try:
@@ -248,9 +288,14 @@ def shutdown_dev_client(quiet: bool = False) -> None:
 
 
 def safe_exit(arg1, arg2) -> None:
-    """
-    Function to safely exit tool by saving database, restoring original user preferences, and quitting dev BOINC client.
-    arg1/2 required by the signal handler library, but aren't used for anything inside this function
+    """Safely exit Find The Mag.
+
+    Safely exit tool by saving database, restoring original user preferences, 
+    and quitting dev BOINC client.
+    
+    Args: arg1 and arg2: 
+        Required by the signal handler library, 
+        but aren't used for anything inside this function
     """
 
     # This is needed in case this function is called while main loop is still waiting

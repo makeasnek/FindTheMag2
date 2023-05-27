@@ -137,7 +137,7 @@ class GridcoinClientConnection:
     A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently 
     quite barebones.
 
-    Args:
+    Attributes:
         config_file:
         ip_address:
         rpc_port:
@@ -153,6 +153,15 @@ class GridcoinClientConnection:
         rpc_user: str = None,
         rpc_password: str = None,
     ):
+        """Initializes the instance based on the connection attributes.
+
+        Attributes:
+            config_file:
+            ip_address:
+            rpc_port:
+            rpc_user:
+            rpc_password:
+        """
         self.configfile = config_file  # Absolute path to the client config file
         self.ipaddress = ip_address
         self.rpc_port = rpc_port
@@ -230,6 +239,13 @@ class BoincClientConnection:
     """Access to BOINC client configuration files.
 
     A simple class for grepping BOINC config files etc. Doesn't do any RPC communication
+
+    Attributes:
+        config_dir:
+        ip_address:
+        port:
+        rpc_user:
+        rpc_password:
     """
 
     def __init__(
@@ -240,6 +256,15 @@ class BoincClientConnection:
         rpc_user: str = boinc_username,
         rpc_password: str = None,
     ):
+        """Initializes the instance based on connection attributes.
+
+        Args:
+            config_dir:
+            ip_address:
+            port:
+            rpc_user:
+            rpc_password:
+        """
         if config_dir is None:
             self.config_dir = "/var/lib/boinc-client"
         else:
@@ -267,6 +292,9 @@ def shutdown_dev_client(quiet: bool = False) -> None:
     """Shutdown developer BOINC client.
 
     Sends RPC quit command to running dev BOINC client.
+
+    Args: 
+        quiet:
 
     Raises: 
         Exception: An error occured shutting down the dev BOINC client.
@@ -355,17 +383,25 @@ def safe_exit(arg1, arg2) -> None:
 
 
 async def get_task_list(rpc_client: libs.pyboinc.rpc_client) -> list:
-    """
+    """List of active, waiting, or paused BOINC tasks.
+
     Return list of tasks from BOINC client which are not completed/failed. These
     can be active tasks, tasks waiting to be started, or paused tasks.
+    
+    Args: 
+        rpc_client:
+
+    Returns:
+        List of BOINC tasks.
+
     """
-    # Known task states
-    # 2: Active
     return_value = []
     reply = await run_rpc_command(rpc_client, "get_results")
     if isinstance(reply, str):
         log.info("BOINC appears to have no tasks...")
         return return_value
+    # Known task states:
+    #   2: Active
     for task in reply:
         if task["state"] in [2]:
             return_value.append(task)
@@ -377,8 +413,17 @@ async def get_task_list(rpc_client: libs.pyboinc.rpc_client) -> list:
 
 
 async def is_boinc_crunching(rpc_client: libs.pyboinc.rpc_client) -> bool:
-    """
-    Returns True is boinc is crunching, false otherwise
+    """Check if BOINC is actively crunching tasks.
+
+    Queries BOINC client as to crunching status. Returns True is BOINC client
+    is crunching, false otherwise.
+
+    Args:
+        rpc_client:
+    
+    Returns:
+        True if crunching, or False if not crunching or unsure.
+        
     """
     reply = await run_rpc_command(rpc_client, "get_cc_status")
     task_suspend_reason = int(reply["task_suspend_reason"])
@@ -405,16 +450,32 @@ async def is_boinc_crunching(rpc_client: libs.pyboinc.rpc_client) -> bool:
 async def setup_connection(
     boinc_ip: str = boinc_ip, boinc_password: str = boinc_password, port: int = 31416
 ) -> libs.pyboinc.rpc_client:
-    """
+    """Create BOINC RPC client connection.
+
     Sets up a BOINC RPC client connection
+    
+    Args:
+        boinc_ip:
+        boinc_password:
+        port:
+
+    Returns:
+        
     """
     rpc_client = await init_rpc_client(boinc_ip, boinc_password, port=port)
     return rpc_client
 
 
 def temp_check() -> bool:
-    """
-    Returns True if we should keep crunching based on temperature, False otherwise
+    """Checks if temperature is within acceptable limit.
+
+    Confirms if we should keep crunching based on temperature, or not.
+    
+    Raises:
+        Exception: An error occured attempting to read the temperature.
+
+    Returns:
+        True if we should keep crunching, False otherwise.
     """
     if not enable_temp_control:
         return True
@@ -455,8 +516,13 @@ def temp_check() -> bool:
 
 
 def update_check() -> None:
-    """
-    Check for updates to the FindTheMag tool
+    """Check if FindTheMag updates are avialable.
+
+    Check with FindTheMag repository on GitHub whether or not an update is
+    available. If avaialble, inform the user and provide some information.
+
+    Update checks are performed no often then once per week. Check times are
+    stored in the database for future reference.
     """
     # If we've checked for updates in the last week, ignore
     delta = datetime.datetime.now() - DATABASE.get(
@@ -518,8 +584,19 @@ def update_check() -> None:
 
 
 def get_grc_price() -> float:
-    """
-    Gets average GRC price from three online sources.
+    """Retrieve current average Gridcoin price.
+
+    Calculates the average GRC price based on values from three online sources.
+
+    Note: Retrieving the prices is dependent on the target website formatting. If the
+    source website changes significantly, retrieval may fail until the relevant 
+    search pattern in updated.
+
+    Raises:
+        Exception: An error occurred accessing an online GRC price source.
+
+    Returns:
+        Average GCR price in decimal, or 0 if unable to determine price.
     """
     import requests as req
 
@@ -597,8 +674,17 @@ def get_grc_price() -> float:
 
 
 def get_approved_project_urls_web() -> Tuple[List[str], Dict[str, str]]:
-    """
-    Gets current whitelist from Gridcoinstats
+    """List of projects currently witelised by Gridcoin.
+
+    Gets current whitelist from the Gridcoinstats website. Limits fetching 
+    from website to once every 24 hours through caching list in database.
+
+    Raises:
+        Exception: An error occurred parsing data from the source website.
+
+    Returns:
+        A tuple consisting of a list of project base URLs, and a dictionary
+        mapping base URLs to project names.
     """
 
     # Return cached version if we have it and requested it < 24 hrs ago
@@ -655,16 +741,25 @@ def get_approved_project_urls_web() -> Tuple[List[str], Dict[str, str]]:
 
 
 def wait_till_no_xfers(rpc_client: libs.pyboinc.rpc_client) -> None:
-    """
-    Wait for BOINC to finish all pending xfers, return None when done
+    """Wait on BOINC client to finish all pending transfers.
+
+    Wait for BOINC to finish all pending xfers, return None when done.
     """
     max_loops = 30
     current_loops = 0
     loop_wait_in_seconds = 30  # Wait this long between loops
 
     def xfers_happening(xfer_list: list) -> bool:
-        """
-        Returns True if any active xfers are happening, false if none are happening or if only stalled xfers exist
+        """Confirms whether or not the BOINC client has any active transfers.
+
+        Checks list of transfers for any that are active.
+
+        Args:
+            xfer_list: List of transfers.
+
+        Returns:
+            True if any active xfers are happening, False if none are happening or
+            if only stalled xfers exist.
         """
         # Known statuses:
         # 0 = Active
@@ -714,9 +809,21 @@ def wait_till_no_xfers(rpc_client: libs.pyboinc.rpc_client) -> None:
 
 
 def get_config_parameters(gridcoin_dir: str) -> Dict[str, str]:
-    """
-    :param gridcoin_dir: Absolute path to a gridcoin config directory
-    :return: All config parameters found, preferring those in the json file to the conf. Note that sidestakes become a list as there may be multiple
+    """Retrive Gridcoin wallet configuration.
+
+       Parses Gridcoin configuration .json and .conf file for configuration parameters.
+       Preference is given to those in the json file over those in the to the conf file.
+       
+       Note that sidestakes become a list as there may be multiple.
+
+    Args:
+        gridcoin_dir: Absolute path to a gridcoin config directory.
+    
+    Raises: 
+        Exception: An error occurred while parsing the config file.
+
+    Returns:
+        A dictionary of all config parameters found, 
     """
     return_dict = dict()
     if "gridcoinsettings.json" in os.listdir(gridcoin_dir):
@@ -778,12 +885,17 @@ def get_config_parameters(gridcoin_dir: str) -> Dict[str, str]:
 def check_sidestake(
     config_params: Dict[str, Union[str, List[str]]], address: str, minval: float
 ) -> bool:
-    """
+    """Confirms whether or not the given address is being adequately sidestaked.
+
     Checks if a given address is being sidestaked to or not. Returns False if value < minval
-    :param config_params: config_params from get_config_parameters
-    :param address: address to check
-    :param minval: minimum value to pass check
-    :return: True or False
+
+    Args:
+        config_params: config_params from get_config_parameters
+        address: address to check
+        minval: minimum value to pass check
+    
+    Returns:
+        True if given address is sidestaked for more than the given minium.
     """
     if "enablesidestaking" not in config_params:
         return False

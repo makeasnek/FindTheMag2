@@ -1152,7 +1152,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
     curr_avg_mag=get_avg_mag_hr(combined_stats)
     if curr_avg_mag>DATABASE['STARTMAGHR'] and DATABASE['STARTMAGHR']>0:
         increase=(curr_avg_mag-DATABASE['STARTMAGHR'])/DATABASE['STARTMAGHR']
-        addl=" That's an increase of {:.2f}%!".format(increase)
+        addl=" That's an increase of {:.2f}%!".format(increase*100)
     print('When you started using this tool, your average mag/hr was: {:.4f} now it is {:.4f}'.format(
         DATABASE['STARTMAGHR'], get_avg_mag_hr(combined_stats))+addl)
     print('Hours crunched for you vs dev: {:.1f}|{:.1f} '.format(DATABASE['FTMTOTAL']/60,DATABASE['DEVTIMETOTAL']/60))

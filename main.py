@@ -1543,21 +1543,25 @@ def backoff_ignore_message(message:Dict[str,Any],ignore_phrases:List[str])->bool
     return False
 async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,project_name:str)->bool:
     """
-    Return True if project should be backed off, False otherwise
+    Return True if project should be backed off, False otherwise or if errored
     project_name: name of project as it will appear in BOINC logs, NOT URL
     """
-    # Get message count
-    req = ET.Element('get_message_count')
-    msg_count_response = await rpc_client._request(req)
-    message_count = int(parse_generic(msg_count_response))
-    req = ET.Element('get_messages')
-    a = ET.SubElement(req, 'seqno')
-    a.text = str(message_count-50) # get ten most recent messages
-    messages_response = await rpc_client._request(req)
-    messages = parse_generic(messages_response)  # returns True if successful
-    if project_name.upper()=='GPUGRID.NET':
-        project_name='GPUGRID' # fix for log entries which show up under different name
-    return project_backoff(project_name,messages)
+    try:
+        # Get message count
+        req = ET.Element('get_message_count')
+        msg_count_response = await rpc_client._request(req)
+        message_count = int(parse_generic(msg_count_response))
+        req = ET.Element('get_messages')
+        a = ET.SubElement(req, 'seqno')
+        a.text = str(message_count-50) # get ten most recent messages
+        messages_response = await rpc_client._request(req)
+        messages = parse_generic(messages_response)  # returns True if successful
+        if project_name.upper()=='GPUGRID.NET':
+            project_name='GPUGRID' # fix for log entries which show up under different name
+        return project_backoff(project_name,messages)
+    except Exception as e:
+        log.error('Error in check_log_entries_for_backoff: project name {} :{}'.format(project_name,e))
+        return False
 async def get_all_projects(rpc_client: libs.pyboinc.rpc_client)->Dict[str, str]:
     """
     Get ALL projects the BOINC client knows about, even if unattached

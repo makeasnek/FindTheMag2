@@ -1946,8 +1946,6 @@ def project_in_list_check(url:str,project_list:List[str])->bool:
     """
     cleaned=url.upper().replace('HTTPS://','').replace('HTTP://','')
     for project in project_list:
-        if cleaned==project:
-            return True
         if cleaned in project:
             return True
     return False

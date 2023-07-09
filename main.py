@@ -79,6 +79,8 @@ DATABASE['TABLE_STATUS']='' # info status printed in table, must be reset at scr
 SCRIPTED_RUN:bool=False
 SKIP_TABLE_UPDATES:bool=False
 HOST_COST_PER_HOUR = ( host_power_usage / 1000 ) * local_kwh
+LAST_KNOWN_CPU_MODE=None
+LAST_KNOWN_GPU_MODE=None
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
     1: 'always',
@@ -2034,6 +2036,8 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     # if we are not passed this variable, it means we are not crunching for dev, so we fallback to global BOINC rpc
     if not client_rpc_client:
         client_rpc_client=rpc_client
+    existing_cpu_mode=None
+    existing_gpu_mode=None
     # these variables are referenced outside the loop (or in recursive calls of the loop) so should be made global
     global combined_stats
     global final_project_weights
@@ -2141,19 +2145,25 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             # Get BOINC's starting CPU and GPU modes
             existing_mode_info = loop.run_until_complete(run_rpc_command(rpc_client, 'get_cc_status'))
             if not existing_mode_info:
-                print_and_log('Error getting cc status to determine temp control, skipping temp control','ERROR')
+                print_and_log('Error getting cc status to determine temp control','ERROR')
+                if LAST_KNOWN_CPU_MODE:
+                    existing_cpu_mode=LAST_KNOWN_CPU_MODE
+                    existing_gpu_mode=LAST_KNOWN_GPU_MODE
             if existing_mode_info:
                 existing_cpu_mode = existing_mode_info['task_mode']
                 existing_gpu_mode = str(existing_mode_info['gpu_mode'])
                 if existing_cpu_mode in CPU_MODE_DICT:
                     existing_cpu_mode = CPU_MODE_DICT[existing_cpu_mode]
+                    LAST_KNOWN_CPU_MODE=existing_cpu_mode
                 else:
                     print_and_log('Error: Unknown cpu mode {}'.format(existing_cpu_mode),'ERROR')
                 if existing_gpu_mode in GPU_MODE_DICT:
                     existing_gpu_mode = GPU_MODE_DICT[existing_gpu_mode]
+                    LAST_KNOWN_GPU_MODE=existing_gpu_mode
                 else:
                     print_and_log('Error: Unknown gpu mode {}'.format(existing_gpu_mode),"ERROR")
 
+            if existing_cpu_mode and existing_gpu_mode:
                 # If temp is too high:
                 if not temp_check():
                     while True: # Keep sleeping until we pass a temp check
@@ -2205,35 +2215,44 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 # This allows for non-graceful exits of this script to not brick client's BOINC and considerations that dev account may not be crunching full time if client
                 # is actively using computer.
                 existing_mode_info=loop.run_until_complete(run_rpc_command(rpc_client,'get_cc_status'))
-                existing_cpu_mode= existing_mode_info['task_mode']
-                existing_gpu_mode = str(existing_mode_info['gpu_mode'])
-                if existing_cpu_mode in CPU_MODE_DICT:
-                    existing_cpu_mode=CPU_MODE_DICT[existing_cpu_mode]
+                if existing_mode_info:
+                    existing_cpu_mode= existing_mode_info['task_mode']
+                    existing_gpu_mode = str(existing_mode_info['gpu_mode'])
+                    if existing_cpu_mode in CPU_MODE_DICT:
+                        existing_cpu_mode=CPU_MODE_DICT[existing_cpu_mode]
+                        LAST_KNOWN_CPU_MODE=existing_cpu_mode
+                    else:
+                        print('Error: Unknown cpu mode {}'.format(existing_cpu_mode))
+                        log.error('Error: Unknown cpu mode {}'.format(existing_cpu_mode))
+                    if existing_gpu_mode in GPU_MODE_DICT:
+                        existing_gpu_mode=GPU_MODE_DICT[existing_gpu_mode]
+                        LAST_KNOWN_GPU_MODE=existing_gpu_mode
+                    else:
+                        print('Error: Unknown gpu mode {}'.format(existing_gpu_mode))
+                        log.error('Error: Unknown gpu mode {}'.format(existing_gpu_mode))
+                if not existing_cpu_mode:
+                    if LAST_KNOWN_CPU_MODE:
+                        existing_cpu_mode=LAST_KNOWN_CPU_MODE
+                        existing_gpu_mode=LAST_KNOWN_GPU_MODE
+                if existing_cpu_mode and existing_gpu_mode: # we can't do this if we don't know what mode to revert back to
+                    loop.run_until_complete(run_rpc_command(rpc_client,'set_run_mode','never',str(int((DATABASE['DEVTIMECOUNTER']*60)*100))))
+                    loop.run_until_complete(run_rpc_command(rpc_client, 'set_gpu_mode', 'never', str(int((DATABASE['DEVTIMECOUNTER'] * 60) * 100))))
+                    log.info('Starting crunching under dev account, entering dev loop')
+                    DATABASE['TABLE_SLEEP_REASON']= 'Crunching for developer\'s account, {}% of crunching total'.format(dev_fee * 100)
+                    DEV_LOOP_RUNNING=True
+                    update_table(dev_loop=dev_loop)
+                    boinc_loop(dev_loop=True,rpc_client=dev_rpc_client,client_rpc_client=rpc_client,time=DATABASE['DEVTIMECOUNTER']) # run the BOINC loop :)
+                    update_table(dev_loop=dev_loop)
+                    authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+                    loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit')) # quit dev client
+                    DEV_LOOP_RUNNING=False
+                    # re-enable client BOINC
+                    loop.run_until_complete(
+                        run_rpc_command(rpc_client, 'set_gpu_mode', existing_gpu_mode))
+                    loop.run_until_complete(
+                        run_rpc_command(rpc_client, 'set_run_mode', existing_cpu_mode))
                 else:
-                    print('Error: Unknown cpu mode {}'.format(existing_cpu_mode))
-                    log.error('Error: Unknown cpu mode {}'.format(existing_cpu_mode))
-                if existing_gpu_mode in GPU_MODE_DICT:
-                    existing_gpu_mode=GPU_MODE_DICT[existing_gpu_mode]
-                else:
-                    print('Error: Unknown gpu mode {}'.format(existing_gpu_mode))
-                    log.error('Error: Unknown gpu mode {}'.format(existing_gpu_mode))
-
-                loop.run_until_complete(run_rpc_command(rpc_client,'set_run_mode','never',str(int((DATABASE['DEVTIMECOUNTER']*60)*100))))
-                loop.run_until_complete(run_rpc_command(rpc_client, 'set_gpu_mode', 'never', str(int((DATABASE['DEVTIMECOUNTER'] * 60) * 100))))
-                log.info('Starting crunching under dev account, entering dev loop')
-                DATABASE['TABLE_SLEEP_REASON']= 'Crunching for developer\'s account, {}% of crunching total'.format(dev_fee * 100)
-                DEV_LOOP_RUNNING=True
-                update_table(dev_loop=dev_loop)
-                boinc_loop(dev_loop=True,rpc_client=dev_rpc_client,client_rpc_client=rpc_client,time=DATABASE['DEVTIMECOUNTER']) # run the BOINC loop :)
-                update_table(dev_loop=dev_loop)
-                authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
-                loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit')) # quit dev client
-                DEV_LOOP_RUNNING=False
-                # re-enable client BOINC
-                loop.run_until_complete(
-                    run_rpc_command(rpc_client, 'set_gpu_mode', existing_gpu_mode))
-                loop.run_until_complete(
-                    run_rpc_command(rpc_client, 'set_run_mode', existing_cpu_mode))
+                    log.error('Unable to start dev mode due to unknown last mode')
 
         # loop through each project in order of priority and request new tasks if not backed off
         # stopping looping if cache becomes full

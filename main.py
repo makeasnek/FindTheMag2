@@ -257,19 +257,24 @@ async def get_task_list(rpc_client:libs.pyboinc.rpc_client)->list:
     return return_value
 async def is_boinc_crunching(rpc_client:libs.pyboinc.rpc_client)->bool:
     """
-    Returns True is boinc is crunching, false otherwise
+    Returns True is boinc is crunching, false if not or unable to determine
     """
-    reply = await run_rpc_command(rpc_client, 'get_cc_status')
-    task_suspend_reason=int(reply['task_suspend_reason'])
-    if task_suspend_reason !=0:
-        # These are documented at https://github.com/BOINC/boinc/blob/73a7754e7fd1ae3b7bf337e8dd42a7a0b42cf3d2/android/BOINC/app/src/main/java/edu/berkeley/boinc/utils/BOINCDefs.kt
-        log.debug('Determined BOINC client is not crunching task_suspend_reason: {}'.format(task_suspend_reason))
+    try:
+        reply = await run_rpc_command(rpc_client, 'get_cc_status')
+        task_suspend_reason=int(reply['task_suspend_reason'])
+        if task_suspend_reason !=0:
+            # These are documented at https://github.com/BOINC/boinc/blob/73a7754e7fd1ae3b7bf337e8dd42a7a0b42cf3d2/android/BOINC/app/src/main/java/edu/berkeley/boinc/utils/BOINCDefs.kt
+            log.debug('Determined BOINC client is not crunching task_suspend_reason: {}'.format(task_suspend_reason))
+            return False
+        if task_suspend_reason==0:
+            log.debug('Determined BOINC client is crunching task_suspend_reason: {}'.format(task_suspend_reason))
+            return True
+        log.warning('Unable to determine if BOINC is crunching or not, assuming not.')
         return False
-    if task_suspend_reason==0:
-        log.debug('Determined BOINC client is crunching task_suspend_reason: {}'.format(task_suspend_reason))
-        return True
-    log.warning('Unable to determine if BOINC is crunching or not, assuming not.')
-    return False
+    except Exception as e:
+        print("Error checking if BOINC is crunching. If you continue to see this error, make sure BOINC is running")
+        log.error('Error checking if BOINC is crunching (in is_boinc_crunching: '.format(e))
+        return False
 async def setup_connection(boinc_ip:str=boinc_ip,boinc_password:str=boinc_password,port:int=31416)->libs.pyboinc.rpc_client:
     """
     Sets up a BOINC RPC client connection

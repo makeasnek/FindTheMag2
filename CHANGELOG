@@ -1,3 +1,6 @@
+Version 2.3 release date unknown
+- Many smaller bugfixes and usability enhancements, crash prevention, etc
+- Improves logging for diagnosing issues
 Version 2.0 release date Jan 30, 2023
 - FTM can now directly control BOINC to match assigned project weights, calculate profitability, and crunch based on profitability or room temperature
 Version .1 Release Date: Nov 2021

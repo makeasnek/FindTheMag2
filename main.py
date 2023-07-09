@@ -1940,13 +1940,12 @@ def project_to_dev_project(url:str,dev_projects:Dict[str,str])->str:
         if url.upper().replace('HTTPS://','').replace('HTTP://','')==project.upper().replace('HTTPS://','').replace('HTTP://',''):
             return project
     return url
-def project_in_list_check(url:str,project_list:List[str]):
+def project_in_list_check(url:str,project_list:List[str])->bool:
     """
     Case-insensitive way to check if URL is in list of URLs
     """
     cleaned=url.upper().replace('HTTPS://','').replace('HTTP://','')
     for project in project_list:
-        cleaned_project=project.upper().replace('HTTPS://','').replace('HTTP://','')
         if cleaned==project:
             return True
         if cleaned in project:

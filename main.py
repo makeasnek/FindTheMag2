@@ -306,16 +306,14 @@ def temp_check()->bool:
         try:
             text=req.get(temp_url).text
         except Exception as e:
-            print('Error checking temp: {}'.format(e))
-            log.error('Error checking temp: {}'.format(e))
+            print_and_log('Error checking temp: {}'.format(e),'ERROR')
             return True
     elif temp_command:
         command=shlex.split(temp_command)
         try:
             text=subprocess.check_output(command)
         except Exception as e:
-            print('Error checking temp: {}'.format(e))
-            log.error('Error checking temp: {}'.format(e))
+            print_and_log('Error checking temp: {}'.format(e),'ERROR')
             return True
     command_output=config.temp_function()
     match=None

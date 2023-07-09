@@ -1733,8 +1733,6 @@ def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_d
 
 def url_to_just_domain_and_path(url:str)->str:
     cleaned_url = url.upper().replace('HTTPS://', '').replace('HTTP://', '').replace('WWW.', '')
-    if cleaned_url.endswith('/'):
-        cleaned_project_url=cleaned_url[:-1]
     return cleaned_url
 def get_project_from_dict(project_url:str, combined_stats:dict,debug_notes:str='')->Union[dict,int,None]:
     """

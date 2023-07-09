@@ -1526,12 +1526,16 @@ async def verify_boinc_connection(rpc_client:libs.pyboinc.rpc_client)->bool:
     Checks if a BOINC client can be connected to and authorized.
     Returns True if it can, False if it can't.
     """
-    authorize_response = await rpc_client.authorize()
-    req = ET.Element('get_global_prefs_working')
-    response = await rpc_client._request(req)
-    if 'unauthorized' in str(response):
+    try:
+        authorize_response = await rpc_client.authorize()
+        req = ET.Element('get_global_prefs_working')
+        response = await rpc_client._request(req)
+        if 'unauthorized' in str(response):
+            return False
+        return True
+    except Exception as e:
+        log.error('Error connecting to BOINC in verify_boinc_connection: {}'.format(e))
         return False
-    return True
 async def prefs_check(rpc_client: libs.pyboinc.rpc_client)->dict:
     # authorize BOINC client
     authorize_response = await rpc_client.authorize()

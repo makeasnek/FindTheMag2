@@ -1360,17 +1360,20 @@ async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,task_list
         except Exception as e:
             log.error('Error ending task: {}: {}'.format(task,e))
 
-async def nnt_all_projects(rpc_client: libs.pyboinc.rpc_client):
-    project_status_reply = await rpc_client.get_project_status()
-    found_projects = []
-    for project in project_status_reply:
-        found_projects.append(project.master_url)
-    for project in found_projects:
-        req = ET.Element('project_nomorework')
-        a = ET.SubElement(req, 'project_url')
-        a.text = project
-        response = await rpc_client._request(req)
-        parsed = parse_generic(response) # returns True if successful
+async def nnt_all_projects(rpc_client: libs.pyboinc.rpc_client)->None:
+    try:
+        project_status_reply = await rpc_client.get_project_status()
+        found_projects = []
+        for project in project_status_reply:
+            found_projects.append(project.master_url)
+        for project in found_projects:
+            req = ET.Element('project_nomorework')
+            a = ET.SubElement(req, 'project_url')
+            a.text = project
+            response = await rpc_client._request(req)
+            parsed = parse_generic(response) # returns True if successful
+    except Exception as e:
+        log.error('Error NNTing all projects: {}'.format(e))
 async def check_log_entries(rpc_client: libs.pyboinc.rpc_client,project_name:str)->bool:
     """
     Return True if project cache full, False otherwise.

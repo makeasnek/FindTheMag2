@@ -177,20 +177,18 @@ class GridcoinClientConnection:
         return None
 class BoincClientConnection:
     """
-    A simple class for grepping BOINC config files etc. Doesn't do any RPC communication
+    A simple class for grepping BOINC config files etc. Doesn't do any RPC communication. This class and any
+     usage of it should be wrapped in try/except clauses as it does not do any error handling internally.
     """
-    def __init__(self, config_dir:str=None, ip_address:str='127.0.0.1', port:str='9876', rpc_user:str=boinc_username, rpc_password:str=None):
+    def __init__(self, config_dir:str=None):
         if config_dir is None:
             self.config_dir='/var/lib/boinc-client'
         else:
             self.config_dir=config_dir # absolute path to the client config dir
-        self.ip_address=ip_address
-        self.port=port
-        self.rpc_user=rpc_user
-        self.rpc_password=rpc_password
     def get_project_list(self)->List[str]:
         """
-        :return: UPPERCASED list of project URLs. This is all of them, not just ones which are attached
+        :return: UPPERCASED list of project URLs. This is all of them known, not just ones which are attached.
+        Note that some attached projects may not be on this list, as they are not included in BOINC by default.
         """
         project_list_file=os.path.join(self.config_dir,'all_projects_list.xml')
         return_list=[]

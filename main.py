@@ -1602,6 +1602,10 @@ async def verify_boinc_connection(rpc_client:libs.pyboinc.rpc_client)->bool:
         log.error('Error connecting to BOINC in verify_boinc_connection: {}'.format(e))
         return False
 async def prefs_check(rpc_client: libs.pyboinc.rpc_client)->dict:
+    """
+    Check that BOINC is configured in the way FTM needs. Currently checks disk usage settings and network settings,
+    warns user and quits if they are not correct.
+    """
     # authorize BOINC client
     authorize_response = await rpc_client.authorize()
     # get prefs
@@ -1633,6 +1637,7 @@ async def prefs_check(rpc_client: libs.pyboinc.rpc_client)->dict:
             'internet availability.')
         print('Press enter to quit')
         input()
+        quit()
     return parsed
 def get_highest_priority_project(combined_stats:dict,project_weights:Dict[str,int],min_recheck_time=min_recheck_time,attached_projects:List[str]=None,quiet:bool=False)->Tuple[List[str],Dict[str,float]]:
     """

@@ -1564,12 +1564,12 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
         return False
 async def get_all_projects(rpc_client: libs.pyboinc.rpc_client)->Dict[str, str]:
     """
-    Get ALL projects the BOINC client knows about, even if unattached
+    Get ALL projects the BOINC client knows about, even if unattached. This SHOULD crash the program if it doesn't work
+    so there is no try/except clause
     """
     req = ET.Element('get_all_projects_list')
     messages_response = await rpc_client._request(req)
     project_status_reply = parse_generic(messages_response)  # returns True if successful
-    found_projects = []
     project_names={}
     for project in project_status_reply:
         project_names[project['url']]=project['name']

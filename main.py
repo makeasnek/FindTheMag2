@@ -1102,30 +1102,29 @@ def project_url_to_name(url:str,project_names:dict=None):
             found=name.lower().replace('@home','').replace('athome','')
     return found
 
+def left_align(yourstring:str,total_len:int,min_pad:int=0)->str:
+    """
+    Return left-aligned string with a total len of X and min_padding (extra space on right side) of min_pad, cutting off string if needed
+    If min_pad==1, it looks like this ' yourstring '
+    """
+    if len(yourstring)>=total_len-min_pad:
+        yourstring=yourstring[0:total_len-(min_pad)]
+    space_left=total_len-(len(yourstring)+min_pad)
+    right_pad = ' ' * space_left
+    return yourstring+right_pad
+def center_align(yourstring:str,total_len:int,min_pad:int=0)->str:
+    """
+    Return center-aligned string with a total len of X and min_padding (extra space on right & left side) of min_pad, cutting off string if needed
+    If min_pad==1, it looks like this ' yourstring '
+    """
+    if len(yourstring)>=total_len-min_pad:
+        yourstring=yourstring[0:total_len-(min_pad)]
+    space_left=total_len-(len(yourstring)+min_pad)
+    left_pad=' '*floor(space_left/2)
+    right_pad = ' ' * ceil(space_left/2)
+    return left_pad+yourstring+right_pad
+
 def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_reason:str=DATABASE['TABLE_SLEEP_REASON'], status:str=DATABASE['TABLE_STATUS'],dev_status:bool=False):
-    def left_align(yourstring:str,total_len:int,min_pad:int=0)->str:
-        """
-        Return left-aligned string with a total len of X and min_padding (extra space on right side) of min_pad, cutting off string if needed
-        If min_pad==1, it looks like this ' yourstring '
-        """
-        if len(yourstring)>=total_len-min_pad:
-            yourstring=yourstring[0:total_len-(min_pad)]
-        space_left=total_len-(len(yourstring)+min_pad)
-        right_pad = ' ' * space_left
-        return yourstring+right_pad
-    def center_align(yourstring:str,total_len:int,min_pad:int=0)->str:
-        """
-        Return center-aligned string with a total len of X and min_padding (extra space on right & left side) of min_pad, cutting off string if needed
-        If min_pad==1, it looks like this ' yourstring '
-        """
-        if len(yourstring)>=total_len-min_pad:
-            yourstring=yourstring[0:total_len-(min_pad)]
-        space_left=total_len-(len(yourstring)+min_pad)
-        left_pad=' '*floor(space_left/2)
-        right_pad = ' ' * ceil(space_left/2)
-        return left_pad+yourstring+right_pad
-
-
     if len(table_dict)==0:
         return
     headings=[]

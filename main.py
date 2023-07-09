@@ -973,12 +973,25 @@ def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[
         if combinedstats[highest_project]['COMPILED_STATS']['TOTALTASKS']<10:
             return_list.clear()
     return return_list
-def sidestake_check(check_sidestake_results:bool,check_type:str,address:str)->None:
+def sidestake_prompt(check_sidestake_results:bool, check_type:str, address:str)->None:
+    """
+    A function to interactively ask user if they want to setup a sidestake, sets up a sidestake if they say yes
+    """
     if check_type=='FOUNDATION':
-        message1='It appears that you have not enabled sidestaking to the Gridcoin foundation in your wallet. We believe it is only fair that people benefiting from the Gridcoin network contribute back to it\nSidestaking enables you to contribute a small % of your staking profits (you can choose the %)\nWould you like to enable sidestaking?. \nPlease answer "Y" or "N" (without quotes)'
+        message1='It appears that you have not enabled sidestaking to the Gridcoin foundation in your wallet. We believe it is only fair that people benefiting from the Gridcoin network contribute back to it' \
+                 '\nSidestaking enables you to contribute a small % of your staking profits (you can choose the %)' \
+                 '\nWould you like to enable sidestaking?. ' \
+                 '\nPlease answer "Y" or "N" (without quotes)'
         message2='What percent would you like to donate to the Gridcoin foundation? Donations go towards software development, promotion, and growth of the coin. Enter a number like 5 for 5%. Please enter whole numbers only'
     elif check_type=='DEVELOPER':
-        message1='Are you interested in sidestaking to the developers of this tool? This is optional. We ask you to consider what gain in efficiency this tool can bring you and to donate a small portion of that gain (you can choose the %).\nPlease. I am trying to buy a pony.\nSetting a sidestake amount also skips the "crunching for dev" portion of this tool which will save you some disk space and CPU time. Please answer "Y" or "N" (without quotes)'
+        message1="Are you interested in sidestaking to the developers of this tool? " \
+                 "\n This is optional (but required for MacOS users who the BOINC Control feature). I ask you to consider what gain in efficiency this tool can bring you and to donate a small portion of that gain (you can choose the %)." \
+                 "\nPlease. I am trying to buy a pony." \
+                 "\n If you use the BOINC control feature, you can choose whether to have FTM 'crunch for dev' or setup a sidestake. MacOS users can only choose the sidestake option" \
+                 "\n You can always use FTM for free to read your BOINC client's stats and suggest project weights. " \
+                 "\n Crunching for dev does not kick in until approximately 1000 hours of use and uses a minimum of 1% of processing power (default is 5, which can be changed in the config). All crunching still goes to BOINC, you just crunch under the dev's account" \
+                 "\n Setting a sidestake amount also skips the 'crunching for dev' portion of this tool which will save you some disk space and CPU time. " \
+                 "\n Do you want to setup a sidestake? Please answer \"Y\" or \"N\" (without quotes)"
         message2='What percent would you like to donate to the developers of this tool? Enter a number like 5 for 5%. Please enter whole numbers only'
     else:
         message1=''
@@ -2550,7 +2563,7 @@ if __name__ == '__main__':
     BOINC_PROJECT_LIST,BOINC_PROJECT_NAMES = loop.run_until_complete(get_attached_projects(rpc_client)) # get project list from BOINC client directly. This is needed for correct capitalization
     ALL_BOINC_PROJECTS=loop.run_until_complete(get_all_projects(rpc_client))
 
-    # Get project list from Gridcoin wallet and/or gridcoinstats
+    # Get project list from Gridcoin wallet and/or gridcoinstats, check sidestakes
     check_sidestake_results=False
     foundation_address = 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2'
     developer_address = 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K'
@@ -2573,15 +2586,17 @@ if __name__ == '__main__':
             input('Press enter to exit')
             quit()
     else:
-        if not SCRIPTED_RUN:
-            # Check sidestakes
-            check_sidestake_results = check_sidestake(gridcoin_conf, foundation_address, 1)
-            sidestake_check(check_sidestake_results, 'FOUNDATION', foundation_address)
-            check_sidestake_results = check_sidestake(gridcoin_conf, developer_address, 1)
-            sidestake_check(check_sidestake_results, 'DEVELOPER', developer_address)
-            print(
-                'Welcome to FindTheMag and thank you for trying out this tool. Your feedback and suggestions are welcome on the github page : )')
-            check_sidestake_results = check_sidestake(gridcoin_conf, developer_address, 1)
+        # Check sidestakes, prompt user to enable them if they don't exist
+        check_sidestake_results = check_sidestake(gridcoin_conf, foundation_address, 1)
+        if not SCRIPTED_RUN and not check_sidestake_results:
+            sidestake_prompt(check_sidestake_results, 'FOUNDATION', foundation_address)
+        check_sidestake_results = check_sidestake(gridcoin_conf, developer_address, 1)
+        if not SCRIPTED_RUN and not check_sidestake_results:
+            sidestake_prompt(check_sidestake_results, 'DEVELOPER', developer_address)
+        print(
+            'Welcome to FindTheMag and thank you for trying out this tool. Your feedback and suggestions are welcome on the github page : )')
+        check_sidestake_results = check_sidestake(gridcoin_conf, developer_address, 1)
+
 
     # Get project list from BOINC
     try:

@@ -1432,25 +1432,7 @@ async def check_log_entries(rpc_client: libs.pyboinc.rpc_client,project_name:str
     if cache_full(project_name,messages):
         return True
     return False
-async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,project_name:str)->bool:
-    """
-    Return True if project should be backed off, False otherwise
-    project_name: name of project as it will appear in BOINC logs, NOT URL
-    """
-    def ignore_message(message,ignore_phrases:List[str]):
-        lowered=str(message['body']).lower()
-        uppered=str(message['body']).upper()
-        for phrase in ignore_phrases:
-            if phrase.upper() in uppered:
-                return True
-        if 'got' and 'new tasks' in lowered:
-            return True
-        if 'reporting' and 'completed tasks' in lowered:
-            return True
-        if 'computation for task' and 'finished' in lowered:
-            return True
-        return False
-    def project_backoff(project_name:str,messages)->bool:
+def project_backoff(project_name:str,messages)->bool:
         """
         Returns TRUE if project should be backed off. False otherwise or if unable to determine
         """
@@ -1476,14 +1458,16 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
             'not started and deadline has passed',
             'Project requested delay of'
         ]
+        uppered_project = project_name.upper()
         for message in messages:
             uppered_body=message['body'].upper()
-            if project_name.upper() not in str(message).upper():
+            uppered_message=str(message).upper()
+            if uppered_project not in uppered_message:
                 continue
             difference = datetime.datetime.now() - message['time']
             if difference.seconds>60*5: # if message is > 5 min old, skip
                 continue
-            if ignore_message(message,ignore_phrases):
+            if backoff_ignore_message(message,ignore_phrases):
                 continue
             for phrase in positive_phrases:
                 if phrase.upper() in uppered_body:
@@ -1495,10 +1479,29 @@ async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,proj
             if 'NEEDS' in uppered_body and 'BUT ONLY' in uppered_body and 'IS AVAILABLE FOR USE' in uppered_body:
                 log.debug('Backing off {} bc NEEDS BUT ONLY AVAILABLE FOR USE in logs'.format(project_name), 'DEBUG')
                 return True
-            log.warning('Found unknown messagex: {}'.format(message['body']))
+            log.debug('Found unknown messagex: {}'.format(message['body']))
         log.warning('Unable to determine if project {} should be backed off, assuming no'.format(project_name))
         return False
-
+def backoff_ignore_message(message:Dict[str,Any],ignore_phrases:List[str]):
+    """
+    Returns True is message can be ignored while checking for backoffs. False otherwise
+    """
+    uppered=str(message['body']).upper()
+    for phrase in ignore_phrases:
+        if phrase.upper() in uppered:
+            return True
+    if 'GOT' in uppered and 'NEW TASKS' in uppered:
+        return True
+    if 'REPORTING' in uppered and 'COMPLETED TASKS' in uppered:
+        return True
+    if 'COMPUTATION FOR TASK' in uppered and 'FINISHED' in uppered:
+        return True
+    return False
+async def check_log_entries_for_backoff(rpc_client: libs.pyboinc.rpc_client,project_name:str)->bool:
+    """
+    Return True if project should be backed off, False otherwise
+    project_name: name of project as it will appear in BOINC logs, NOT URL
+    """
     # Get message count
     req = ET.Element('get_message_count')
     msg_count_response = await rpc_client._request(req)

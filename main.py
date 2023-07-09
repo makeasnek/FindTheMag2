@@ -1374,93 +1374,91 @@ async def nnt_all_projects(rpc_client: libs.pyboinc.rpc_client)->None:
             parsed = parse_generic(response) # returns True if successful
     except Exception as e:
         log.error('Error NNTing all projects: {}'.format(e))
+def ignore_message_from_check_log_entries(message):
+    ignore_phrases=[
+        'work fetch resumed by user',
+        'update requested by user',
+        'sending scheduler request',
+        'scheduler request completed',
+        'project requested delay',
+        'work fetch suspended by user',
+        'Started download of',
+        'Finished download of',
+        'Starting task',
+        'Requesting new tasks'
+        'last request too recent'
+        'master file download succeeded',
+        'No tasks sent',
+        'Requesting new tasks for',
+        'no tasks are available for',
+        'computation for task',
+        'started upload of',
+        'finished upload of',
+        'This computer has reached a limit on tasks in progress',
+        'Upgrade to the latest driver to process tasks using your computer\'s GPU',
+        'project has no tasks available'
+    ]
+    uppered_message=str(message).upper()
+    for phrase in ignore_phrases:
+        if phrase.upper() in uppered_message:
+            return True
+    if 'UP TO' in uppered_message and 'NEEDS' in uppered_message and 'IS AVAILABLE FOR USE' in uppered_message and 'BUT ONLY' in uppered_message:
+        return True
+    if 'REPORTING' in uppered_message and 'COMPLETED TASKS' in uppered_message:
+        return True
+    return False
+def cache_full(project_name:str,messages)->bool:
+    """
+    Returns TRUE if CPU /AND/ GPU cache full, False is either is un-full.
+    Systems w/o GPU will be assumed to have a "full cache" for GPU
+    """
+    cpu_full=False
+    gpu_full=False
+    uppered_project=project_name.upper()
+    for message in messages:
+        if uppered_project not in str(message).upper():
+            continue
+        difference = datetime.datetime.now() - message['time']
+        if difference.seconds>60*5: # if message is > 5 min old, skip
+            continue
+        uppered_message_body=message['body'].upper()
+        if uppered_project==message['project'].upper():
+            if "Not requesting tasks: don't need".upper() in uppered_message_body:
+                if 'GPU' not in message['body'].upper():
+                    gpu_full=True # if no GPU, GPU cache is always full
+                if "CPU: JOB CACHE FULL" in uppered_message_body or "NOT REQUESTING TASKS: DON'T NEED (JOB CACHE FULL)" in uppered_message_body:
+                    cpu_full=True
+                    log.debug('CPU cache appears full {}'.format(message['body']))
+                else:
+                    if "NOT REQUESTING TASKS: DON'T NEED ()" in uppered_message_body:
+                        pass
+                    else:
+                        log.debug('CPU cache appears not full {}'.format(message['body']))
+                if "GPU: JOB CACHE FULL" in uppered_message_body:
+                    gpu_full=True
+                    log.debug('GPU cache appears full {}'.format(message['body']))
+                elif 'GPUS NOT USABLE' in uppered_message_body:
+                    gpu_full = True
+                    log.debug('GPU cache appears full {}'.format(message['body']))
+                else:
+                    if "NOT REQUESTING TASKS: DON'T NEED ()" in uppered_message_body:
+                        pass
+                    else:
+                        if not gpu_full: # if GPU is not mentioned in log, this would always happen so using this to stop erroneous messages
+                            log.debug('GPU cache appears not full {}'.format(message['body']))
+                continue
+            elif ignore_message_from_check_log_entries(message):
+                pass
+            else:
+                log.warning('Found unknown message1: {}'.format(message['body']))
+    if cpu_full and gpu_full:
+        return True
+    return False
 async def check_log_entries(rpc_client: libs.pyboinc.rpc_client,project_name:str)->bool:
     """
     Return True if project cache full, False otherwise.
     project_name: name of project as it will appear in BOINC logs, NOT URL
     """
-    def ignore_message(message):
-        ignore_phrases=[
-            'work fetch resumed by user',
-            'update requested by user',
-            'sending scheduler request',
-            'scheduler request completed',
-            'project requested delay',
-            'work fetch suspended by user',
-            'Started download of',
-            'Finished download of',
-            'Starting task',
-            'Requesting new tasks'
-            'last request too recent'
-            'master file download succeeded',
-            'No tasks sent',
-            'Requesting new tasks for',
-            'no tasks are available for',
-            'computation for task',
-            'started upload of',
-            'finished upload of',
-            'This computer has reached a limit on tasks in progress',
-            'Upgrade to the latest driver to process tasks using your computer\'s GPU',
-            'project has no tasks available'
-        ]
-        uppered_message=str(message).upper()
-        for phrase in ignore_phrases:
-            if phrase.upper() in uppered_message:
-                return True
-        if 'UP TO' in uppered_message and 'NEEDS' in uppered_message and 'IS AVAILABLE FOR USE' in uppered_message and 'BUT ONLY' in uppered_message:
-            return True
-        if 'REPORTING' and 'COMPLETED TASKS' in uppered_message:
-            return True
-        return False
-    def cache_full(project_name:str,messages)->bool:
-        """
-        Returns TRUE if CPU /AND/ GPU cache full, False is either is un-full.
-        Systems w/o GPU will be assumed to have a "full cache" for GPU
-        """
-        cpu_full=False
-        gpu_full=False
-        for message in messages:
-            if project_name.upper() not in str(message).upper():
-                continue
-            difference = datetime.datetime.now() - message['time']
-            if difference.seconds>60*5: # if message is > 5 min old, skip
-                continue
-            if project_name.upper()==message['project'].upper():
-                if "Not requesting tasks: don't need".upper() in message['body'].upper():
-                    if 'GPU' not in message['body'].upper():
-                        gpu_full=True # if no GPU, GPU cache is always full
-                    if "CPU: job cache full".upper() in message['body'].upper() or "Not requesting tasks: don't need (job cache full)".upper() in message['body'].upper():
-                        cpu_full=True
-                        #print('CPU cache appears full {}'.format(message['body']))
-                        log.debug('CPU cache appears full {}'.format(message['body']))
-                    else:
-                        if "Not requesting tasks: don't need ()".upper() in message['body'].upper():
-                            pass
-                        else:
-                            #print('CPU cache appears not full {}'.format(message['body']))
-                            log.debug('CPU cache appears not full {}'.format(message['body']))
-                    if "GPU: job cache full".upper() in message['body'].upper():
-                        gpu_full=True
-                        #print('GPU cache appears full {}'.format(message['body']))
-                        log.debug('GPU cache appears full {}'.format(message['body']))
-                    elif 'GPUs not usable'.upper() in message['body'].upper():
-                        gpu_full = True
-                        log.debug('GPU cache appears full {}'.format(message['body']))
-                    else:
-                        if "Not requesting tasks: don't need ()".upper() in message['body'].upper():
-                            pass
-                        else:
-                            if not gpu_full: # if GPU is not mentioned in log, this would always happen so using this to stop erroneous messages
-                                #print('GPU cache appears not full {}'.format(message['body']))
-                                log.debug('GPU cache appears not full {}'.format(message['body']))
-                    continue
-                elif ignore_message(message):
-                    pass
-                else:
-                    log.warning('Found unknown message1: {}'.format(message['body']))
-        if cpu_full and gpu_full:
-            return True
-        return False
 
     # Get message count
     req = ET.Element('get_message_count')

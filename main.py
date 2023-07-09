@@ -1341,7 +1341,7 @@ async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,task_list
         try:
             #elapsed_time=task['active_task']['current_cpu_time'].seconds
             name=task['name']
-            wu_name=task['wu_name']
+            # wu_name=task['wu_name']
             project_url=task['project_url'].master_url
             if 'active_task' not in task:
                 print('Cancelling unstarted task {}'.format(task))

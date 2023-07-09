@@ -985,11 +985,11 @@ def sidestake_check(check_sidestake_results:bool,check_type:str,address:str)->No
         if answer == 'N':
             if check_type=='FOUNDATION':
                 print('Ok no problem, it is your choice after all!')
+                return
             if check_type=='DEVELOPER':
                 print('Ok no problem, it is your choice after all!')
                 return
-        print(message2)
-        answer = input("")
+        answer = input(message2)
         converted_value = None
         while not converted_value:
             try:
@@ -997,10 +997,16 @@ def sidestake_check(check_sidestake_results:bool,check_type:str,address:str)->No
             except Exception as e:
                 print("Hmm... that didn't seem to work, let's try again. Please enter a whole number")
                 answer = input("")
-        with open(os.path.join(gridcoin_data_dir, 'gridcoinresearch.conf'), "a") as myfile:
-            if 'enablesidestaking=1' not in str(myfile):
-                myfile.write("enablesidestaking=1\n")
-            myfile.write('sidestake='+address+',' + str(converted_value) + '\n')
+        try:
+            conf_file=os.path.join(gridcoin_data_dir, 'gridcoinresearch.conf')
+            sidestake_entry='sidestake='+address+',' + str(converted_value)
+            with open(conf_file, "a") as myfile:
+                if 'enablesidestaking=1' not in str(myfile):
+                    myfile.write("enablesidestaking=1\n")
+                if sidestake_entry.upper() not in str(myfile).upper():
+                    myfile.write(sidestake_entry + '\n')
+        except Exception as e:
+            print_and_log('Error saving sidestake settings, maybe no access to gridcoinresearch.conf? Trying to write to {} error was {}'.format(conf_file,e),'ERROR')
 def get_project_mag_ratios(grc_client: GridcoinClientConnection, lookback_period: int = 30) -> Dict[
     str, float]:
     """

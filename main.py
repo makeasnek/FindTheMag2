@@ -119,30 +119,44 @@ class GridcoinClientConnection:
     """
     A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently quite barebones.
     """
-    def __init__(self, config_file:str=None, ip_address:str='127.0.0.1', rpc_port:str='9876', rpc_user:str=None, rpc_password:str=None,):
+    def __init__(self, config_file:str=None, ip_address:str='127.0.0.1', rpc_port:str='9876', rpc_user:str=None, rpc_password:str=None,retries:int=3,retry_delay:int=1):
         self.configfile=config_file #absolute path to the client config file
         self.ipaddress=ip_address
         self.rpc_port=rpc_port
         self.rpcuser=rpc_user
         self.rpcpassword=rpc_password
-    def run_command(self,command:str,arguments:List[Union[str,bool]]=None)->dict:
+        self.retries=retries
+        self.retry_delay=retry_delay
+    def run_command(self,command:str,arguments:List[Union[str,bool]]=None)->Union[dict,None]:
+        """
+        Runs a command, returns dict of json or None if error connecting to wallet
+        """
         if not arguments:
-            arguments=[]
-        credentials=None
-        url='http://' + self.ipaddress +':' + self.rpc_port + '/'
-        headers = {'content-type': 'application/json'}
-        payload = {
-            "method": command,
-            "params": arguments,
-            "jsonrpc": "2.0",
-            "id": 0,
-        }
-        jsonpayload=json.dumps(payload,default=json_default)
-        if self.rpcuser or self.rpcpassword:
-            credentials=HTTPBasicAuth(self.rpcuser, self.rpcpassword)
-        response = requests.post(
-            url, data=jsonpayload, headers=headers, auth=credentials)
-        return response.json()
+            arguments = []
+        current_retries=0
+        while current_retries<self.retries:
+            sleep(self.retry_delay)
+            current_retries+=1
+            credentials=None
+            url='http://' + self.ipaddress +':' + self.rpc_port + '/'
+            headers = {'content-type': 'application/json'}
+            payload = {
+                "method": command,
+                "params": arguments,
+                "jsonrpc": "2.0",
+                "id": 0,
+            }
+            jsonpayload=json.dumps(payload,default=json_default)
+            if self.rpcuser or self.rpcpassword:
+                credentials=HTTPBasicAuth(self.rpcuser, self.rpcpassword)
+            try:
+                response = requests.post(url, data=jsonpayload, headers=headers, auth=credentials)
+                return_response=response.json()
+            except Exception:
+                pass
+            else:
+                return return_response
+        return None
     def get_approved_project_urls(self)->List[str]:
         """
         :return: A list of UPPERCASED project URLs using gridcoin command listprojects

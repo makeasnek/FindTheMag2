@@ -456,27 +456,41 @@ def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
     """
     Gets current whitelist from Gridcoinstats
     """
-
+    # Check if cache is available
+    if 'GSPROJECTLIST' in DATABASE and 'GSRESOLVERDICT' in DATABASE:
+        cache_available=True
+    else:
+        cache_available=False
     # Return cached version if we have it and requested it < 24 hrs ago
     delta=datetime.datetime.now()-DATABASE.get('LASTGRIDCOINSTATSPROJECTCHECK',datetime.datetime(1993,3,3))
-    if abs(delta.days)<1 and 'GSPROJECTLIST' in DATABASE and 'GSRESOLVERDICT' in DATABASE:
+    if abs(delta.days)<1 and cache_available:
         log.debug('Returning cached version of gridcoinstats data')
         return DATABASE['GSPROJECTLIST'],DATABASE['GSRESOLVERDICT']
-
     # Otherwise, request it
     import json
     url='https://www.gridcoinstats.eu/API/simpleQuery.php?q=listprojects'
     import requests as req
-    resp = req.get(url)
-    if 'BOINC' not in resp.text.upper():
+    try:
+        resp = req.get(url)
+    except Exception as e:
         print('Error fetching magnitude stats from {}'.format(url))
-        log.error('Error fetching magnitude stats from {}'.format(url))
-        if 'GSPROJECTLIST' in DATABASE and 'GSRESOLVERDICT' in DATABASE:
-            log.debug('Returning cached magnitude stats')
+        log.error('Error fetching magnitude stats from {}: {}'.format(url,e))
+        if cache_available:
             return DATABASE['GSPROJECTLIST'], DATABASE['GSRESOLVERDICT']
         else:
             log.debug('Exiting safely')
-            safe_exit(None,None)
+            safe_exit(None, None)
+    else:
+        if 'BOINC' not in resp.text.upper():
+            log.error('Error fetching magnitude stats from {}'.format(url))
+            if cache_available:
+                log.debug('Returning cached magnitude stats')
+                return DATABASE['GSPROJECTLIST'], DATABASE['GSRESOLVERDICT']
+            else:
+                log.debug('Exiting safely')
+                safe_exit(None,None)
+
+    # Parse what we got back
     return_list:List[str]= []
     project_resolver_dict:Dict[str,str]={}
     loaded_json={}
@@ -484,7 +498,7 @@ def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
         loaded_json=json.loads(resp.text)
     except Exception as e:
         log.error('Error parsing data from Gridcoinstats {}'.format(e))
-        if 'GSPROJECTLIST' in DATABASE and 'GSRESOLVERDICT' in DATABASE:
+        if cache_available:
             log.error('Returning old gridcoinstats data'.format(e))
             return DATABASE['GSPROJECTLIST'], DATABASE['GSRESOLVERDICT']
         else:

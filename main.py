@@ -1456,22 +1456,26 @@ def cache_full(project_name:str,messages)->bool:
     return False
 async def check_log_entries(rpc_client: libs.pyboinc.rpc_client,project_name:str)->bool:
     """
-    Return True if project cache full, False otherwise.
+    Return True if project cache full, False if otherwise or unable to determine.
     project_name: name of project as it will appear in BOINC logs, NOT URL
     """
 
-    # Get message count
-    req = ET.Element('get_message_count')
-    msg_count_response = await rpc_client._request(req)
-    message_count = int(parse_generic(msg_count_response))
-    req = ET.Element('get_messages')
-    a = ET.SubElement(req, 'seqno')
-    a.text = str(message_count-50) # get ten most recent messages
-    messages_response = await rpc_client._request(req)
-    messages = parse_generic(messages_response)  # returns True if successful
-    if cache_full(project_name,messages):
-        return True
-    return False
+    try:
+        # Get message count
+        req = ET.Element('get_message_count')
+        msg_count_response = await rpc_client._request(req)
+        message_count = int(parse_generic(msg_count_response))
+        req = ET.Element('get_messages')
+        a = ET.SubElement(req, 'seqno')
+        a.text = str(message_count-50) # get ten most recent messages
+        messages_response = await rpc_client._request(req)
+        messages = parse_generic(messages_response)  # returns True if successful
+        if cache_full(project_name,messages):
+            return True
+        return False
+    except Exception as e:
+        log.error('Error in check_log_entries: {}'.format(e))
+        return False
 def project_backoff(project_name:str,messages)->bool:
         """
         Returns TRUE if project should be backed off. False otherwise or if unable to determine

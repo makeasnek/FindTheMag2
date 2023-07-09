@@ -604,7 +604,8 @@ def get_config_parameters(gridcoin_dir:str)->Dict[str, str]:
                     log.warning('Warning: multiple values found for ' + key + ' in gridcoin config file at ' + os.path.join(
                         gridcoin_dir, 'gridcoinresearch.conf') + ' using the first one we found')
                     continue
-                return_dict[key]=value
+                if key not in return_dict:
+                    return_dict[key]=value
     return return_dict
 
 def check_sidestake(config_params:Dict[str,Union[str,List[str]]],address:str,minval:float)->bool:

@@ -757,7 +757,7 @@ def resolve_boinc_url(url:str,boinc_url_list:List[str]):
 
 async def run_rpc_command(rpc_client:libs.pyboinc.rpc_client,command:str,arg1:Union[str,None]=None,arg1_val:Union[str,None]=None,arg2:Union[str,None]=None,arg2_val:Union[str,None]=None)->Union[str,Dict[Any,Any],List[Any]]:
     """
-    Runs command on BOINC client via RPC
+    Runs command on BOINC client via RPC. Has try/except and retries, returns None if unsuccessful
     Example: run_rpc_command(rpc_client,'project_nomorework','http://project.com/project')
     """
     max_retries=3
@@ -2140,37 +2140,40 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if enable_temp_control:
             # Get BOINC's starting CPU and GPU modes
             existing_mode_info = loop.run_until_complete(run_rpc_command(rpc_client, 'get_cc_status'))
-            existing_cpu_mode = existing_mode_info['task_mode']
-            existing_gpu_mode = str(existing_mode_info['gpu_mode'])
-            if existing_cpu_mode in CPU_MODE_DICT:
-                existing_cpu_mode = CPU_MODE_DICT[existing_cpu_mode]
-            else:
-                print_and_log('Error: Unknown cpu mode {}'.format(existing_cpu_mode),'ERROR')
-            if existing_gpu_mode in GPU_MODE_DICT:
-                existing_gpu_mode = GPU_MODE_DICT[existing_gpu_mode]
-            else:
-                print_and_log('Error: Unknown gpu mode {}'.format(existing_gpu_mode),"ERROR")
+            if not existing_mode_info:
+                print_and_log('Error getting cc status to determine temp control, skipping temp control','ERROR')
+            if existing_mode_info:
+                existing_cpu_mode = existing_mode_info['task_mode']
+                existing_gpu_mode = str(existing_mode_info['gpu_mode'])
+                if existing_cpu_mode in CPU_MODE_DICT:
+                    existing_cpu_mode = CPU_MODE_DICT[existing_cpu_mode]
+                else:
+                    print_and_log('Error: Unknown cpu mode {}'.format(existing_cpu_mode),'ERROR')
+                if existing_gpu_mode in GPU_MODE_DICT:
+                    existing_gpu_mode = GPU_MODE_DICT[existing_gpu_mode]
+                else:
+                    print_and_log('Error: Unknown gpu mode {}'.format(existing_gpu_mode),"ERROR")
 
-            # If temp is too high:
-            if not temp_check():
-                while True: # Keep sleeping until we pass a temp check
-                    log.debug('Sleeping due to temperature')
-                    # Put BOINC into sleep mode, automatically reverting if script closes unexpectedly
-                    sleep_interval=str(int(((60*temp_sleep_time)+60)))
-                    loop.run_until_complete(
-                        run_rpc_command(rpc_client, 'set_run_mode', 'never', sleep_interval))
-                    loop.run_until_complete(
-                        run_rpc_command(rpc_client, 'set_gpu_mode', 'never', sleep_interval))
-                    DATABASE['TABLE_SLEEP_REASON']= 'Temperature'
-                    update_table(dev_loop=dev_loop)
-                    sleep(60*temp_sleep_time)
-                    if temp_check():
-                        # Reset to initial crunching modes now that temp is satisfied
+                # If temp is too high:
+                if not temp_check():
+                    while True: # Keep sleeping until we pass a temp check
+                        log.debug('Sleeping due to temperature')
+                        # Put BOINC into sleep mode, automatically reverting if script closes unexpectedly
+                        sleep_interval=str(int(((60*temp_sleep_time)+60)))
                         loop.run_until_complete(
-                            run_rpc_command(rpc_client, 'set_run_mode', existing_cpu_mode))
+                            run_rpc_command(rpc_client, 'set_run_mode', 'never', sleep_interval))
                         loop.run_until_complete(
-                            run_rpc_command(rpc_client, 'set_gpu_mode', existing_gpu_mode))
-                        break
+                            run_rpc_command(rpc_client, 'set_gpu_mode', 'never', sleep_interval))
+                        DATABASE['TABLE_SLEEP_REASON']= 'Temperature'
+                        update_table(dev_loop=dev_loop)
+                        sleep(60*temp_sleep_time)
+                        if temp_check():
+                            # Reset to initial crunching modes now that temp is satisfied
+                            loop.run_until_complete(
+                                run_rpc_command(rpc_client, 'set_run_mode', existing_cpu_mode))
+                            loop.run_until_complete(
+                                run_rpc_command(rpc_client, 'set_gpu_mode', existing_gpu_mode))
+                            break
         # If we are due to run under dev account, do it
         if should_crunch_for_dev(dev_loop):
             boinc_password=setup_dev_boinc() # Setup and start dev boinc

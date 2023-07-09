@@ -1874,9 +1874,7 @@ def setup_dev_boinc()->str:
     """
     Do initial setup of and start dev boinc client. Returns RPC password. Returns 'ERROR' if unable to start BOINC
     """
-    # check if dev BOINC directory exists
-    ## create if it doesn't
-    # start BOINC
+    # check if dev BOINC directory exists, create if it doesn't
     dev_path = os.path.abspath('DEVACCOUNT')
     boinc_executable = '/usr/bin/boinc'
     if 'WINDOWS' in found_platform.upper():
@@ -1885,6 +1883,7 @@ def setup_dev_boinc()->str:
         boinc_executable='/Applications/BOINCManager.app/Contents/resources/boinc'
     if not os.path.exists('DEVACCOUNT'):
         os.mkdir(dev_path)
+
     # update settings to match user settings from main BOINC install
     global_settings_path=os.path.join(boinc_data_dir,'global_prefs.xml')
     override_path=os.path.join(boinc_data_dir,'global_prefs_override.xml')

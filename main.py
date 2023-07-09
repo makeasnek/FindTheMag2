@@ -944,6 +944,17 @@ def add_mag_to_combined_stats(combined_stats: dict, mag_ratios: Dict[str, float]
         project_stats['COMPILED_STATS']['MAGPERCREDIT']=found_mag_ratio
     return combined_stats,unapproved_list
 
+def is_project_eligible(project_url: str, project_stats: dict)->bool:
+    """
+    Returns if project is eligible based on compltted tasks
+    """
+    # Ignore projects and projects w less than 10 completed tasks are ineligible
+    if project_url in ignored_projects:
+        return False
+    if int(project_stats['COMPILED_STATS']['TOTALTASKS']) >= 10:
+        return True
+    return False
+
 def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[str], percentdiff: int = 10,quiet:bool=False) -> List[
     str]:
     """
@@ -952,15 +963,6 @@ def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[
     :param percentdiff: Maximum percent diff
     :return: List of project URLs
     """
-
-    def is_eligible(project_url: str, project_stats: dict):
-        # Ignore projects and projects w less than 10 completed tasks are ineligible
-        if project_url in ignored_projects:
-            return False
-        if int(project_stats['COMPILED_STATS']['TOTALTASKS']) >= 10:
-            return True
-        return False
-
     return_list = []
     highest_project=None
     try:
@@ -975,7 +977,7 @@ def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[
     for project_url, project_stats in combinedstats.items():
         current_mag_per_hour=project_stats['COMPILED_STATS']['AVGMAGPERHOUR']
         highest_mag_per_hour=combinedstats[highest_project]['COMPILED_STATS']['AVGMAGPERHOUR']
-        if current_mag_per_hour > highest_mag_per_hour and is_eligible(project_url, project_stats):
+        if current_mag_per_hour > highest_mag_per_hour and is_project_eligible(project_url, project_stats):
             highest_project = project_url
     if combinedstats[highest_project]['COMPILED_STATS']['TOTALTASKS']>=10:
         if not quiet:
@@ -988,18 +990,18 @@ def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[
                 'AVGMAGPERHOUR']))
     return_list.append(highest_project)
 
-    # then compare other projects to it to see if any are within 10% of it
+    # then compare other projects to it to see if any are within percentdiff of it
     highest_avg_mag = combinedstats[highest_project]['COMPILED_STATS']['AVGMAGPERHOUR']
-    minimum_for_inclusion=highest_avg_mag - (highest_avg_mag * .10)
+    minimum_for_inclusion=highest_avg_mag - (highest_avg_mag * (percentdiff/100))
     for project_url, project_stats in combinedstats.items():
         current_avg_mag=project_stats['COMPILED_STATS']['AVGMAGPERHOUR']
         if project_url == highest_project:
             continue
-        if minimum_for_inclusion <= current_avg_mag and is_eligible(project_url, project_stats) and current_avg_mag!=0:
+        if minimum_for_inclusion <= current_avg_mag and is_project_eligible(project_url, project_stats) and current_avg_mag!=0:
             if not quiet:
-                print('Also including this project because it\'s within 10% variance of highest mag/hr project: {}, mag/hr {}'.format(project_url.lower(), current_avg_mag))
+                print('Also including this project because it\'s within {}% variance of highest mag/hr project: {}, mag/hr {}'.format(percentdiff,project_url.lower(), current_avg_mag))
             log.info(
-                'Also including this project because it\'s within 10% variance of highest mag/hr project: {}, mag/hr {}'.format(
+                'Also including this project because it\'s within {}% variance of highest mag/hr project: {}, mag/hr {}'.format(percentdiff,
                     project_url.lower(), current_avg_mag))
             return_list.append(project_url)
 

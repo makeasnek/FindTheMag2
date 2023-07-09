@@ -1334,28 +1334,31 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
         intended_weight=(preferred_project_weights_extract / 100) * total_preferred_weight
         final_project_weights[project_url] += intended_weight
     return combined_stats,final_project_weights,total_preferred_weight,total_mining_weight,dev_project_weights
-async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,task_list:list):
+async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,task_list:list)->None:
     project_status_reply = await rpc_client.get_project_status()
     found_projects = [] # DEBUG ADDED TYPE THIS CORRECTLY
     for task in task_list:
-        #elapsed_time=task['active_task']['current_cpu_time'].seconds
-        name=task['name']
-        wu_name=task['wu_name']
-        project_url=task['project_url'].master_url
-        if 'active_task' not in task:
-            print('Cancelling unstarted task {}'.format(task))
-            log.info('Cancelling unstarted task {}'.format(task))
-            req = ET.Element('abort_result')
-            a = ET.SubElement(req, 'project_url')
-            a.text = project_url
-            b = ET.SubElement(req, 'name')
-            b.text = name
-            response = await rpc_client._request(req)
-            parsed = parse_generic(response)  # returns True if successful
-            a="21"
-        else:
-            #print('Keeping task {}'.format(task))
-            log.debug('Keeping task {}'.format(task))
+        try:
+            #elapsed_time=task['active_task']['current_cpu_time'].seconds
+            name=task['name']
+            wu_name=task['wu_name']
+            project_url=task['project_url'].master_url
+            if 'active_task' not in task:
+                print('Cancelling unstarted task {}'.format(task))
+                log.info('Cancelling unstarted task {}'.format(task))
+                req = ET.Element('abort_result')
+                a = ET.SubElement(req, 'project_url')
+                a.text = project_url
+                b = ET.SubElement(req, 'name')
+                b.text = name
+                response = await rpc_client._request(req)
+                parsed = parse_generic(response)  # returns True if successful
+                a="21"
+            else:
+                #print('Keeping task {}'.format(task))
+                log.debug('Keeping task {}'.format(task))
+        except Exception as e:
+            log.error('Error ending task: {}: {}'.format(task,e))
 
 async def nnt_all_projects(rpc_client: libs.pyboinc.rpc_client):
     project_status_reply = await rpc_client.get_project_status()

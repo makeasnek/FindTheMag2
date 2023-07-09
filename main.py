@@ -833,12 +833,11 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
     for statsfile in stats_files:
         project_url = projecturlfromstatsfile(os.path.basename(statsfile),ALL_PROJECT_URLS,approved_project_urls=APPROVED_PROJECT_URLS,boinc_projects_list=BOINC_PROJECT_LIST)
         stat_list = stat_file_to_list(statsfile)
-        log.debug('In statsfile for '+project_url)
+        # log.debug('In statsfile for '+project_url)
         # Compute the first and last date in the stats file. Currently not used but does work
-        startdate = str(datetime.datetime.fromtimestamp(float(stat_list[0]['STARTTIME'])).strftime('%m-%d-%Y'))
-        lastdate = str(
-            datetime.datetime.fromtimestamp(float(stat_list[len(stat_list) - 1]['STARTTIME'])).strftime('%m-%d-%Y'))
-        log.debug('Start date is '+startdate)
+        # startdate = str(datetime.datetime.fromtimestamp(float(stat_list[0]['STARTTIME'])).strftime('%m-%d-%Y'))
+        # lastdate = str(datetime.datetime.fromtimestamp(float(stat_list[len(stat_list) - 1]['STARTTIME'])).strftime('%m-%d-%Y'))
+        # log.debug('Start date is '+startdate)
         if project_url not in return_stats:
             return_stats[project_url] = {'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
         wu_history = return_stats[project_url]['WU_HISTORY']
@@ -849,18 +848,16 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
             wu_history[date]['TOTALWUS'] += 1
             wu_history[date]['total_wall_time'] += float(wu['WALLTIME'])
             wu_history[date]['total_cpu_time'] += float(wu['CPUTIME'])
+
     # process credit logs
     for credit_history_file in credit_history_files:
         project_url = project_url_from_credit_history_file(os.path.basename(credit_history_file), APPROVED_PROJECT_URLS,
                                                           ALL_PROJECT_URLS,boinc_projects_list=BOINC_PROJECT_LIST)
         credithistorylist = credit_history_file_to_list(credit_history_file)
-        if len(credithistorylist) > 0:
-            # print('In credit_history_file for ' + project_url)
-            startdate = str(datetime.datetime.fromtimestamp(float(credithistorylist[0]['TIME'])).strftime('%m-%d-%Y'))
-            lastdate = str(
-                datetime.datetime.fromtimestamp(float(credithistorylist[len(credithistorylist) - 1]['TIME'])).strftime(
-                    '%m-%d-%Y'))
         for index, entry in enumerate(credithistorylist):
+            # print('In credit_history_file for ' + project_url)
+            # startdate = str(datetime.datetime.fromtimestamp(float(credithistorylist[0]['TIME'])).strftime('%m-%d-%Y'))
+            # lastdate = str( datetime.datetime.fromtimestamp(float(credithistorylist[len(credithistorylist) - 1]['TIME'])).strftime('%m-%d-%Y'))
             if index == len(credithistorylist) - 1: # Skip the last entry as it's already calculated at the previous entry
                 continue
             next_entry = credithistorylist[index + 1]

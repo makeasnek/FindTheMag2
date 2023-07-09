@@ -514,6 +514,23 @@ def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
     DATABASE['GSPROJECTLIST']=return_list
     DATABASE['GSRESOLVERDICT']=project_resolver_dict
     return return_list,project_resolver_dict
+def xfers_happening(xfer_list:list)->bool:
+    """
+    Returns True if any active xfers are happening, false if none are happening or if only stalled xfers exist
+    """
+    # Known statuses:
+    # 0 = Active
+    if isinstance(xfer_list,str):
+        return False
+    for xfer in xfer_list:
+        if str(xfer['status'])=='0':
+            if 'persistent_file_xfer' in xfer:
+                if float(xfer['persistent_file_xfer'].get('num_retries',0))>1:
+                    continue # assume xfers with multiple retries are stalled
+            return True
+        else:
+            log.warning('Found xfer with unknown status: ' + str(xfer))
+    return False
 def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
     """
     Wait for BOINC to finish all pending xfers, return None when done
@@ -521,23 +538,6 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
     max_loops=30
     current_loops=0
     loop_wait_in_seconds=30 # wait this long between loops
-    def xfers_happening(xfer_list:list)->bool:
-        """
-        Returns True if any active xfers are happening, false if none are happening or if only stalled xfers exist
-        """
-        # Known statuses:
-        # 0 = Active
-        if isinstance(xfer_list,str):
-            return False
-        for xfer in xfer_list:
-            if str(xfer['status'])=='0':
-                if 'persistent_file_xfer' in xfer:
-                    if float(xfer['persistent_file_xfer'].get('num_retries',0))>1:
-                        continue # assume xfers with multiple retries are stalled
-                return True
-            else:
-                log.warning('Found xfer with unknown status: ' + str(xfer))
-        return False
     # Every ten seconds we will request the list of file transfers from BOINC until there are none left
     while current_loops<max_loops:
         current_loops+=1
@@ -754,7 +754,7 @@ def resolve_boinc_url(url:str,boinc_url_list:List[str]):
             return found_url
     return url
 
-async def run_rpc_command(rpc_client:libs.pyboinc.rpc_client,command:str,arg1:Union[str,None]=None,arg1_val:Union[str,None]=None,arg2:Union[str,None]=None,arg2_val:Union[str,None]=None)->Union[str,Dict[Any,Any]]:
+async def run_rpc_command(rpc_client:libs.pyboinc.rpc_client,command:str,arg1:Union[str,None]=None,arg1_val:Union[str,None]=None,arg2:Union[str,None]=None,arg2_val:Union[str,None]=None)->Union[str,Dict[Any,Any],List[Any]]:
     """
     Runs command on BOINC client via RPC
     Example: run_rpc_command(rpc_client,'project_nomorework','http://project.com/project')

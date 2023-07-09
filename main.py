@@ -1690,17 +1690,16 @@ def get_highest_priority_project(combined_stats:dict,project_weights:Dict[str,in
         log.error(
             'Unable to find a highest priority project, maybe all have been checked recently? Sleeping for 10 min')
         return [],{}
+def project_name_to_url_from_get_project_mag_ratios_from_url(searchname:str,project_resolver_dict:Dict[str,str])->Union[str,None]:
+    for found_project_name, project_url in project_resolver_dict.items():
+        if found_project_name.upper()==searchname.upper():
+            return project_url.upper()
+    return None
 def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_dict:Dict[str,str]=None) -> Union[Dict[str, float],None]:
     """
     :param lookback_period: number of superblocks to look back to determine average
     :return: Dictionary w/ key as project URL and value as project mag ratio (mag per unit of RAC)
     """
-    def project_name_to_url(searchname:str,project_resolver_dict:Dict[str,str])->Union[str,None]:
-        all_projects = project_resolver_dict
-        for found_project_name, project_url in project_resolver_dict.items():
-            if found_project_name.upper()==searchname.upper():
-                return project_url.upper()
-        return None
     import requests as req
     import json
     projects = {}
@@ -1728,7 +1727,7 @@ def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_d
             projects[project_name].append(project_stats['rac'])
     for project_name, project_racs in projects.items():
         average_rac = sum(project_racs) / len(project_racs)
-        project_url = project_name_to_url(project_name,project_resolver_dict)
+        project_url = project_name_to_url_from_get_project_mag_ratios_from_url(project_name,project_resolver_dict)
         return_dict[project_url] = mag_per_project / average_rac
     return return_dict
 

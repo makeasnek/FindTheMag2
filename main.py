@@ -224,6 +224,8 @@ def safe_exit(arg1,arg2)->None:
     # If BOINC control is not enabled, we can skip the rest of these steps
     if not control_boinc:
         quit()
+    # Shutdown developer BOINC client, if running
+    shutdown_dev_client()
 
     # Restore original BOINC preferences
     if os.path.exists(override_dest_path):
@@ -247,9 +249,6 @@ def safe_exit(arg1,arg2)->None:
             print('Note that you will need to restart your machine for these changes to take effect')
         else:
             os.remove(override_dest_path)
-
-    # Shutdown developer BOINC client, if running
-    shutdown_dev_client()
     quit()
 async def get_task_list(rpc_client:libs.pyboinc.rpc_client)->list:
     """

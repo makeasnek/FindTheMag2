@@ -1771,7 +1771,7 @@ def profitability_check(grc_price:float,exchange_fee:float,host_power_usage:floa
                                                                                               expenses_per_hour,
                                                                                               profit))
     return False
-def in_preferred_projects(projecturl:str,preferred_projects:Dict[str,float]):
+def in_preferred_projects(projecturl:str,preferred_projects:Dict[str,float])->bool:
     cleaned_search_url=projecturl.upper().replace('HTTP://','').replace('HTTPS://','')
     for found_project in preferred_projects:
         cleaned_found=found_project.upper().replace('HTTP://','').replace('HTTPS://','')
@@ -1810,7 +1810,7 @@ def benchmark_check(project_url:str,combined_stats:dict,benchmarking_minimum_wus
             log.debug('Forcing WU fetch on {} due to benchmarking_delay_in_days'.format(project_url))
             return True
     return False
-def save_stats(database:dict):
+def save_stats(database:dict)->None:
     with open('stats.json', 'w') as fp:
         json.dump(database, fp, default=json_default)
 def custom_sleep(sleep_time:float,boinc_rpc_client,dev_loop:bool=False):
@@ -1835,7 +1835,7 @@ def custom_sleep(sleep_time:float,boinc_rpc_client,dev_loop:bool=False):
             save_stats(DATABASE)
         elapsed+=1
 
-def json_default(obj):
+def json_default(obj)->Dict[str,str]:
     """
     For serializing datetimes to json
     """
@@ -1862,7 +1862,7 @@ def get_avg_mag_hr(combined_stats:dict)->float:
     return average
 
 
-def object_hook(obj):
+def object_hook(obj:Dict[str,str])->Union[datetime.datetime,Dict[str,str]]:
     """
     For de-serializing datetimes from json
     """
@@ -1872,7 +1872,7 @@ def object_hook(obj):
     return obj
 def setup_dev_boinc()->str:
     """
-    Do initial setup of and start dev boinc client. Returns RPC password or 'ERROR' if unable to start BOINC
+    Do initial setup of and start dev boinc client. Returns RPC password. Returns 'ERROR' if unable to start BOINC
     """
     # check if dev BOINC directory exists
     ## create if it doesn't

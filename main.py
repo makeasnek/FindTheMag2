@@ -760,23 +760,36 @@ async def run_rpc_command(rpc_client:libs.pyboinc.rpc_client,command:str,arg1:Un
     Runs command on BOINC client via RPC
     Example: run_rpc_command(rpc_client,'project_nomorework','http://project.com/project')
     """
-    full_command='{} {} {} {}'.format(command,arg1,arg1_val,arg2,arg2_val) # added for debugging purposes
-    log.debug('Running BOINC rpc request '+full_command)
-    req = ET.Element(command)
-    if arg1 is not None:
-        a = ET.SubElement(req, arg1)
-        if arg1_val is not None:
-            a.text = arg1_val
-    if arg2 is not None:
-        b = ET.SubElement(req, arg2)
-        if arg2_val is not None:
-            b.text = arg2_val
-    response = await rpc_client._request(req)
-    parsed = parse_generic(response)
-    if not str(parsed):
-        print('Warning: Error w RPC command {}: {}'.format(full_command,parsed))
-        log.error('Warning: Error w RPC command {}: {}'.format(full_command, parsed))
-    return parsed
+    max_retries=3
+    retry_wait=5
+    current_retries=0
+
+    while current_retries<max_retries:
+        current_retries+=1
+        sleep(retry_wait)
+        full_command='{} {} {} {}'.format(command,arg1,arg1_val,arg2,arg2_val) # added for debugging purposes
+        log.debug('Running BOINC rpc request '+full_command)
+        req = ET.Element(command)
+        if arg1 is not None:
+            a = ET.SubElement(req, arg1)
+            if arg1_val is not None:
+                a.text = arg1_val
+        if arg2 is not None:
+            b = ET.SubElement(req, arg2)
+            if arg2_val is not None:
+                b.text = arg2_val
+        try:
+            response = await rpc_client._request(req)
+            parsed = parse_generic(response)
+            if not str(parsed):
+                print('Warning: Error w RPC command {}: {}'.format(full_command,parsed))
+                log.error('Warning: Error w RPC command {}: {}'.format(full_command, parsed))
+                continue
+        except Exception as e:
+            log.error('Error w RPC command {} {}'.format(full_command,e))
+            continue
+        else:
+            return parsed
 def credit_history_file_to_list(credithistoryfileabspath: str) -> List[Dict[str, str]]:
     """
     Turns a BOINC credit history file into list of dicts we can use. Dicts have keys below:

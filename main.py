@@ -1957,6 +1957,72 @@ def project_list_to_project_list(project_list:List[dict])->List[str]:
     for project in project_list:
         return_list.append(project['master_url'])
     return return_list
+def should_crunch_for_dev(dev_loop:bool) -> bool:
+    if dev_loop:
+        log.debug('Should not start dev crunching bc already in dev loop')
+        return False
+    if check_sidestake_results:
+        log.debug('Should skip dev mode bc check_sidestake_results')
+        return False
+    if FORCE_DEV_MODE:
+        log.debug('Should start dev crunching bc FORCE_DEV_MODE')
+        return True
+    dev_time_counter_in_hours=max(DATABASE.get('DEVTIMECOUNTER', 0), 1) / 60
+    if dev_time_counter_in_hours > 100:
+        log.debug('Should start dev crunching due to time counter: {}'.format(dev_time_counter_in_hours))
+        return True
+    log.debug('Should not start dev crunching, current counter is: {}'.format(dev_time_counter_in_hours))
+    return False
+def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:str=DATABASE.get('TABLE_STATUS',''),dev_status:bool=False,dev_loop:bool=False):
+    """
+    Function to update table printed to user.
+    :param status = Most recent status "waiting for xfers, starting crunching on x, etc"
+    """
+    # don't update table in dev loop because all our variables reference dev install not main one
+    if dev_loop or SKIP_TABLE_UPDATES:
+        return
+    rename_dict={
+        'TOTALTASKS':'TASKS',
+        'TOTALTIME(HRS)':'TIME',
+        'TOTALCPUTIME(HRS)':'CPUTIME',
+        'AVGCREDITPERHOUR':'CREDIT/HR',
+        'AVGMAGPERHOUR':'MAG/HR',
+        'XDAYWALLTIME':'R-WTIME',
+        'AVGWALLTIME': 'ATIME',
+        'AVGCREDITPERTASK':'ACPT',
+        'TOTALWALLTIME':'WTIME',
+        'TOTALCPUTIME': 'CPUTIME',
+        'AVGCPUTIME': 'ACTIME'
+    }
+    ignore_list=['MAGPERCREDIT']
+    # generate table to print pretty
+    os.system('cls' if os.name == 'nt' else 'clear')  # clear terminal
+    table_dict = {}
+    for project_url, stats_dict in combined_stats.items():
+        table_dict[project_url] = {}
+        priority_results_extract=get_project_from_dict(project_url,priority_results,'searching priority_results in update_table')
+        if priority_results_extract:
+            table_dict[project_url]['HOURSOFF'] = str(round(float(priority_results_extract), 3))
+        else:
+            table_dict[project_url]['HOURSOFF'] = str(round(float(0), 3))
+        for stat_name, stat_value in stats_dict['COMPILED_STATS'].items():
+            if stat_name in ignore_list:
+                continue
+            renamed=stat_name
+            if stat_name in rename_dict:
+                renamed=rename_dict[stat_name]
+            rounding = 2
+            if stat_name == 'MAGPERCREDIT':
+                rounding = 5
+            if stat_name=='AVGMAGPERHOUR':
+                rounding=3
+            table_dict[project_url][renamed] = str(round(float(stat_value), rounding))
+        final_project_weights_extract = get_project_from_dict(project_url, final_project_weights,'searching final_project_weights in update_table')
+        if final_project_weights_extract:
+            table_dict[project_url]['WEIGHT']=str(final_project_weights_extract)
+        else:
+            table_dict[project_url]['WEIGHT'] = 'NA'
+    print_table(table_dict, sortby='GRC/HR',sleep_reason=sleep_reason,status=status,dev_status=dev_status)
 def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:int=0):
     """
     Main routine which manages BOINC
@@ -1965,6 +2031,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     :param client_rpc_client client BOINC rpc client, as it must be accessed in dev mode and kept in suspend
     :param time How long to crunch for. Only used by dev mode at the moment
     """
+    # if we are not passed this variable, it means we are not crunching for dev, so we fallback to global BOINC rpc
     if not client_rpc_client:
         client_rpc_client=rpc_client
     # these variables are referenced outside the loop (or in recursive calls of the loop) so should be made global
@@ -1984,22 +2051,6 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     if mode not in DATABASE:
         DATABASE[mode]={}
 
-    def should_crunch_for_dev() -> bool:
-        if dev_loop:
-            log.debug('Should not start dev crunching bc already in dev loop')
-            return False
-        if check_sidestake_results:
-            log.debug('Should skip dev mode bc check_sidestake_results')
-            return False
-        if FORCE_DEV_MODE:
-            log.debug('Should start dev crunching bc FORCE_DEV_MODE')
-            return True
-        dev_time_counter_in_hours=max(DATABASE.get('DEVTIMECOUNTER', 0), 1) / 60
-        if dev_time_counter_in_hours > 100:
-            log.debug('Should start dev crunching due to time counter: {}'.format(dev_time_counter_in_hours))
-            return True
-        log.debug('Should not start dev crunching, current counter is: {}'.format(dev_time_counter_in_hours))
-        return False
     # Note yoyo@home does not support weak auth so it can't be added here
     DEV_PROJECT_DICT={
         'HTTPS://SECH.ME/BOINC/AMICABLE/':'48989_50328a1561506cd0dcd10476106fda82',
@@ -2018,56 +2069,6 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         'HTTPS://UNIVERSEATHOME.PL/UNIVERSE/':'239667_e7bfb47b3f94750632796b03b2bc7954',
         'HTTPS://WWW.WORLDCOMMUNITYGRID.ORG':'1156028_7f2601c3a6dc1b1b9f7eb99261db96f0',
     }
-    def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:str=DATABASE.get('TABLE_STATUS',''),dev_status:bool=False):
-        """
-        Function to update table printed to user.
-        :param status = Most recent status "waiting for xfers, starting crunching on x, etc"
-        """
-        # don't update table in dev loop because all our variables reference dev install not main one
-        if dev_loop or SKIP_TABLE_UPDATES:
-            return
-        rename_dict={
-            'TOTALTASKS':'TASKS',
-            'TOTALTIME(HRS)':'TIME',
-            'TOTALCPUTIME(HRS)':'CPUTIME',
-            'AVGCREDITPERHOUR':'CREDIT/HR',
-            'AVGMAGPERHOUR':'MAG/HR',
-            'XDAYWALLTIME':'R-WTIME',
-            'AVGWALLTIME': 'ATIME',
-            'AVGCREDITPERTASK':'ACPT',
-            'TOTALWALLTIME':'WTIME',
-            'TOTALCPUTIME': 'CPUTIME',
-            'AVGCPUTIME': 'ACTIME'
-        }
-        ignore_list=['MAGPERCREDIT']
-        # generate table to print pretty
-        os.system('cls' if os.name == 'nt' else 'clear')  # clear terminal
-        table_dict = {}
-        for project_url, stats_dict in combined_stats.items():
-            table_dict[project_url] = {}
-            priority_results_extract=get_project_from_dict(project_url,priority_results,'searching priority_results in update_table')
-            if priority_results_extract:
-                table_dict[project_url]['HOURSOFF'] = str(round(float(priority_results_extract), 3))
-            else:
-                table_dict[project_url]['HOURSOFF'] = str(round(float(0), 3))
-            for stat_name, stat_value in stats_dict['COMPILED_STATS'].items():
-                if stat_name in ignore_list:
-                    continue
-                renamed=stat_name
-                if stat_name in rename_dict:
-                    renamed=rename_dict[stat_name]
-                rounding = 2
-                if stat_name == 'MAGPERCREDIT':
-                    rounding = 5
-                if stat_name=='AVGMAGPERHOUR':
-                    rounding=3
-                table_dict[project_url][renamed] = str(round(float(stat_value), rounding))
-            final_project_weights_extract = get_project_from_dict(project_url, final_project_weights,'searching final_project_weights in update_table')
-            if final_project_weights_extract:
-                table_dict[project_url]['WEIGHT']=str(final_project_weights_extract)
-            else:
-                table_dict[project_url]['WEIGHT'] = 'NA'
-        print_table(table_dict, sortby='GRC/HR',sleep_reason=sleep_reason,status=status,dev_status=dev_status)
 
     while True:
         # If we have done sufficient crunching in dev mode, exit dev loop
@@ -2103,7 +2104,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                                                                                        attached_projects=BOINC_PROJECT_LIST,quiet=True)
             log.debug('Highest priority projects are: '+str(highest_priority_projects))
             # print some pretty stats
-            update_table()
+            update_table(dev_loop=dev_loop)
 
         log.info("Highest priority project is {}".format(highest_priority_projects[0]))
         loop.run_until_complete(nnt_all_projects(rpc_client))  # NNT all projects
@@ -2131,7 +2132,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 kill_all_unstarted_tasks(rpc_client=rpc_client,task_list=tasks_list)
                 nnt_all_projects(rpc_client)
                 DATABASE['TABLE_SLEEP_REASON']= 'No profitable projects and no benchmarking required, sleeping 1 hr, killing all non-started tasks'
-                update_table()
+                update_table(dev_loop=dev_loop)
                 sleep(60*60)
                 continue
 
@@ -2161,7 +2162,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     loop.run_until_complete(
                         run_rpc_command(rpc_client, 'set_gpu_mode', 'never', sleep_interval))
                     DATABASE['TABLE_SLEEP_REASON']= 'Temperature'
-                    update_table()
+                    update_table(dev_loop=dev_loop)
                     sleep(60*temp_sleep_time)
                     if temp_check():
                         # Reset to initial crunching modes now that temp is satisfied
@@ -2171,7 +2172,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                             run_rpc_command(rpc_client, 'set_gpu_mode', existing_gpu_mode))
                         break
         # If we are due to run under dev account, do it
-        if should_crunch_for_dev():
+        if should_crunch_for_dev(dev_loop):
             boinc_password=setup_dev_boinc() # Setup and start dev boinc
             DEV_BOINC_PASSWORD=boinc_password
             dev_rpc_client=None
@@ -2219,9 +2220,9 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 log.info('Starting crunching under dev account, entering dev loop')
                 DATABASE['TABLE_SLEEP_REASON']= 'Crunching for developer\'s account, {}% of crunching total'.format(dev_fee * 100)
                 DEV_LOOP_RUNNING=True
-                update_table()
+                update_table(dev_loop=dev_loop)
                 boinc_loop(dev_loop=True,rpc_client=dev_rpc_client,client_rpc_client=rpc_client,time=DATABASE['DEVTIMECOUNTER']) # run the BOINC loop :)
-                update_table()
+                update_table(dev_loop=dev_loop)
                 authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
                 loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit')) # quit dev client
                 DEV_LOOP_RUNNING=False
@@ -2249,13 +2250,13 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                                                        combined_stats=combined_stats)
             if only_BOINC_if_profitable and not benchmark_result and not profitability_result and not dev_loop:
                 DATABASE['TABLE_STATUS']='No fetch for {} bc not profitable'.format(highest_priority_project)
-                update_table()
+                update_table(dev_loop=dev_loop)
                 log.info('Skipping work fetch for {} bc not profitable and only_boinc_if_profitable is set to true'.format(highest_priority_project))
                 continue
             # If user has set to only mine highest mag project if profitable and it's not profitable or in benchmarking mode, skip
             if only_mine_if_profitable and not profitability_result and final_project_weights[highest_priority_project]!=1 and not dev_loop:
                 DATABASE['TABLE_STATUS']='Skipping work fetch for {} bc not profitable and only_mine_if_profitable set to true'.format(highest_priority_project)
-                update_table()
+                update_table(dev_loop=dev_loop)
                 log.info('Skipping work fetch for {} bc not profitable and only_mine_if_profitable set to true'.format(
                     highest_priority_project))
                 continue
@@ -2269,11 +2270,11 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             minutes_since_last_project_check = time_since_last_project_check.seconds / 60
             if minutes_since_last_project_check < DATABASE[mode].get(highest_priority_project.upper(), {}).get('BACKOFF', 0):
                 DATABASE['TABLE_STATUS']='Skipping {} due to backoff period...'.format({highest_priority_project})
-                update_table()
+                update_table(dev_loop=dev_loop)
                 log.debug('Skipping project {} due to backoff period... minutes_since is {}'.format(highest_priority_project,minutes_since_last_project_check))
                 continue
             DATABASE['TABLE_STATUS']='Waiting for xfers to complete..'
-            update_table()
+            update_table(dev_loop=dev_loop)
             log.info('Waiting for any xfers to complete...')
             dl_response = wait_till_no_xfers(rpc_client)  # wait until all network activity has concluded
             # if in dev_loop, attach to project if needed
@@ -2310,7 +2311,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             project_name = ALL_BOINC_PROJECTS[highest_priority_project]
             DATABASE['TABLE_STATUS']='Allowing new tasks & updating {}'.format(project_name)
             log.info('Allowing new tasks and updating {}'.format(highest_priority_project))
-            update_table()
+            update_table(dev_loop=dev_loop)
             allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'project_allowmorework','project_url',boincified_url))
             update_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_update', 'project_url', boincified_url)) # update project
             log.debug('Requesting work from {} added to debug no new tasks bug' + str(
@@ -2345,7 +2346,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             # If BOINC job cache is full, stop asking projects for work
             if cache_full:
                 DATABASE['TABLE_SLEEP_REASON']='BOINC work cache full...'
-                update_table()
+                update_table(dev_loop=dev_loop)
                 break
 
         # Allow highest non-backedoff project to be non-NNTd.

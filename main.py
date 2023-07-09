@@ -57,7 +57,7 @@ benchmarking_minimum_time:float=10
 benchmarking_delay_in_days:float=160
 skip_benchmarking:bool=False
 dev_fee:float=.05
-VERSION=2.2
+VERSION=2.3
 DEV_RPC_PORT=31418
 log_level='WARNING'
 start_temp:int=65
@@ -110,9 +110,10 @@ else:
     handler = logging.handlers.RotatingFileHandler(os.environ.get("LOGFILE", "debug.log"),
                                                    maxBytes=max_logfile_size_in_mb * 1024 * 1024, backupCount=1)
     log.setLevel(os.environ.get("LOGLEVEL", log_level))
-    formatter = logging.Formatter(logging.BASIC_FORMAT)
+    formatter = logging.Formatter(fmt="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s")
     handler.setFormatter(formatter)
     log.addHandler(handler)
+    log.info("Start FTM log FTM version {} at {}".format(VERSION,datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")))
 
 class GridcoinClientConnection:
     """

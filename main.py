@@ -1526,7 +1526,7 @@ def project_backoff(project_name:str,messages)->bool:
             log.debug('Found unknown messagex: {}'.format(message['body']))
         log.warning('Unable to determine if project {} should be backed off, assuming no'.format(project_name))
         return False
-def backoff_ignore_message(message:Dict[str,Any],ignore_phrases:List[str]):
+def backoff_ignore_message(message:Dict[str,Any],ignore_phrases:List[str])->bool:
     """
     Returns True is message can be ignored while checking for backoffs. False otherwise
     """

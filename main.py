@@ -2581,7 +2581,7 @@ if __name__ == '__main__':
             gridcoin_rpc_password = None
             rpc_port = None
         else:
-            #Get project lists from Gridcoin wallet
+            #Set Gridcoin login parameters for use later
             rpc_user = gridcoin_conf.get('rpcuser')
             gridcoin_rpc_password = gridcoin_conf.get('rpcpassword')
             rpc_port = gridcoin_conf.get('rpcport')

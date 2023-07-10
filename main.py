@@ -2528,7 +2528,7 @@ if __name__ == '__main__':
         os.access(override_path, os.W_OK)
     except Exception as e:
         print_and_log('This program does not have write access to your BOINC config file, meaning it can\'t reset settings back to your original ones upon close','ERROR')
-        print_and_log("Linux users try 'sudo chown your_username {}' to fix this error, then fully restart your machine to implement the fix".format(override_path),'INFO')
+        print_and_log("Linux users try 'sudo chown your_username {}' to fix this error".format(override_path),'INFO')
         if not SCRIPTED_RUN:
             input('Press enter to continue')
 

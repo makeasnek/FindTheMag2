@@ -2243,8 +2243,11 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     update_table(dev_loop=dev_loop)
                     boinc_loop(dev_loop=True,rpc_client=dev_rpc_client,client_rpc_client=rpc_client,time=DATABASE['DEVTIMECOUNTER']) # run the BOINC loop :)
                     update_table(dev_loop=dev_loop)
-                    authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
-                    loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit')) # quit dev client
+                    try:
+                        authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+                        loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit')) # quit dev client
+                    except Exception as e:
+                        print_and_log('Error ending "crunching for dev" portion of tool. Restarting machine will fix this. Error: {}'.format(e),'ERROR')
                     DEV_LOOP_RUNNING=False
                     # re-enable client BOINC
                     loop.run_until_complete(

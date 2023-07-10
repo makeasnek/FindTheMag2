@@ -2402,7 +2402,7 @@ def print_and_log(msg:str,log_level:str)->None:
     elif log_level=='ERROR':
         log.error(msg)
     else:
-        print('Being asked to log at an unknown level: {}'.format(log_level))
+        log.error('Being asked to log at an unknown level: {}'.format(log_level))
 def create_default_database()->Dict[str,Any]:
     DATABASE: Dict[str, Any] = {}
     DATABASE['DEVTIMECOUNTER'] = 0

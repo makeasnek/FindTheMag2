@@ -261,6 +261,9 @@ async def get_task_list(rpc_client:libs.pyboinc.rpc_client)->list:
     # 2: Active
     return_value=[]
     reply = await run_rpc_command(rpc_client,'get_results')
+    if not reply:
+        log.error('Error getting boinc task list')
+        return return_value
     if isinstance(reply,str):
         log.info('BOINC appears to have no tasks...')
         return return_value

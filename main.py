@@ -2513,16 +2513,12 @@ if __name__ == '__main__':
     # check that directories exist
     log.info('Guessing BOINC data dir is ' + str(boinc_data_dir))
     if not os.path.isdir(boinc_data_dir):
-        print('BOINC data dir does not appear to exist. If you have it in a non-standard location, please edit config.py so we know where to look')
-        log.error(
-            'BOINC data dir does not appear to exist. If you have it in a non-standard location, please edit config.py so we know where to look')
+        print_and_log('BOINC data dir does not appear to exist. If you have it in a non-standard location, please edit config.py so we know where to look','ERROR')
         input('Press enter to exit')
         quit()
     log.info('Guessing Gridcoin data dir is ' + str(gridcoin_data_dir))
     if not os.path.isdir(gridcoin_data_dir):
-        print('Gridcoin data dir does not appear to exist. If you have it in a non-standard location, please edit config.py so we know where to look')
-        log.error(
-            'Gridcoin data dir does not appear to exist. If you have it in a non-standard location, please edit config.py so we know where to look')
+        print_and_log('Gridcoin data dir does not appear to exist. If you have it in a non-standard location, please edit config.py so we know where to look','ERROR')
         input('Press enter to continue or CTRL+C to quit')
         wallet_running=False
     override_path = os.path.join(boinc_data_dir, 'global_prefs_override.xml')
@@ -2532,7 +2528,7 @@ if __name__ == '__main__':
         os.access(override_path, os.W_OK)
     except Exception as e:
         print_and_log('This program does not have write access to your BOINC config file, meaning it can\'t reset settings back to your original ones upon close','ERROR')
-        print_and_log("Linux users try 'sudo chown your_username {}' to fix this error".format(override_path),'INFO')
+        print_and_log("Linux users try 'sudo chown your_username {}' to fix this error, then fully restart your machine to implement the fix".format(override_path),'INFO')
         if not SCRIPTED_RUN:
             input('Press enter to continue')
 
@@ -2541,11 +2537,10 @@ if __name__ == '__main__':
     auth_location = os.path.join(boinc_data_dir, 'gui_rpc_auth.cfg')
     if not boinc_password:
         try:
-            if os.path.exists(auth_location):
-                with open(auth_location, 'r') as file:
-                    data = file.read().rstrip()
-                    if data != '':
-                        boinc_password = data
+            with open(auth_location, 'r') as file:
+                data = file.read().rstrip()
+                if data != '':
+                    boinc_password = data
         except Exception as e:
             # This error can generally be disregarded on Linux/OSX
             if 'WINDOWS' in found_platform.upper():

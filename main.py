@@ -2555,8 +2555,7 @@ if __name__ == '__main__':
     for url, found_value in preferred_projects.items():
         total_found_values+=found_value
     if total_found_values!=100 and len(preferred_projects)>0:
-        print('Warning: The weights of your preferred projects do not add up to 100! Quitting.')
-        log.error('Warning: The weights of your preferred projects do not add up to 100! Quitting.')
+        print_and_log('Warning: The weights of your preferred projects do not add up to 100! Quitting.','ERROR')
         input('Press enter to exit')
         quit()
 
@@ -2568,8 +2567,7 @@ if __name__ == '__main__':
     try:
         boinc_client = BoincClientConnection(config_dir=boinc_data_dir)
     except Exception as e:
-        print('Unable to connect to a BOINC client. Are you sure BOINC is running? Error ' + str(e))
-        log.error('Unable to connect to a BOINC client. Are you sure BOINC is running? Error ' + str(e))
+        print_and_log('Unable to open BOINC data directory. You may need to specify location in config. Error ' + str(e),'ERROR')
         input('Press enter to exit')
         quit()
     if wallet_running:

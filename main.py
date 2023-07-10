@@ -546,6 +546,10 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
         # Ask BOINC for a list of file transfers
         allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'get_file_transfers'))
         cleaned_response=''
+        if not allow_response:
+            log.debug('Error w/ wait_till_no_xfers, no allow_response')
+            sleep(loop_wait_in_seconds)
+            continue
         if xfers_happening(allow_response):
             log.debug('xfers happening: {}'.format(str(allow_response)))
             sleep(loop_wait_in_seconds)

@@ -1,6 +1,10 @@
 #####################################################################
 ############## GENERAL SETTINGS. YOU SHOULD EDIT THESE ##############
 #####################################################################
+## This is the default config.py. You can make edits here, but it is suggested to make a file "user_config.py" in this same
+## directory, copy the contents of this file there, and make edits in user_config. This way, you can update with "git pull" and not
+## have your settings over-written by defaults. Settings in user_config.py always override config.py.
+
 ## Editing tip: If using "None" for a setting, it must be written as None without any quotes. Capitalization matters
 
 # Your "preferred projects list". Work will be split among these projects according to a given percentage (10, 20, 80).

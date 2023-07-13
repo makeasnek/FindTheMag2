@@ -105,6 +105,12 @@ try:
     from config import *
 except Exception as e:
     print('Error opening config.py, using defaults! Error is: {}'.format(e))
+# import addl user settings from user_config
+if os.path.isfile('user_config.py'):
+    try:
+        from user_config import * # you can ignore an unresolved reference error here in pycharm since user is expected to create this file
+    except Exception as e:
+        print('Error opening user_config.py, using defaults! Error is: {}'.format(e))
 # if user has no preferred projects, their % of crunching should be 0
 if len(preferred_projects)==0:
     preferred_projects_percent:float=0

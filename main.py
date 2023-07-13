@@ -918,8 +918,18 @@ def projecturlfromstatsfile(
     approved_project_urls: List[str],
     boinc_projects_list: List[str],
 ) -> str:
-    """
-    Guess a project url from the name of a stats file
+    """Guess a projec url using stats file name.
+
+    Guess a project URL from the name of a stats file.
+    
+    Args:
+        statsfilename:
+        all_project_urls:
+        approved_project_urls:
+        boinc_projects_list:
+
+    Returns:
+        URL for project associated with stats file, or stats file name if URL unknown.
     """
     # Remove extraneous information from name
     statsfilename = statsfilename.replace("job_log_", "")
@@ -957,8 +967,19 @@ def project_url_from_credit_history_file(
     all_project_urls: List[str],
     boinc_projects_list: List[str],
 ) -> str:
-    """
-    Guess a project url from credit history file name
+    """Guess a project URL using credit history file name
+
+    Guess a project URL from credit history file name.
+
+    Args:
+        filename:
+        all_project_urls:
+        approved_project_urls:
+        boinc_projects_list:
+
+    Returns:
+        URL for project associated with stats file, or credit history 
+        file name if URL unknown.
     """
     filename = filename.replace("statistics_", "")
     filename = filename.replace(".xml", "")
@@ -986,20 +1007,32 @@ def project_url_from_credit_history_file(
 
 
 def stat_file_to_list(stat_file_abs_path: str) -> List[Dict[str, str]]:
-    """
-            Turns a BOINC job log into list of dicts we can use, each dict is a task. Dicts have keys below:
-            STARTTIME,ESTTIME,CPUTIME,ESTIMATEDFLOPS,TASKNAME,WALLTIME,EXITCODE
-            Note that ESTIMATEDFLOPS comes from the project and EXITCODE will always be zero.
-            All values and keys in dicts are strings.
+    """Retrieve a list of tasks and related stats from log file.
 
-            BOINC's job log format is:
+    Turns a BOINC job log into list of dictionaries we can use, each dictionary 
+    is a task. 
+    Dictionaries have the following keys:
+        STARTTIME,ESTTIME,CPUTIME,ESTIMATEDFLOPS,TASKNAME,WALLTIME,EXITCODE
+    
+    Note that ESTIMATEDFLOPS comes from the project and EXITCODE will always be zero.
+    All values and keys in dicts are strings.
 
-    [ue]	Estimated runtime	BOINC Client estimate (seconds)
-    [ct]	CPU time		Measured CPU runtime at completion (seconds)
-    [fe]	Estimated FLOPs count	From project (integer)
-    [nm]	Task name		From project
-    [et]	Elapsed time 		Wallclock runtime at completion (seconds)
+    BOINC's job log format is:
+        [ue]	Estimated runtime	    BOINC Client estimate (seconds)
+        [ct]	CPU time		        Measured CPU runtime at completion (seconds)
+        [fe]	Estimated FLOPs count	From project (integer)
+        [nm]	Task name		        From project
+        [et]	Elapsed time 		    Wallclock runtime at completion (seconds)
 
+    Args:
+        stat_file_abs_path:
+
+    Raises:
+        Exception: An error occurred when attempting to read a BOINC job log file.
+        Exception: An error occurred when attempting to parse a BOINC job log file.
+
+    Returns:
+        List dictionaries, each a BOINC task with statistics. 
     """
     stats_list = []
     try:
@@ -1119,9 +1152,21 @@ async def run_rpc_command(
     arg2: Union[str, None] = None,
     arg2_val: Union[str, None] = None,
 ) -> Union[str, Dict[Any, Any]]:
-    """
+    """Send command to BOINC client via RPC
+
     Runs command on BOINC client via RPC
     Example: run_rpc_command(rpc_client,'project_nomorework','http://project.com/project')
+    
+    Args: 
+        rpc_client:
+        command:
+        arg1:
+        arg1_val:
+        arg2:
+        arg2_val:
+
+    Returns: 
+        
     """
     full_command = "{} {} {} {}".format(
         command, arg1, arg1_val, arg2, arg2_val
@@ -1145,10 +1190,21 @@ async def run_rpc_command(
 
 
 def credit_history_file_to_list(credithistoryfileabspath: str) -> List[Dict[str, str]]:
-    """
-    Turns a BOINC credit history file into list of dicts we can use. Dicts have keys below:
+    """Retrieve BOINC credit history
+
+    Turns a BOINC credit history file into list of dicts we can use. 
+
+    Dicts have keys below:
         TIME,USERTOTALCREDIT,USERRAC,HOSTTOTALCREDIT,HOSTRAC
+    
     Note that ESTIMATEDFLOPS comes from the project and EXITCODE will always be zero.
+    
+    Args:
+        credithistoryfileabspath: Filename with full path.
+
+    Returns:
+        List of dicionaries with the following keys:
+            TIME,USERTOTALCREDIT,USERRAC,HOSTTOTALCREDIT,HOSTRAC
     """
     statslist = []
     with open(
@@ -1173,9 +1229,15 @@ def credit_history_file_to_list(credithistoryfileabspath: str) -> List[Dict[str,
 def config_files_to_stats(
     config_dir_abs_path: str,
 ) -> Dict[str, Dict[str, Union[int, float, Dict[str, Union[float, str]]]]]:
-    """
-    :param config_dir_abs_path: Absolute path to BOINC data directory
-    :return: Dict of stats in format COMBINEDSTATSEXAMPLE in main.py
+    """Extract BOINC statistics from all available log and stats files.
+
+    Identifies all job log and statistics files in the specified directory. Extracts
+    all stats from found files and constructs dictionaries of them.
+
+    Args:
+        config_dir_abs_path: Absolute path to BOINC data directory.
+
+    Returns: Dictionary of stats in format COMBINED_STATS_EXAMPLE in main.py
     """
     stats_files: List[str] = []
     credit_history_files: List[str] = []
@@ -1352,10 +1414,17 @@ def add_mag_to_combined_stats(
     approved_projects: List[str],
     preferred_projects: List[str],
 ) -> Tuple[dict, List[str]]:
-    """
-    :param combined_stats: combined_stats from main.py
-    :param mag_ratios: mag ratios returned from get_project_mag_ratios. A dict with project URL as key and mag ratio as value
-    :return: combined_stats w/ mag ratios added to us, list of projects which are being crunched but not on approved projects list
+    """Adds magnitude ratios to combined statistics
+
+    Args:
+        combined_stats: Combined_stats from main.py.
+        mag_ratios: Magnitude ratios returned from get_project_mag_ratios. 
+            A dict with project URL as key and mag ratio as value
+        approved_projects:
+        preferred_projects:
+
+    Returns: combined_stats w/ mag ratios added to us, list of projects 
+        which are being crunched but not on approved projects list
     """
     unapproved_list = []
     for project_url, project_stats in combined_stats.items():
@@ -1385,11 +1454,18 @@ def get_most_mag_efficient_projects(
     percentdiff: int = 10,
     quiet: bool = False,
 ) -> List[str]:
-    """
-    Given combinedstats, return most mag efficient project(s). This is the #1 most efficient project and any other projects which are within percentdiff of that number.
-    :param combinedstats: combinedstats dict
-    :param percentdiff: Maximum percent diff
-    :return: List of project URLs
+    """Determines most magnitude efficient project(s).
+
+    Given combinedstats, determines most mag efficient project(s). This is the #1 
+    most efficient project and any other projects which are within percentdiff of 
+    that number.
+    
+    Args:
+        combinedstats: combinedstats dict
+        percentdiff: Maximum percent diff
+    
+    Returns:
+        List of project URLs
     """
 
     def is_eligible(project_url: str, project_stats: dict):
@@ -1479,6 +1555,29 @@ def get_most_mag_efficient_projects(
 def sidestake_check(
     check_sidestake_results: bool, check_type: str, address: str
 ) -> None:
+    """Enable sidestaking if approved by user.
+
+    If sidestaking has not been enabled for the specified check_type, then prompt the user
+    for enabling sidestaking, and enable in the Gridcoin wallet for the specified address
+    and the entered percentage.
+
+    Args:
+        check_sidestake_results: 
+            True - sidestaking is currently enabled.
+            False - sidestaking currently not enabled.
+        check_type:
+            'FOUNDATION' - sidestaking to the Gridcoin foundation.
+            'DEVELOPER' - sidestaking to the FTM developer.
+        address: Gridcoin address of the check_type.
+
+    Raises:
+        An exception occurred while parsing the user's entered answer.
+
+    TODO:
+        Issue #27 logic error
+            - Return statement in answer == N block only covers 1 if statement.
+            - User will still be asked % if answer no to foundation check.
+    """
     if check_type == "FOUNDATION":
         message1 = 'It appears that you have not enabled sidestaking to the Gridcoin foundation in your wallet. We believe it is only fair that people benefiting from the Gridcoin network contribute back to it\nSidestaking enables you to contribute a small % of your staking profits (you can choose the %)\nWould you like to enable sidestaking?. \nPlease answer "Y" or "N" (without quotes)'
         message2 = "What percent would you like to donate to the Gridcoin foundation? Donations go towards software development, promotion, and growth of the coin. Enter a number like 5 for 5%. Please enter whole numbers only"
@@ -1521,10 +1620,19 @@ def sidestake_check(
 def get_project_mag_ratios(
     grc_client: GridcoinClientConnection, lookback_period: int = 30
 ) -> Dict[str, float]:
-    """
-    :param grc_client:
-    :param lookback_period: number of superblocks to look back to determine average
-    :return: Dictionary w/ key as project URL and value as project mag ratio (mag per unit of RAC)
+    """Retrieve magnitude to RAC ratios for each project from Gridcoin client.
+
+    Calculate the ratio of magnitude to RAC for each project the Gridcoin client
+    is aware of. Look back the number of specified superblocks for calculating the
+    average.
+
+    Args:
+        grc_client: Connection to Gridcoin client.
+        lookback_period: Number of superblocks to look back to determine average.
+    
+    Returns:
+        A dictionary with the key as project URL and value as project magnitude ratio 
+        (mag per unit of RAC).
     """
     projects = {}
     return_dict = {}
@@ -1553,6 +1661,17 @@ def get_project_mag_ratios(
 
 
 def project_url_to_name(url: str, project_names: dict = None):
+    """Attempt to convert specified project URL to the project name.
+
+    Args:
+        url: URL of desired project.
+        project_names: Dictionary of project names with the key as the project URL.
+
+    Returns: 
+        The project name associated with the specified URL, or the converted
+        specified URL if the project is not found.
+
+    """
     if not project_names:
         project_names = BOINC_PROJECT_NAMES
     search = (
@@ -1572,10 +1691,39 @@ def print_table(
     status: str = DATABASE["TABLE_STATUS"],
     dev_status: bool = False,
 ):
+    """Outputs to console a text based table with current status and statistics.
+
+    This is the main display of the program. It is refreshed automatically at set
+    intervals. Statistics are displayed for each project as well as general information
+    regarding the performance of FTM.
+
+    Args:
+        table_dict: Dictionary of project statistics.
+        sortby: The table column attribute to sort the table rows by.
+        sleep_reason: Reason to sleep.
+        status: Most recent BOINC client status.
+        dev_status: Whether or not crunching is being done for the FTM developer.
+
+    """
     def left_align(yourstring: str, total_len: int, min_pad: int = 0) -> str:
-        """
-        Return left-aligned string with a total len of X and min_padding (extra space on right side) of min_pad, cutting off string if needed
-        If min_pad==1, it looks like this ' yourstring '
+        """Left-aligns specified string using given length and padding.
+
+        Constructs a string of length total_len with yourstring left-aligned and
+        padded with spaces on the right. Padding includes at least min_pad spaces,
+        cutting off yourstring if required.
+
+        Example: ("examplestring", 15, 1) will create a string that looks like
+        this: 'examplestring  '.
+
+        Returns:
+            Left-aligned string of total_len with min_pad padding of spaces on the 
+            right of the text.
+
+        TODO:
+            Confirm that returned string should be shorter than total_len based on 
+            the value of min_pad, or shoudl the length always be total_len. 
+            Example ("yourstring",15,1) returns 'yourstring    ' where the length 
+            is actually 14 instead 15. 
         """
         if len(yourstring) >= total_len - min_pad:
             yourstring = yourstring[0 : total_len - (min_pad)]
@@ -1584,9 +1732,24 @@ def print_table(
         return yourstring + right_pad
 
     def center_align(yourstring: str, total_len: int, min_pad: int = 0) -> str:
-        """
-        Return center-aligned string with a total len of X and min_padding (extra space on right & left side) of min_pad, cutting off string if needed
-        If min_pad==1, it looks like this ' yourstring '
+        """Center-aligns specified string using given length and padding.
+        
+        Constructs a string of length total_len with yourstring center-aligned and
+        padded with spaces on the left and right. Padding includes at least min_pad 
+        spaces, cutting off yourstring if required.
+
+        Example: ("examplestring", 15, 1) will create a string that looks like
+        this: ' examplestring '.
+
+        Returns:
+            Center-aligned string of total_len with min_pad padding of spaces on the 
+            left and right of the text.
+
+        TODO:
+            Confirm that returned string should be shorter than total_len based on 
+            the value of min_pad, or shoudl the length always be total_len. 
+            Example ("yourstring",15,1) returns '  yourstring  ' where the length 
+            is actually 14 instead 15. 
         """
         if len(yourstring) >= total_len - min_pad:
             yourstring = yourstring[0 : total_len - (min_pad)]

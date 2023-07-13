@@ -81,6 +81,8 @@ SKIP_TABLE_UPDATES:bool=False
 HOST_COST_PER_HOUR = ( host_power_usage / 1000 ) * local_kwh
 LAST_KNOWN_CPU_MODE=None
 LAST_KNOWN_GPU_MODE=None
+
+LOOKUP_URL_TO_DATABASE={} # lookup table for uppered URLS -> canonical URLs
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
     1: 'always',
@@ -199,6 +201,58 @@ class BoincClientConnection:
             for project in parsed['projects']['project']:
                 return_list.append(project['url'].upper())
         return return_list
+def resolve_url_boinc_rpc(url:str,known_attached_projects:List[str],known_boinc_projects:List[str])->str:
+    """
+    Given a URL, return the version BOINC is attached to for RPC purposes
+    @param url: A url you want canonicalized
+    @param known_attached_projects: Projects BOINC is attached to
+    @param known_boinc_projects: Projects BOINC knows about via default install xml file (or rpc get_all_projects which returns the same)
+    @param known_gridcoin_projects: Projects on gridcoin whitelist
+    """
+    uppered=url.upper()
+    uppered=uppered.replace('HTTPS://WWW.','')
+    uppered = uppered.replace('HTTP://WWW.', '')
+    uppered = uppered.replace('HTTPS://', '')
+    uppered = uppered.replace('HTTP://', '')
+    if uppered.startswith('WWW.'):
+        uppered = uppered.replace('WWW.', '')
+    for known_attached_project in known_attached_projects:
+        if uppered in known_attached_project.upper():
+            return known_attached_project
+    for known_boinc_project in known_boinc_projects:
+        if uppered in known_boinc_project.upper():
+            return known_boinc_project
+    log.warning('Unable to resolve URL to BOINC url: {}'.format(url))
+    return url
+def resolve_url_list_to_database(url_list:List[str])->List[str]:
+    """
+    @param url_list: A list of URLs
+    @return: The URLs in canonical database format
+    """
+    return_list=[]
+    for url in url_list:
+        return_list.append(resolve_url_database(url))
+    return return_list
+
+def resolve_url_database(url:str)->str:
+    """
+    Given a URL or list of URLs, return the canonical version used in DATABASE and other internal references. Note that some projects operate at multiple
+    URLs. This will choose one URL and collapse all other URLs into it.
+    @param url: A url you want canonicalized
+    """
+    uppered = url.upper()
+    if uppered in LOOKUP_URL_TO_DATABASE:
+        return LOOKUP_URL_TO_DATABASE[uppered]
+    uppered = uppered.replace('HTTPS://WWW.', '')
+    uppered = uppered.replace('HTTP://WWW.', '')
+    uppered = uppered.replace('HTTPS://', '')
+    uppered = uppered.replace('HTTP://', '')
+    if uppered.startswith('WWW.'): # this is needed as WWW. may legitimately exist in a url outside of the starting portion
+        uppered = uppered.replace('WWW.', '')
+    if uppered.endswith('/'): # remove trailing slashes
+        uppered=uppered[:-1]
+    LOOKUP_URL_TO_DATABASE[url.upper()]=uppered
+    return uppered
 def shutdown_dev_client(quiet:bool=False)->None:
     exit_loop = asyncio.get_event_loop()
     log.info('Attempting to shut down dev client at safe_exit...')
@@ -510,11 +564,7 @@ def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
             print('Unable to continue...')
             safe_exit(None,None)
     for projectname, project in loaded_json.items():
-        if 'WORLDCOMMUNITYGRID.ORG/BOINC' in project['base_url'].upper():
-            return_list.append(project['base_url'].upper().replace('/BOINC/',''))
-        else:
-            return_list.append(project['base_url'].upper())
-        project_resolver_dict[projectname]=project['base_url']
+        project_resolver_dict[projectname]=resolve_url_database(project['base_url'])
     DATABASE['LASTGRIDCOINSTATSPROJECTCHECK']=datetime.datetime.now()
     DATABASE['GSPROJECTLIST']=return_list
     DATABASE['GSRESOLVERDICT']=project_resolver_dict
@@ -639,7 +689,7 @@ def check_sidestake(config_params:Dict[str,Union[str,List[str]]],address:str,min
                 return True
     return False
 
-def projecturlfromstatsfile(statsfilename: str,all_project_urls:List[str],approved_project_urls:List[str],boinc_projects_list:List[str]) -> str:
+def projecturlfromstatsfile(statsfilename: str) -> str:
     """
     Guess a project url from the name of a stats file
     """
@@ -647,44 +697,15 @@ def projecturlfromstatsfile(statsfilename: str,all_project_urls:List[str],approv
     statsfilename = statsfilename.replace('job_log_', '')
     statsfilename = statsfilename.split('_')[0]
     statsfilename = statsfilename.replace('.txt', '')
-
-    # check if name is in any known URLs
-    for knownurl in approved_project_urls:
-        if statsfilename.upper() in knownurl:
-            return knownurl
-    for knownurl in all_project_urls:
-        if statsfilename.upper() in knownurl:
-            return knownurl
-    for knownurl in boinc_projects_list:
-        if statsfilename.upper() in knownurl.upper():
-            return knownurl.upper() # we have to upper these as they are not uppered by default
-    print('WARNING: Found stats file ' + statsfilename+' but unable to find URL for it, perhaps it is not the BOINC client\'s list of projects?')
-    log.warning(
-        'WARNING: Found stats file ' + statsfilename + ' but unable to find URL for it, perhaps it is not the BOINC client\'s list of projects?')
-    return statsfilename
-def project_url_from_credit_history_file(filename: str, approved_project_urls: List[str],
-                                         all_project_urls: List[str],boinc_projects_list:List[str]) -> str:
+    return resolve_url_database(statsfilename)
+def project_url_from_credit_history_file(filename: str) -> str:
     """
     Guess a project url from credit history file name
     """
     filename = filename.replace('statistics_', '')
     filename = filename.replace('.xml', '')
     filename = filename.split('_')[0]
-    for knownurl in approved_project_urls:
-        if filename.upper() in knownurl:
-            return knownurl
-    for knownurl in all_project_urls:
-        if filename.upper() in knownurl:
-            return knownurl
-    for knownurl in boinc_projects_list:
-        if filename.upper() in knownurl.upper():
-            return knownurl.upper() # have to upper as this list is not uppered
-    print('WARNING: Found credit history file ' + filename+' but unable to find URL for it, perhaps it is not in the BOINC client\'s list of projects?')
-    log.error(
-        'WARNING: Found credit history file ' + filename + ' but unable to find URL for it, perhaps it is not in the BOINC client\'s list of projects?')
-    return filename
-
-
+    return resolve_url_database(filename)
 def stat_file_to_list(stat_file_abs_path: str) -> List[Dict[str, str]]:
     """
         Turns a BOINC job log into list of dicts we can use, each dict is a task. Dicts have keys below:
@@ -733,37 +754,6 @@ def stat_file_to_list(stat_file_abs_path: str) -> List[Dict[str, str]]:
         print('Error reading BOINC job log at '+stat_file_abs_path+' maybe it\'s corrupt? '+str(e))
         log.error('Error reading BOINC job log at ' + stat_file_abs_path + ' maybe it\'s corrupt? ' + str(e))
         return []
-def resolve_boinc_url_new(url:str):
-    '''
-    Note: Using resolve_boinc_url_new instead to use get to pass to BOINC, this is for other purposes.
-    Given URL, find BOINC's version with appropriate capitalization. If unable to find, print warning and return input
-    Prior to a specific BOINC version, RPC calls require capitalization to match identically.
-    '''
-    cleaned_search_url = url.upper().replace('HTTPS://', '').replace('HTTP://', '').replace('WWW.', '')
-    cleaned_search_url = cleaned_search_url.replace('WORLDCOMMUNITYGRID.ORG/BOINC', 'WORLDCOMMUNITYGRID.ORG')
-    if cleaned_search_url.endswith('/'):
-        cleaned_search_url = cleaned_search_url[:-1]
-    for found_url in chain(BOINC_PROJECT_LIST,ALL_BOINC_PROJECTS.keys()):
-        cleaned_found_url = found_url.upper().replace('HTTPS://', '').replace('HTTP://', '').replace('WWW.', '')
-        if cleaned_search_url == cleaned_found_url or cleaned_search_url in cleaned_found_url:
-            return found_url
-    return url
-def resolve_boinc_url(url:str,boinc_url_list:List[str]):
-    '''
-    Note: Using resolve_boinc_url_new instead to use get to pass to BOINC, this is for other purposes.
-    Given URL, find BOINC's version with appropriate capitalization. If unable to find, print warning and return input
-    Prior to a specific BOINC version, RPC calls require capitalization to match identically.
-    '''
-    cleaned_search_url=url.upper().replace('HTTPS://','').replace('HTTP://','').replace('WWW.','')
-    cleaned_search_url=cleaned_search_url.replace('WORLDCOMMUNITYGRID.ORG/BOINC','WORLDCOMMUNITYGRID.ORG')
-    if cleaned_search_url.endswith('/'):
-        cleaned_search_url=cleaned_search_url[:-1]
-    for found_url in chain(ALL_BOINC_PROJECTS.keys(),BOINC_PROJECT_LIST):
-        cleaned_found_url=found_url.upper().replace('HTTPS://','').replace('HTTP://','').replace('WWW.','')
-        if cleaned_search_url==cleaned_found_url or cleaned_search_url in cleaned_found_url:
-            return found_url
-    return url
-
 async def run_rpc_command(rpc_client:libs.pyboinc.rpc_client,command:str,arg1:Union[str,None]=None,arg1_val:Union[str,None]=None,arg2:Union[str,None]=None,arg2_val:Union[str,None]=None)->Union[str,Dict[Any,Any],List[Any]]:
     """
     Runs command on BOINC client via RPC. Has try/except and retries, returns None if unsuccessful
@@ -840,7 +830,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
 
     # Process stats files
     for statsfile in stats_files:
-        project_url = projecturlfromstatsfile(os.path.basename(statsfile),ALL_PROJECT_URLS,approved_project_urls=APPROVED_PROJECT_URLS,boinc_projects_list=BOINC_PROJECT_LIST)
+        project_url = projecturlfromstatsfile(os.path.basename(statsfile))
         stat_list = stat_file_to_list(statsfile)
         # log.debug('In statsfile for '+project_url)
         # Compute the first and last date in the stats file. Currently not used but does work
@@ -860,8 +850,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
 
     # process credit logs
     for credit_history_file in credit_history_files:
-        project_url = project_url_from_credit_history_file(os.path.basename(credit_history_file), APPROVED_PROJECT_URLS,
-                                                          ALL_PROJECT_URLS,boinc_projects_list=BOINC_PROJECT_LIST)
+        project_url = project_url_from_credit_history_file(os.path.basename(credit_history_file))
         credithistorylist = credit_history_file_to_list(credit_history_file)
         for index, entry in enumerate(credithistorylist):
             # print('In credit_history_file for ' + project_url)
@@ -938,7 +927,7 @@ def add_mag_to_combined_stats(combined_stats: dict, mag_ratios: Dict[str, float]
     """
     unapproved_list=[]
     for project_url, project_stats in combined_stats.items():
-        found_mag_ratio = get_project_from_dict(project_url, mag_ratios,'searching mag_ratios')
+        found_mag_ratio = mag_ratios.get(project_url)
         if not found_mag_ratio:
             if project_url not in approved_projects:
                 if project_url not in preferred_projects:
@@ -955,7 +944,7 @@ def add_mag_to_combined_stats(combined_stats: dict, mag_ratios: Dict[str, float]
 
 def is_project_eligible(project_url: str, project_stats: dict)->bool:
     """
-    Returns if project is eligible based on compltted tasks
+    Returns if project is eligible based on completed tasks
     """
     # Ignore projects and projects w less than 10 completed tasks are ineligible
     if project_url in ignored_projects:
@@ -1099,15 +1088,23 @@ def get_project_mag_ratios(grc_client: GridcoinClientConnection, lookback_period
     for project_name, project_racs in projects.items():
         average_rac = sum(project_racs) / len(project_racs)
         project_url = grc_client.project_name_to_url(project_name)
-        return_dict[project_url] = mag_per_project / average_rac
+        canonical_url=resolve_url_database(project_url)
+        return_dict[canonical_url] = mag_per_project / average_rac
     return return_dict
 def project_url_to_name(url:str,project_names:dict=None):
+    """
+
+    @param url: URL of a BOINC project
+    @param project_names: project names db from BOINC
+    @return: human-readable project name
+    """
     if not project_names:
         project_names=BOINC_PROJECT_NAMES
+    canonical_url=resolve_url_database(url)
     search=url.lower().replace('https://','').replace('http://','').replace('www.','')
     found=search
     for project_url,name in project_names.items():
-        if search in project_url.lower():
+        if canonical_url in project_url.upper():
             found=name.lower().replace('@home','').replace('athome','')
     return found
 
@@ -1259,13 +1256,13 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
     for url in list(preferred_projects.keys()):
         weight=preferred_projects[url]
         del preferred_projects[url]
-        preferred_projects[url.upper()] = weight
-    ignored_projects = [x.upper() for x in ignored_projects]  # uppercase ignored project url list
+        preferred_projects[url] = weight
     # ignore unattached projects if requested
     if ignore_unattached:
         for project in APPROVED_PROJECT_URLS:
-            if not in_list(project,attached_list):
-                ignored_projects.append(project.upper())
+            boincified_url=resolve_url_boinc_rpc(project,ATTACHED_PROJECT_LIST,ALL_PROJECT_URLS)
+            if boincified_url not in ATTACHED_PROJECT_LIST:
+                ignored_projects.append(project)
                 log.warning('Ignoring whitelisted project {} bc not attached'.format(project))
     combined_stats,unapproved_projects = add_mag_to_combined_stats(combined_stats, mag_ratios, APPROVED_PROJECT_URLS,list(preferred_projects.keys()))
     if len(unapproved_projects)>0:
@@ -1287,14 +1284,14 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
     total_mining_weight_remaining = total_mining_weight
     # assign weight of 1 to all projects which didn't make the cut
     for project_url in APPROVED_PROJECT_URLS:
-        preferred_extract=get_project_from_dict(project_url,preferred_projects,'IGNOREME')
+        preferred_extract=preferred_projects.get(project_url)
         if preferred_extract:
             continue  # exclude preferred projects
         if project_url in ignored_projects:
             final_project_weights[project_url] = 0
             dev_project_weights[project_url] = 0
             continue
-        combined_stats_extract=get_project_from_dict(project_url,combined_stats,'searching combined_stats in generate_stats')
+        combined_stats_extract=combined_stats.get(project_url)
         if not combined_stats_extract:
             log.debug('Warning: project has no stats, setting project weight to one: ' + project_url.lower())
             final_project_weights[project_url] = 1
@@ -1336,8 +1333,8 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
         dev_project_weights[project_url]= per_efficient_project_dev
     # Assign weight to preferred projects
     for project_url,weight in preferred_projects.items():
-        final_project_weights_extract=get_project_from_dict(project_url,final_project_weights, 'IGNOREME')
-        preferred_project_weights_extract=get_project_from_dict(project_url, preferred_projects,'searching preferred_projects in generate_stats')
+        final_project_weights_extract=final_project_weights.get(project_url)
+        preferred_project_weights_extract=preferred_projects.get(project_url)
         if not final_project_weights_extract:
             final_project_weights[project_url]=0
         intended_weight=(preferred_project_weights_extract / 100) * total_preferred_weight
@@ -1668,7 +1665,7 @@ def get_highest_priority_project(combined_stats:dict,project_weights:Dict[str,in
         if not in_list(project,attached_projects):
             log.debug('skipping project bc not attached {}'.format(project))
             continue
-        combined_stats_extract=get_project_from_dict(project, combined_stats,'searching combined_stats in get_highest_priority_project')
+        combined_stats_extract=combined_stats.get(project_url)
         if not combined_stats_extract:
             if not quiet:
                 print('Warning: {} not found in stats, assuming not attached. You can safely ignore this warning w/ a new BOINC install which has not received credit on this project yet '.format(project))
@@ -1699,10 +1696,10 @@ def get_highest_priority_project(combined_stats:dict,project_weights:Dict[str,in
         log.error(
             'Unable to find a highest priority project, maybe all have been checked recently? Sleeping for 10 min')
         return [],{}
-def project_name_to_url_from_get_project_mag_ratios_from_url(searchname:str,project_resolver_dict:Dict[str,str])->Union[str,None]:
+def project_name_to_url(searchname:str, project_resolver_dict:Dict[str,str])->Union[str,None]:
     for found_project_name, project_url in project_resolver_dict.items():
         if found_project_name.upper()==searchname.upper():
-            return project_url.upper()
+            return resolve_url_database(project_url)
     return None
 def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_dict:Dict[str,str]=None) -> Union[Dict[str, float],None]:
     """
@@ -1736,36 +1733,16 @@ def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_d
             projects[project_name].append(project_stats['rac'])
     for project_name, project_racs in projects.items():
         average_rac = sum(project_racs) / len(project_racs)
-        project_url = project_name_to_url_from_get_project_mag_ratios_from_url(project_name,project_resolver_dict)
+        project_url = project_name_to_url(project_name, project_resolver_dict)
         return_dict[project_url] = mag_per_project / average_rac
     return return_dict
-
-def url_to_just_domain_and_path(url:str)->str:
-    cleaned_url = url.upper().replace('HTTPS://', '').replace('HTTP://', '').replace('WWW.', '')
-    return cleaned_url
-def get_project_from_dict(project_url:str, combined_stats:dict,debug_notes:str='')->Union[dict,int,None]:
-    """
-    project_url: A project URL to search for
-    combined_stats: Dict to search through w/ project urls as keys. Can be ANY dict
-    debug_notes: Output this when outputting that can't find url in debug str. IGNOREME to skip printing debug info
-    Given a dict in format {projectname1:someinformation,projectname2:someinformation}, canonicalize project name by removing http/s/www
-    and trailing slashes, ignoring capitalization, and returning someinformation, otherwise return none
-    """
-    cleaned_project_url=url_to_just_domain_and_path(project_url)
-    if cleaned_project_url.endswith('/'):
-        cleaned_project_url=cleaned_project_url[:-1]
-    for found_project in combined_stats:
-        if cleaned_project_url==found_project.upper() or cleaned_project_url in found_project.upper():
-            return combined_stats[found_project]
-    return None
-
 def profitability_check(grc_price:float,exchange_fee:float,host_power_usage:float,grc_sell_price:Union[None,float],local_kwh:float,project:str,min_profit_per_hour:float,combined_stats:dict)->bool:
     """
     Returns True if crunching is profitable right now. False otherwise.
     """
     if not grc_sell_price:
         grc_sell_price=0.00
-    combined_stats_extract=get_project_from_dict(project, combined_stats,'searching combined_stats in profitability_check')
+    combined_stats_extract=combined_stats.get(project)
     if not combined_stats_extract:
         log.error('Error: Unable to calculate profitability for project {} bc we have no stats for it'.format(project))
         return False
@@ -1780,13 +1757,6 @@ def profitability_check(grc_price:float,exchange_fee:float,host_power_usage:floa
                                                                                               expenses_per_hour,
                                                                                               profit))
     return False
-def in_preferred_projects(projecturl:str,preferred_projects:Dict[str,float])->bool:
-    cleaned_search_url=projecturl.upper().replace('HTTP://','').replace('HTTPS://','')
-    for found_project in preferred_projects:
-        cleaned_found=found_project.upper().replace('HTTP://','').replace('HTTPS://','')
-        if cleaned_search_url in cleaned_found or cleaned_search_url==cleaned_found:
-            return True
-    return False
 def benchmark_check(project_url:str,combined_stats:dict,benchmarking_minimum_wus:float,benchmarking_minimum_time:float,benchmarking_delay_in_days:float,skip_benchmarking:bool)->bool:
     """
     Returns True if we should force crunch this project for benchmarking reasons. False otherwise
@@ -1799,7 +1769,7 @@ def benchmark_check(project_url:str,combined_stats:dict,benchmarking_minimum_wus
         return datetime.datetime(int(split[2]),int(split[0]),int(split[1]))
     if skip_benchmarking:
         return False
-    combined_stats_extract=get_project_from_dict(project_url,combined_stats,'searching combined_stats in benchmark_check')
+    combined_stats_extract=combined_stats.get(project_url)
     if not combined_stats_extract:
         log.error('Unable to find project in benchmark_check'.format(project_url))
         return True
@@ -1941,23 +1911,6 @@ def setup_dev_boinc()->str:
         else:
             log.debug('Error reading boinc RPC file at {}: {}'.format(auth_location, e))
     return boinc_password
-def project_to_dev_project(url:str,dev_projects:Dict[str,str])->str:
-    """
-    Convert a URL to a URL which can be found in DEV_PROJECT_DICT
-    """
-    for project in dev_projects:
-        if url.upper().replace('HTTPS://','').replace('HTTP://','')==project.upper().replace('HTTPS://','').replace('HTTP://',''):
-            return project
-    return url
-def project_in_list_check(url:str,project_list:List[str])->bool:
-    """
-    Case-insensitive way to check if URL is in list of URLs
-    """
-    cleaned=url.upper().replace('HTTPS://','').replace('HTTP://','')
-    for project in project_list:
-        if cleaned in project:
-            return True
-    return False
 def project_list_to_project_list(project_list:List[dict])->List[str]:
     """
     Convert get_project_list into a list of project URLs so we can perform 'in' comparisons
@@ -2009,7 +1962,7 @@ def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:
     table_dict = {}
     for project_url, stats_dict in combined_stats.items():
         table_dict[project_url] = {}
-        priority_results_extract=get_project_from_dict(project_url,priority_results,'searching priority_results in update_table')
+        priority_results_extract=priority_results.get(project_url)
         if priority_results_extract:
             table_dict[project_url]['HOURSOFF'] = str(round(float(priority_results_extract), 3))
         else:
@@ -2026,7 +1979,7 @@ def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:
             if stat_name=='AVGMAGPERHOUR':
                 rounding=3
             table_dict[project_url][renamed] = str(round(float(stat_value), rounding))
-        final_project_weights_extract = get_project_from_dict(project_url, final_project_weights,'searching final_project_weights in update_table')
+        final_project_weights_extract = final_project_weights.get(project_url)
         if final_project_weights_extract:
             table_dict[project_url]['WEIGHT']=str(final_project_weights_extract)
         else:
@@ -2055,6 +2008,8 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     global dev_project_weights
     global DEV_BOINC_PASSWORD
     global DEV_LOOP_RUNNING
+    global LAST_KNOWN_CPU_MODE
+    global LAST_KNOWN_GPU_MODE
     if dev_loop:
         mode='DEV'
     else:
@@ -2063,34 +2018,40 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         DATABASE[mode]={}
 
     # Note yoyo@home does not support weak auth so it can't be added here
+    # URLs must be in canonicalized database format
     DEV_PROJECT_DICT={
-        'HTTPS://SECH.ME/BOINC/AMICABLE/':'48989_50328a1561506cd0dcd10476106fda82',
-        'HTTPS://ASTEROIDSATHOME.NET/BOINC/':'476179_e114636a09b4d451daacc9488c1f3b83',
-        'HTTPS://EINSTEINATHOME.ORG/':'1043421_4a19901b420ccc1aab1df9021e59e5ee',
-        'HTTPS://EINSTEIN.PHYS.UWM.EDU/':'1043421_4a19901b420ccc1aab1df9021e59e5ee',
-        'HTTPS://WWW.GPUGRID.NET/':'575631_e05399c996a36746d603d0edcc6fdcb2',
-        'HTTPS://MILKYWAY.CS.RPI.EDU/MILKYWAY/':'3206506_1ff09dd6be13aabc509b535934de40f8',
-        'HTTPS://ESCATTER11.FULLERTON.EDU/NFS/':'2583967_720a4730bb15ae246935cf911d496ba3',
-        'HTTPS://NUMBERFIELDS.ASU.EDU/NUMBERFIELDS/':'860933_e543b27624d04eea09d74f2cf39afd31',
-        'HTTPS://BOINC.MULTI-POOL.INFO/LATINSQUARES/':'33541_de185e7045673c1485d16148683c22d9',
-        'HTTPS://BOINC.BAKERLAB.ORG/ROSETTA/':'2382329_f817670777925b63d7090fa50ac11e0b',
-        'HTTPS://SRBASE.MY-FIREWALL.ORG/SR5/':'2909_3675395fe23cc846696609fc72114b17',
-        'HTTPS://WWW.SIDOCK.SI/SIDOCK':'9302_bfbe2dcf1bc6e6f50fbc4c67841e8624',
-        'HTTPS://GENE.DISI.UNITN.IT/TEST/':'3813_54b95766c943370c5517bce39742b4fe',
-        'HTTPS://UNIVERSEATHOME.PL/UNIVERSE/':'239667_e7bfb47b3f94750632796b03b2bc7954',
-        'HTTPS://WWW.WORLDCOMMUNITYGRID.ORG':'1156028_7f2601c3a6dc1b1b9f7eb99261db96f0',
+        'SECH.ME/BOINC/AMICABLE':'48989_50328a1561506cd0dcd10476106fda82',
+        'ASTEROIDSATHOME.NET/BOINC':'476179_e114636a09b4d451daacc9488c1f3b83',
+        'EINSTEINATHOME.ORG':'1043421_4a19901b420ccc1aab1df9021e59e5ee',
+        'EINSTEIN.PHYS.UWM.EDU':'1043421_4a19901b420ccc1aab1df9021e59e5ee',
+        'GPUGRID.NET':'575631_e05399c996a36746d603d0edcc6fdcb2',
+        'MILKYWAY.CS.RPI.EDU/MILKYWAY':'3206506_1ff09dd6be13aabc509b535934de40f8',
+        'ESCATTER11.FULLERTON.EDU/NFS':'2583967_720a4730bb15ae246935cf911d496ba3',
+        'NUMBERFIELDS.ASU.EDU/NUMBERFIELDS':'860933_e543b27624d04eea09d74f2cf39afd31',
+        'BOINC.MULTI-POOL.INFO/LATINSQUARES':'33541_de185e7045673c1485d16148683c22d9',
+        'BOINC.BAKERLAB.ORG/ROSETTA':'2382329_f817670777925b63d7090fa50ac11e0b',
+        'SRBASE.MY-FIREWALL.ORG/SR5':'2909_3675395fe23cc846696609fc72114b17',
+        'SIDOCK.SI/SIDOCK':'9302_bfbe2dcf1bc6e6f50fbc4c67841e8624',
+        'GENE.DISI.UNITN.IT/TEST':'3813_54b95766c943370c5517bce39742b4fe',
+        'UNIVERSEATHOME.PL/UNIVERSE':'239667_e7bfb47b3f94750632796b03b2bc7954',
+        'WORLDCOMMUNITYGRID.ORG':'1156028_7f2601c3a6dc1b1b9f7eb99261db96f0',
     }
 
     while True:
-        # If we have done sufficient crunching in dev mode, exit dev loop
+        # If we have done sufficient crunching in dev mode, exit dev loop. Closing dev client is done after exiting loop.
         if DATABASE.get('DEVTIMECOUNTER', 0) < 1 and not FORCE_DEV_MODE and dev_loop:
             return None
 
-        # Re-authorize in case we have become de-authorized since last run. This is put in a try loop b/c sometimes it throws exceptions
+        # Re-authorize in case we have become de-authorized since last run.
+        # This is put in a try b/c sometimes it throws exceptions
         while True:
             try:
                 authorize_response = loop.run_until_complete(rpc_client.authorize())
-                BOINC_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(get_attached_projects(rpc_client))  # we need to re-fetch this as it's different for dev and client
+                ATTACHED_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(get_attached_projects(rpc_client))  # we need to re-fetch this as it's different for dev and client
+                # update ALL_BOINC_PROJECTS if we find any new names
+                for url,project_name in BOINC_PROJECT_NAMES:
+                    if url not in ALL_BOINC_PROJECTS:
+                        ALL_BOINC_PROJECTS[url]=project_name
             except Exception as e:
                 print_and_log('Transient error connecting to BOINC, sleeping 30s','ERROR')
                 sleep(30)
@@ -2108,11 +2069,11 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             combined_stats, final_project_weights, total_preferred_weight, total_mining_weight, dev_project_weights = generate_stats(
                 APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects,
                 ignored_projects=ignored_projects, quiet=True, ignore_unattached=True,
-                attached_list=BOINC_PROJECT_LIST,mag_ratios=mag_ratios)
+                attached_list=ATTACHED_PROJECT_LIST,mag_ratios=mag_ratios)
             # Get list of projects ordered by priority
             highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=combined_stats,
                                                                                        project_weights=final_project_weights,
-                                                                                       attached_projects=BOINC_PROJECT_LIST,quiet=True)
+                                                                                       attached_projects=ATTACHED_PROJECT_LIST,quiet=True)
             log.debug('Highest priority projects are: '+str(highest_priority_projects))
             # print some pretty stats
             update_table(dev_loop=dev_loop)
@@ -2156,7 +2117,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 if LAST_KNOWN_CPU_MODE:
                     existing_cpu_mode=LAST_KNOWN_CPU_MODE
                     existing_gpu_mode=LAST_KNOWN_GPU_MODE
-            if existing_mode_info:
+            else:
                 existing_cpu_mode = existing_mode_info['task_mode']
                 existing_gpu_mode = str(existing_mode_info['gpu_mode'])
                 if existing_cpu_mode in CPU_MODE_DICT:
@@ -2169,7 +2130,6 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     LAST_KNOWN_GPU_MODE=existing_gpu_mode
                 else:
                     print_and_log('Error: Unknown gpu mode {}'.format(existing_gpu_mode),"ERROR")
-
             if existing_cpu_mode and existing_gpu_mode:
                 # If temp is too high:
                 if not temp_check():
@@ -2193,10 +2153,10 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                             break
         # If we are due to run under dev account, do it
         if should_crunch_for_dev(dev_loop):
-            boinc_password=setup_dev_boinc() # Setup and start dev boinc
-            DEV_BOINC_PASSWORD=boinc_password
+            dev_boinc_password=setup_dev_boinc() # Setup and start dev boinc
+            DEV_BOINC_PASSWORD=dev_boinc_password
             dev_rpc_client=None
-            if boinc_password=='ERROR':
+            if dev_boinc_password=='ERROR':
                 log.error('Error setting up crunching to developer account')
             else:
                 # setup dev RPC connection, it may take a few tries while we wait for it to come online
@@ -2205,7 +2165,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 dev_rpc_client=None
                 while tries<=tries_max:
                     try:
-                        dev_rpc_client = loop.run_until_complete(setup_connection(boinc_ip, boinc_password, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
+                        dev_rpc_client = loop.run_until_complete(setup_connection(boinc_ip, dev_boinc_password, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
                         authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
                     except Exception as e:
                         log.error('Error connecting to BOINC dev client {}'.format(e))
@@ -2272,8 +2232,9 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         else:
             project_loop=highest_priority_projects
         for highest_priority_project in project_loop:
-            boincified_url=resolve_boinc_url_new(highest_priority_project)
-            benchmark_result=benchmark_check(project_url=highest_priority_project,combined_stats=combined_stats,benchmarking_minimum_wus=benchmarking_minimum_wus,benchmarking_minimum_time=benchmarking_minimum_time,benchmarking_delay_in_days=benchmarking_delay_in_days,skip_benchmarking=skip_benchmarking)
+            boincified_url=resolve_url_boinc_rpc(highest_priority_project,ATTACHED_PROJECT_LIST,ALL_PROJECT_URLS)
+            database_url=resolve_url_database(highest_priority_project)
+            benchmark_result=benchmark_check(project_url=database_url,combined_stats=combined_stats,benchmarking_minimum_wus=benchmarking_minimum_wus,benchmarking_minimum_time=benchmarking_minimum_time,benchmarking_delay_in_days=benchmarking_delay_in_days,skip_benchmarking=skip_benchmarking)
             profitability_result = profitability_check(grc_price=grc_price, exchange_fee=exchange_fee,
                                                        host_power_usage=host_power_usage,
                                                        grc_sell_price=grc_sell_price, local_kwh=local_kwh,
@@ -2281,29 +2242,26 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                                                        min_profit_per_hour=min_profit_per_hour,
                                                        combined_stats=combined_stats)
             if only_BOINC_if_profitable and not benchmark_result and not profitability_result and not dev_loop:
-                DATABASE['TABLE_STATUS']='No fetch for {} bc not profitable'.format(highest_priority_project)
+                DATABASE['TABLE_STATUS']='No fetch for {} bc not profitable'.format(database_url)
                 update_table(dev_loop=dev_loop)
-                log.info('Skipping work fetch for {} bc not profitable and only_boinc_if_profitable is set to true'.format(highest_priority_project))
+                log.info('Skipping work fetch for {} bc not profitable and only_boinc_if_profitable is set to true'.format(database_url))
                 continue
             # If user has set to only mine highest mag project if profitable and it's not profitable or in benchmarking mode, skip
-            if only_mine_if_profitable and not profitability_result and final_project_weights[highest_priority_project]!=1 and not dev_loop:
-                DATABASE['TABLE_STATUS']='Skipping work fetch for {} bc not profitable and only_mine_if_profitable set to true'.format(highest_priority_project)
+            if only_mine_if_profitable and not profitability_result and final_project_weights[database_url]!=1 and not dev_loop:
+                DATABASE['TABLE_STATUS']='Skipping work fetch for {} bc not profitable and only_mine_if_profitable set to true'.format(database_url)
                 update_table(dev_loop=dev_loop)
                 log.info('Skipping work fetch for {} bc not profitable and only_mine_if_profitable set to true'.format(
-                    highest_priority_project))
+                    database_url))
                 continue
-
-            highest_priority_project = resolve_boinc_url(highest_priority_project,
-                                                         ALL_BOINC_PROJECTS)  # make sure we are using correct URL, BOINC requires capitalization to be exact
-            if highest_priority_project.upper() not in DATABASE[mode]:
-                DATABASE[mode][highest_priority_project.upper()] = {}
+            if database_url not in DATABASE[mode]:
+                DATABASE[mode][database_url] = {}
             # skip checking project if we have a backoff counter going and it hasn't been long enough
-            time_since_last_project_check=datetime.datetime.now() - DATABASE[mode][highest_priority_project.upper()].get('LAST_CHECKED',datetime.datetime(1997, 6, 21, 18, 25, 30))
+            time_since_last_project_check=datetime.datetime.now() - DATABASE[mode][database_url].get('LAST_CHECKED',datetime.datetime(1997, 6, 21, 18, 25, 30))
             minutes_since_last_project_check = time_since_last_project_check.seconds / 60
-            if minutes_since_last_project_check < DATABASE[mode].get(highest_priority_project.upper(), {}).get('BACKOFF', 0):
+            if minutes_since_last_project_check < DATABASE[mode].get(database_url, {}).get('BACKOFF', 0):
                 DATABASE['TABLE_STATUS']='Skipping {} due to backoff period...'.format({highest_priority_project})
                 update_table(dev_loop=dev_loop)
-                log.debug('Skipping project {} due to backoff period... minutes_since is {}'.format(highest_priority_project,minutes_since_last_project_check))
+                log.debug('Skipping project {} due to backoff period... minutes_since is {}'.format(database_url,minutes_since_last_project_check))
                 continue
             DATABASE['TABLE_STATUS']='Waiting for xfers to complete..'
             update_table(dev_loop=dev_loop)
@@ -2320,27 +2278,27 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     log.warning('Dev BOINC shows empty project list, this is normal on first run')
                     converted_project_list=[]
 
-                if not project_in_list_check(highest_priority_project,converted_project_list):
+                if resolve_url_boinc_rpc(highest_priority_project,ATTACHED_PROJECT_LIST,ALL_PROJECT_URLS) not in converted_project_list:
                     # yoyo will never be in project dict due to not supporting weak auth
-                    converted_dev_project_url=project_to_dev_project(highest_priority_project,DEV_PROJECT_DICT)
-                    if converted_dev_project_url not in DEV_PROJECT_DICT:
-                        if 'YOYO' not in converted_dev_project_url.upper():
-                            log.error('Unable to attach dev account to {} bc not in DEV_PROJECT_DICT'.format(highest_priority_project))
+                    converted_dev_project_url=resolve_url_boinc_rpc(highest_priority_project,ATTACHED_PROJECT_LIST,ALL_PROJECT_URLS)
+                    if database_url not in DEV_PROJECT_DICT:
+                        if 'YOYO' not in database_url:
+                            log.error('Unable to attach dev account to {} bc not in DEV_PROJECT_DICT'.format(database_url))
                         continue
                     else:
                         log.info('Attaching dev account to {}'.format(boincified_url))
-                        attach_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_attach', arg1='project_url',arg1_val=boincified_url, arg2='authenticator',arg2_val=DEV_PROJECT_DICT[converted_dev_project_url]))  # update project
+                        attach_response = loop.run_until_complete(run_rpc_command(rpc_client, 'project_attach', arg1='project_url',arg1_val=boincified_url, arg2='authenticator',arg2_val=DEV_PROJECT_DICT[database_url]))  # update project
                         sleep(30) # give it a chance to finish attaching
-                        BOINC_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(
+                        ATTACHED_PROJECT_LIST, BOINC_PROJECT_NAMES = loop.run_until_complete(
                             get_attached_projects(
                                 rpc_client))  # we need to re-fetch this as it's now changed
-                        highest_priority_project = resolve_boinc_url(highest_priority_project,
-                                                                     ALL_BOINC_PROJECTS)  # this may have changed, so check
-                        if len(BOINC_PROJECT_LIST)==0: # using this as a proxy for "failed attach"
+                        boincified_url=resolve_url_boinc_rpc(highest_priority_project,
+                                                                     ATTACHED_PROJECT_LIST,ALL_PROJECT_URLS)  # this may have changed, so check
+                        if len(ATTACHED_PROJECT_LIST)==0: # using this as a proxy for "failed attach"
                             log.error('Appears to fail to attach to {}'.format(boincified_url))
                             continue
                         print('')
-            project_name = ALL_BOINC_PROJECTS[highest_priority_project]
+            project_name = ALL_BOINC_PROJECTS[boincified_url]
             DATABASE['TABLE_STATUS']='Allowing new tasks & updating {}'.format(project_name)
             log.info('Allowing new tasks and updating {}'.format(highest_priority_project))
             update_table(dev_loop=dev_loop)
@@ -2350,23 +2308,23 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 boincified_url))
             log.debug('Update response is {}'.format(update_response))
             sleep(15)  # give BOINC time to update w project, I don't know a less hacky way to do this, suggestions are welcome
-            DATABASE[mode][highest_priority_project.upper()]['LAST_CHECKED'] = datetime.datetime.now()
+            DATABASE[mode][database_url]['LAST_CHECKED'] = datetime.datetime.now()
             # check if project should be backed off. If so, back it off.
             # This is an exponentially increasing backoff with a maximum time of 1 day
             # Projects are backed off if they request it, if they are unresponsive/down, or if no work is available
             backoff_response = loop.run_until_complete(check_log_entries_for_backoff(rpc_client, project_name=project_name))
             if backoff_response:
-                if DATABASE[mode][highest_priority_project.upper()].get('BACKOFF'):
-                    DATABASE[mode][highest_priority_project.upper()]['BACKOFF']=min(DATABASE[mode][highest_priority_project.upper()]['BACKOFF']*2,1440)
+                if DATABASE[mode][database_url].get('BACKOFF'):
+                    DATABASE[mode][database_url]['BACKOFF']=min(DATABASE[mode][database_url]['BACKOFF']*2,1440)
                 else:
-                    DATABASE[mode][highest_priority_project.upper()]['BACKOFF']=min_recheck_time
+                    DATABASE[mode][database_url]['BACKOFF']=min_recheck_time
             else:
-                DATABASE[mode][highest_priority_project.upper()]['BACKOFF'] = 0
+                DATABASE[mode][database_url]['BACKOFF'] = 0
                 log.debug('Waiting for any xfers to complete...')
                 dl_response = wait_till_no_xfers(rpc_client)  # wait until all network activity has concluded
 
                 if not dont_nnt: # if we didn't get a backoff signal and we haven't picked a project to leave non-NNTed during sleeping of loop, pick this one for that purpose
-                    dont_nnt=highest_priority_project.upper()
+                    dont_nnt=database_url
 
             # re-NNT all projects
             nnt_response = loop.run_until_complete(nnt_all_projects(rpc_client))  # NNT all projects
@@ -2384,7 +2342,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         # Allow highest non-backedoff project to be non-NNTd.
         # This enables BOINC to fetch work if it's needed before our sleep period elapses
         if dont_nnt:
-            allow_this_project=resolve_boinc_url_new(dont_nnt)
+            allow_this_project=resolve_url_boinc_rpc(dont_nnt,ATTACHED_PROJECT_LIST,ALL_PROJECT_URLS)
             allow_response = loop.run_until_complete(
                 run_rpc_command(rpc_client, 'project_allowmorework', 'project_url', allow_this_project))
         custom_sleep(30,rpc_client,dev_loop=dev_loop)  # There's no reason to loop through all projects more than once every 30 minutes
@@ -2635,7 +2593,7 @@ if __name__ == '__main__':
     if not rpc_client: # this was just added so pycharm would stop complaining about rpc_client not being declared
         print_and_log('Error connecting to BOINC client, quitting now', 'ERROR')
         quit()
-    BOINC_PROJECT_LIST,BOINC_PROJECT_NAMES = loop.run_until_complete(get_attached_projects(rpc_client)) # get project list from BOINC client directly. This is needed for correct capitalization
+    ATTACHED_PROJECT_LIST,BOINC_PROJECT_NAMES = loop.run_until_complete(get_attached_projects(rpc_client)) # get project list from BOINC client directly. This is needed for correct capitalization
     ALL_BOINC_PROJECTS=loop.run_until_complete(get_all_projects(rpc_client))
 
     # Get project list from Gridcoin wallet and/or gridcoinstats, check sidestakes
@@ -2644,7 +2602,8 @@ if __name__ == '__main__':
     developer_address = 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K'
     try:
         grc_client = GridcoinClientConnection(rpc_user=rpc_user,rpc_port=rpc_port,rpc_password=gridcoin_rpc_password)
-        APPROVED_PROJECT_URLS = grc_client.get_approved_project_urls()
+        source_urls = grc_client.get_approved_project_urls()
+        APPROVED_PROJECT_URLS=resolve_url_list_to_database(source_urls)
         mag_ratios = get_project_mag_ratios(grc_client,lookback_period)
     except Exception as e:
         print_and_log('Unable to connect to Gridcoin wallet. Assuming it doesn\'t exist. Error: ','ERROR')
@@ -2654,7 +2613,8 @@ if __name__ == '__main__':
         log.warning('Unable to connect to gridcoin wallet! {} Trying web-based option...'.format(e))
         wallet_running=False
         try:
-            APPROVED_PROJECT_URLS, project_resolver_dict = get_approved_project_urls_web()
+            source_urls, project_resolver_dict = get_approved_project_urls_web()
+            APPROVED_PROJECT_URLS=resolve_url_list_to_database(source_urls)
             mag_ratios=get_project_mag_ratios_from_url(project_resolver_dict=project_resolver_dict)
         except Exception as e:
             print_and_log('Error getting project URL list from URL. Are you sure it\'s open? Error: '+str(e),'ERROR')

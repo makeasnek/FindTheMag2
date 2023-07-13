@@ -1,3 +1,13 @@
+## URL formats
+There are several URL formats FTM uses.
+- Generally, all URLs should be in the "canonicalized" format created by resolve_url_database(). The canonical format is
+ UPPERCASE, with HTTP/HTTPS/WWW removed and any trailing slashes removed.
+- The URL canonicalizer will also join projects which have multiple attach URLs for the same project.
+- We use non-canonical URLs when speaking with Gridcoin or BOINC RPC since they have their own formats. BOINC is
+particularly picky about capitalization. When we fetch data from these tools, we convert it into canonical format as
+soon as possible (sometimes in the fetch function itself). Use the URL converters resolve_url_boinc_rpc to turn URLs
+into URLs BOINC will like.
+
 # DATABASE is used to track various counters etc during the program's operation. It is saved at opportune times
 # in the program's execution including when user issues a ctrl + c. It should only be used for variables which are
 # needed across executions or across functions

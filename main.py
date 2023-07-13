@@ -1387,7 +1387,10 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
         intended_weight=(preferred_project_weights_extract / 100) * total_preferred_weight
         final_project_weights[project_url] += intended_weight
     return combined_stats,final_project_weights,total_preferred_weight,total_mining_weight,dev_project_weights
-async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,task_list:list)->None:
+async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client)->None:
+    task_list=get_task_list(rpc_client)
+    if not isinstance(task_list,list):
+        return
     project_status_reply = await rpc_client.get_project_status()
     found_projects = [] # DEBUG ADDED TYPE THIS CORRECTLY
     for task in task_list:
@@ -1851,10 +1854,8 @@ def custom_sleep(sleep_time:float,boinc_rpc_client,dev_loop:bool=False):
         sleep(60)
         if loop.run_until_complete(is_boinc_crunching(boinc_rpc_client)):
             if dev_loop:
-                DATABASE['DEVTIMECOUNTER'] -= 1
                 DATABASE['DEVTIMETOTAL'] +=1
             else:
-                DATABASE['DEVTIMECOUNTER'] += max(dev_fee,.01)
                 DATABASE['FTMTOTAL'] += 1
         # save database every ten minutes or at end of routine
         if str(elapsed).endswith('0') or elapsed + 1 >= sleep_time:
@@ -1976,11 +1977,14 @@ def should_crunch_for_dev(dev_loop:bool) -> bool:
     if FORCE_DEV_MODE:
         log.debug('Should start dev crunching bc FORCE_DEV_MODE')
         return True
-    dev_time_counter_in_hours=max(DATABASE.get('DEVTIMECOUNTER', 0), 1) / 60
-    if dev_time_counter_in_hours > 100:
-        log.debug('Should start dev crunching due to time counter: {}'.format(dev_time_counter_in_hours))
+    total_time_in_hours=max(DATABASE.get('FTMTOTAL', 0), 1) / 60
+    dev_time_in_hours=max(DATABASE.get('DEVTIMETOTAL', 0), 1) / 60
+    dev_owed_in_hours=max(.01,dev_fee)*total_time_in_hours
+    discrepancy=dev_owed_in_hours-dev_time_in_hours
+    if discrepancy > 100:
+        log.debug('Should start dev crunching due to discrepancy: {}'.format(discrepancy))
         return True
-    log.debug('Should not start dev crunching, current counter is: {}'.format(dev_time_counter_in_hours))
+    log.debug('Should not start dev crunching, current counter in hours is: {}, owed is: {}'.format(total_time_in_hours,discrepancy))
     return False
 def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:str=DATABASE.get('TABLE_STATUS',''),dev_status:bool=False,dev_loop:bool=False):
     """
@@ -2151,7 +2155,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             if True not in profitability_list:
                 log.info('No projects currently profitable and no benchmarking required, sleeping for 1 hour and killing all non-started tasks')
                 tasks_list=get_task_list(rpc_client)
-                kill_all_unstarted_tasks(rpc_client=rpc_client,task_list=tasks_list)
+                kill_all_unstarted_tasks(rpc_client=rpc_client)
                 nnt_all_projects(rpc_client)
                 DATABASE['TABLE_SLEEP_REASON']= 'No profitable projects and no benchmarking required, sleeping 1 hr, killing all non-started tasks'
                 update_table(dev_loop=dev_loop)
@@ -2776,8 +2780,7 @@ if __name__ == '__main__':
     nnt_response = loop.run_until_complete(nnt_all_projects(rpc_client))
     # Abort unstarted tasks if the user requested it
     if abort_unstarted_tasks:
-        tasks_list = loop.run_until_complete(get_task_list(rpc_client))
-        loop.run_until_complete(kill_all_unstarted_tasks(rpc_client,task_list=tasks_list))
+        loop.run_until_complete(kill_all_unstarted_tasks(rpc_client))
     priority_results = {}
     highest_priority_project=''
     highest_priority_projects=[]

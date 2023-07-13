@@ -17,9 +17,8 @@ into URLs BOINC will like.
 DATABASE format:
 'GRCPRICELASTCHECKED':datetime.datetime # last time we checked GRC's price
 'GRCPRICE':float # last known average price of GRC
-'DEVTIMECOUNTER':float # counter for # of minutes we have managed BOINC crunching and it has been actively crunching, gets lowered by crunching under dev account
-'DEVTIMETOTAL': float # total amount of time crunched for dev
-'FTMTOTAL': float # total amount of time crunched for non-dev
+'DEVTIMETOTAL': float # total amount of minutes crunched for dev
+'FTMTOTAL': float # total amount of minutes crunched for non-dev
 'LASTUPDATECHECK':datetime.datetime # last time we checked for updates from github
 'STATSLASTCALCULATED':datetime.datetime # last time we calculated stats
 'LASTGRIDCOINSTATSPROJECTCHECK':datetime.datetime, # last time we checked gridcoinstats for projects

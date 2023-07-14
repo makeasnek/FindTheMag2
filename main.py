@@ -412,10 +412,11 @@ async def is_boinc_crunching(rpc_client:libs.pyboinc.rpc_client)->bool:
         print("Error checking if BOINC is crunching. If you continue to see this error, make sure BOINC is running")
         log.error('Error checking if BOINC is crunching (in is_boinc_crunching: '.format(e))
         return False
-async def setup_connection(boinc_ip:str=boinc_ip,boinc_password:str=boinc_password,port:int=31416)->libs.pyboinc.rpc_client:
+async def setup_connection(boinc_ip:str=boinc_ip,boinc_password:str=boinc_password,port:int=31416)->Union[libs.pyboinc.rpc_client,None]:
     """
     Sets up a BOINC RPC client connection
     """
+    rpc_client = None
     rpc_client = await init_rpc_client(boinc_ip, boinc_password, port=port)
     return rpc_client
 def temp_check()->bool:
@@ -2256,6 +2257,8 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     try:
                         dev_rpc_client = loop.run_until_complete(setup_connection(boinc_ip, dev_boinc_password, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
                         authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+                        if not dev_rpc_client:
+                            raise Exception('Error connecting to boinc dev client')
                     except Exception as e:
                         log.error('Error connecting to BOINC dev client {}'.format(e))
                     else:
@@ -2660,8 +2663,8 @@ if __name__ == '__main__':
     except Exception as e:
         print_and_log('Error: Unable to connect to BOINC client, quitting now','ERROR')
         quit()
-    if not rpc_client: # this was just added so pycharm would stop complaining about rpc_client not being declared
-        print_and_log('Error connecting to BOINC client, quitting now', 'ERROR')
+    if not rpc_client:
+        print_and_log('Error: Unable to connect to BOINC client, quitting now', 'ERROR')
         quit()
     temp_project_set,temp_project_names = loop.run_until_complete(get_attached_projects(rpc_client)) # get project list from BOINC client directly. This is needed for correct capitalization
     ATTACHED_PROJECT_SET.update(temp_project_set)

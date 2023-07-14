@@ -60,7 +60,7 @@ def temp_function():
 lookback_period=30 # Number of days to look back to calculate credit -> MAG ratios from various projects. You can set this as low as 1 if you want FTM to respond quickly to profitability changes of projects. If you don't have Gridcoin wallet installed/connected, this setting is always 30 and can't be changed. Default: 30
 abort_unstarted_tasks=False # when we start controlling BOINC, should we abort unstarted tasks? Default is False, it's nicer to projects this way.
 boinc_data_dir=None # Example: '/var/lib/boinc-client' or 'C:\\ProgramData\\BOINC\\'. Only needed if in a non-standard location, otherwise None.
-gridcoin_data_dir=None # Example: '/home/user/.GridcoinResearch' or 'C:\\Users\\username\\AppData\\Roaming\\GridcoinResearch\\'. Only needed if in a non-standard location, otherwise None
+GRIDCOIN_DATA_DIR=None # Example: '/home/user/.GridcoinResearch' or 'C:\\Users\\username\\AppData\\Roaming\\GridcoinResearch\\'. Only needed if in a non-standard location, otherwise None
 recalculate_stats_interval=60 # Interval in minutes to re-calculate stats. Default: 60
 price_check_interval=1440 # how often to check GRC price in minutes, minimum delay of 60 minutes between checks. Default is 1440 (24 hrs)
 log_level='WARNING' # Options are: 'DEBUG','INFO','WARNING','ERROR','NONE', default is 'WARNING'

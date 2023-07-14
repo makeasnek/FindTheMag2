@@ -34,8 +34,8 @@ warnings.filterwarnings('ignore',category=DeprecationWarning)
 preferred_projects_percent:float=80
 preferred_projects:Dict[str, int]={}
 ignored_projects:List[str] = ['https://foldingathome.div72.xyz/']
-boinc_data_dir:Union[str,None]=None
-gridcoin_data_dir:Union[str,None]=None
+BOINC_DATA_DIR:Union[str,None]=None
+GRIDCOIN_DATA_DIR:Union[str,None]=None
 control_boinc:bool=False
 boinc_ip:str='127.0.0.1'
 boinc_port:int=31416
@@ -128,6 +128,26 @@ else:
     log.addHandler(handler)
     log.info("Start FTM log FTM version {} at {}".format(VERSION,datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")))
 
+# Detect platform, guess BOINC and Gridcoin directories if needed
+FOUND_PLATFORM = platform.system()
+if not BOINC_DATA_DIR:
+    if FOUND_PLATFORM == 'Linux':
+        if os.path.isdir('/var/lib/boinc-client'):
+            BOINC_DATA_DIR = '/var/lib/boinc-client'
+        else:
+            BOINC_DATA_DIR = os.path.join(Path.home(), 'BOINC/')
+    elif FOUND_PLATFORM == 'Darwin':
+        BOINC_DATA_DIR = os.path.join('/Library/Application Support/BOINC Data/')
+    else:
+        BOINC_DATA_DIR = 'C:\ProgramData\BOINC\\'
+if not GRIDCOIN_DATA_DIR:
+    if FOUND_PLATFORM == 'Linux':
+        GRIDCOIN_DATA_DIR = os.path.join(Path.home(), '.GridcoinResearch/')
+    elif FOUND_PLATFORM == 'Darwin':
+        GRIDCOIN_DATA_DIR = os.path.join(Path.home(), 'Library/Application Support/GridcoinResearch/')
+    else:
+        GRIDCOIN_DATA_DIR = os.path.join(Path.home(), 'AppData\Roaming\GridcoinResearch\\')
+
 class GridcoinClientConnection:
     """
     A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently quite barebones.
@@ -200,7 +220,7 @@ class BoincClientConnection:
             self.config_dir=config_dir # absolute path to the client config dir
     def get_project_list(self)->List[str]:
         """
-        :return: UPPERCASED list of project URLs. This is all of them known, not just ones which are attached.
+        :return: List of project URLs. This is all of them known, not just ones which are attached.
         Note that some attached projects may not be on this list, as they are not included in BOINC by default.
         """
         project_list_file=os.path.join(self.config_dir,'all_projects_list.xml')
@@ -208,26 +228,33 @@ class BoincClientConnection:
         with open(project_list_file, mode='r', encoding='ASCII', errors='ignore') as f:
             parsed = xmltodict.parse(f.read())
             for project in parsed['projects']['project']:
-                return_list.append(project['url'].upper())
+                return_list.append(project['url'])
         return return_list
 def combine_dicts(dict1:Dict[str,str],dict2:Dict[str,str])->None:
     """
-    Given dict1, dict2, add dict2 to dict1, over-writing anything in dict1
+    Given dict1, dict2, add dict2 to dict1, over-writing anything in dict1.
     @param dict1:
     @param dict2:
-    @return:
+    @return: NONE
     """
     for k,v in dict2.items():
         dict1[k]=v
-def resolve_url_boinc_rpc(url:str,known_attached_projects:Set[str],known_boinc_projects:List[str],dev_mode:bool=False)->str:
+def resolve_url_boinc_rpc(url:str,known_attached_projects:Set[str]=None,known_attached_projects_dev:Set[str]=None,known_boinc_projects:List[str]=None,dev_mode:bool=False)->str:
     """
-    Given a URL, return the version BOINC is attached to for RPC purposes
+    Given a URL, return the version BOINC is attached to for RPC purposes. Variables aside from dev_mode default to globals if
+    not passed in.
     @param url: A url you want canonicalized
     @param known_attached_projects: Projects BOINC is attached to
     @param known_boinc_projects: Projects BOINC knows about via default install xml file (or rpc get_all_projects which returns the same)
     """
+    if not known_attached_projects:
+        known_attached_projects=ATTACHED_PROJECT_SET
+    if not known_attached_projects_dev:
+        known_attached_projects_dev=ATTACHED_PROJECT_SET_DEV
+    if not known_boinc_projects:
+        known_boinc_projects=ALL_PROJECT_URLS
+
     original_uppered=url.upper()
-    known_attached_projects=ATTACHED_PROJECT_SET
 
     # check quick lookup tables first
     if dev_mode:
@@ -245,15 +272,17 @@ def resolve_url_boinc_rpc(url:str,known_attached_projects:Set[str],known_boinc_p
     if uppered.startswith('WWW.'):
         uppered = uppered.replace('WWW.', '')
     if dev_mode:
-        for known_attached_project in ATTACHED_PROJECT_SET_DEV:
+        for known_attached_project in known_attached_projects_dev:
             if uppered in known_attached_project.upper():
                 LOOKUP_URL_TO_BOINC_DEV[original_uppered] = known_attached_project
                 return known_attached_project
     else:
-        for known_attached_project in ATTACHED_PROJECT_SET:
+        for known_attached_project in known_attached_projects:
             if uppered in known_attached_project.upper():
                 LOOKUP_URL_TO_BOINC[original_uppered] = known_attached_project
                 return known_attached_project
+            else:
+                print('{} not in {}'.format(uppered,known_attached_project.upper()))
 
     for known_boinc_project in known_boinc_projects:
         if uppered in known_boinc_project.upper():
@@ -656,7 +685,7 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
         log.error('Unexpected response3 in wait_till_no_xfers: ' + str(cleaned_response))
 
 
-def get_config_parameters(gridcoin_dir:str)->Dict[str, str]:
+def get_gridcoin_config_parameters(gridcoin_dir:str)->Dict[str, str]:
     """
     :param gridcoin_dir: Absolute path to a gridcoin config directory
     :return: All config parameters found, preferring those in the json file to the conf. Note that sidestakes become a list as there may be multiple
@@ -706,7 +735,7 @@ def get_config_parameters(gridcoin_dir:str)->Dict[str, str]:
 def check_sidestake(config_params:Dict[str,Union[str,List[str]]],address:str,minval:float)->bool:
     """
     Checks if a given address is being sidestaked to or not. Returns False if value < minval
-    :param config_params: config_params from get_config_parameters
+    :param config_params: config_params from get_gridcoin_config_parameters
     :param address: address to check
     :param minval: minimum value to pass check
     :return: True or False
@@ -1087,7 +1116,7 @@ def sidestake_prompt(check_sidestake_results:bool, check_type:str, address:str)-
             except Exception as e:
                 print("Hmm... that didn't seem to work, let's try again. Please enter a whole number")
                 answer = input("")
-        conf_file = os.path.join(gridcoin_data_dir, 'gridcoinresearch.conf')
+        conf_file = os.path.join(GRIDCOIN_DATA_DIR, 'gridcoinresearch.conf')
         try:
             sidestake_entry='sidestake='+address+',' + str(converted_value)
             with open(conf_file, "a") as myfile:
@@ -1298,7 +1327,7 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
     if not quiet:
         print('Gathering project stats...')
         log.info('Gathering project stats..')
-    combined_stats = config_files_to_stats(boinc_data_dir)
+    combined_stats = config_files_to_stats(BOINC_DATA_DIR)
     if not quiet:
         print_and_log('Calculating project weights...','INFO')
         print('Curing some cancer along the way...')
@@ -1313,7 +1342,7 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
     # ignore unattached projects if requested
     if ignore_unattached:
         for project in APPROVED_PROJECT_URLS:
-            boincified_url=resolve_url_boinc_rpc(project, ATTACHED_PROJECT_SET, ALL_PROJECT_URLS)
+            boincified_url=resolve_url_boinc_rpc(project)
             if boincified_url not in ATTACHED_PROJECT_SET:
                 ignored_projects.append(project)
                 log.warning('Ignoring whitelisted project {} bc not attached'.format(project))
@@ -1910,16 +1939,16 @@ def setup_dev_boinc()->str:
     # check if dev BOINC directory exists, create if it doesn't
     dev_path = os.path.abspath('DEVACCOUNT')
     boinc_executable = '/usr/bin/boinc'
-    if 'WINDOWS' in found_platform.upper():
+    if 'WINDOWS' in FOUND_PLATFORM.upper():
         boinc_executable='C:\\Program Files\\BOINC\\boinc.exe'
-    elif 'DARWIN' in found_platform.upper():
+    elif 'DARWIN' in FOUND_PLATFORM.upper():
         boinc_executable='/Applications/BOINCManager.app/Contents/resources/boinc'
     if not os.path.exists('DEVACCOUNT'):
         os.mkdir(dev_path)
 
     # update settings to match user settings from main BOINC install
-    global_settings_path=os.path.join(boinc_data_dir,'global_prefs.xml')
-    override_path=os.path.join(boinc_data_dir,'global_prefs_override.xml')
+    global_settings_path=os.path.join(BOINC_DATA_DIR, 'global_prefs.xml')
+    override_path=os.path.join(BOINC_DATA_DIR, 'global_prefs_override.xml')
     override_dest_path=os.path.join(os.path.join(os.getcwd(),'DEVACCOUNT'),'global_prefs_override.xml')
     shutil.copy(global_settings_path,'DEVACCOUNT')
     if os.path.exists(override_path):
@@ -1959,7 +1988,7 @@ def setup_dev_boinc()->str:
             boinc_password=''
     except Exception as e:
         # This error can generally be disregarded on Linux/OSX
-        if 'WINDOWS' in found_platform.upper():
+        if 'WINDOWS' in FOUND_PLATFORM.upper():
             print('Error reading boinc RPC file at {}: {}'.format(auth_location, e))
             log.error('Error reading boinc RPC file at {}: {}'.format(auth_location, e))
         else:
@@ -2124,7 +2153,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if ((abs(stats_calc_delta.days)*24*60)+(abs(stats_calc_delta.seconds)/60)) > recalculate_stats_interval: #only re-calculate stats every x minutes
             log.debug('Calculating stats..')
             DATABASE['STATSLASTCALCULATED'] = datetime.datetime.now()
-            combined_stats = config_files_to_stats(boinc_data_dir)
+            combined_stats = config_files_to_stats(BOINC_DATA_DIR)
             # total_time = combined_stats_to_total_time(combined_stats) # Not sure what this line did but commented out, we'll see if anything breaks
             combined_stats, final_project_weights, total_preferred_weight, total_mining_weight, dev_project_weights = generate_stats(
                 APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects,
@@ -2292,7 +2321,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         else:
             project_loop=highest_priority_projects
         for highest_priority_project in project_loop:
-            boincified_url=resolve_url_boinc_rpc(highest_priority_project, ATTACHED_PROJECT_SET, ALL_PROJECT_URLS)
+            boincified_url=resolve_url_boinc_rpc(highest_priority_project,dev_mode=dev_loop)
             database_url=resolve_url_database(highest_priority_project)
             benchmark_result=benchmark_check(project_url=database_url,combined_stats=combined_stats,benchmarking_minimum_wus=benchmarking_minimum_wus,benchmarking_minimum_time=benchmarking_minimum_time,benchmarking_delay_in_days=benchmarking_delay_in_days,skip_benchmarking=skip_benchmarking)
             profitability_result = profitability_check(grc_price=grc_price, exchange_fee=exchange_fee,
@@ -2338,9 +2367,9 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     log.warning('Dev BOINC shows empty project list, this is normal on first run')
                     converted_project_list=[]
 
-                if resolve_url_boinc_rpc(highest_priority_project, ATTACHED_PROJECT_SET, ALL_PROJECT_URLS) not in converted_project_list:
+                if resolve_url_boinc_rpc(highest_priority_project,dev_mode=dev_loop) not in converted_project_list:
                     # yoyo will never be in project dict due to not supporting weak auth
-                    converted_dev_project_url=resolve_url_boinc_rpc(highest_priority_project, ATTACHED_PROJECT_SET, ALL_PROJECT_URLS)
+                    converted_dev_project_url=resolve_url_boinc_rpc(highest_priority_project,dev_mode=dev_loop)
                     if database_url not in DEV_PROJECT_DICT:
                         if 'YOYO' not in database_url:
                             log.error('Unable to attach dev account to {} bc not in DEV_PROJECT_DICT'.format(database_url))
@@ -2353,8 +2382,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                             get_attached_projects(
                                 rpc_client))  # we need to re-fetch this as it's now changed
                         ATTACHED_PROJECT_SET.update(temp_project_list)
-                        boincified_url=resolve_url_boinc_rpc(highest_priority_project,
-                                                             ATTACHED_PROJECT_SET, ALL_PROJECT_URLS)  # this may have changed, so check
+                        boincified_url=resolve_url_boinc_rpc(highest_priority_project,dev_mode=dev_loop)  # this may have changed, so check
                         if len(ATTACHED_PROJECT_SET)==0: # using this as a proxy for "failed attach"
                             log.error('Appears to fail to attach to {}'.format(boincified_url))
                             continue
@@ -2403,7 +2431,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         # Allow highest non-backedoff project to be non-NNTd.
         # This enables BOINC to fetch work if it's needed before our sleep period elapses
         if dont_nnt:
-            allow_this_project=resolve_url_boinc_rpc(dont_nnt, ATTACHED_PROJECT_SET, ALL_PROJECT_URLS)
+            allow_this_project=resolve_url_boinc_rpc(dont_nnt,dev_mode=dev_loop)
             allow_response = loop.run_until_complete(
                 run_rpc_command(rpc_client, 'project_allowmorework', 'project_url', allow_this_project))
         custom_sleep(30,rpc_client,dev_loop=dev_loop)  # There's no reason to loop through all projects more than once every 30 minutes
@@ -2430,6 +2458,8 @@ def create_default_database()->Dict[str,Any]:
     DATABASE['TABLE_STATUS'] = ''
     DATABASE['TABLE_SLEEP_REASON'] = ''
     return DATABASE
+
+
 
 if __name__ == '__main__':
     wallet_running=True # switches to false if we have issues connecting
@@ -2508,39 +2538,18 @@ if __name__ == '__main__':
 #            }
 #        },
 #    }
-
-    # Define starting parameters
-    found_platform=platform.system()
-    if not boinc_data_dir:
-        if found_platform=='Linux':
-            if os.path.isdir('/var/lib/boinc-client'):
-                boinc_data_dir='/var/lib/boinc-client'
-            else:
-                boinc_data_dir=os.path.join(Path.home(), 'BOINC/')
-        elif found_platform=='Darwin':
-            boinc_data_dir=os.path.join('/Library/Application Support/BOINC Data/')
-        else:
-            boinc_data_dir = 'C:\ProgramData\BOINC\\'
-    if not gridcoin_data_dir:
-        if found_platform=='Linux':
-            gridcoin_data_dir=os.path.join(Path.home(),'.GridcoinResearch/')
-        elif found_platform=='Darwin':
-            gridcoin_data_dir = os.path.join(Path.home(), 'Library/Application Support/GridcoinResearch/')
-        else:
-            gridcoin_data_dir=os.path.join(Path.home(),'AppData\Roaming\GridcoinResearch\\')
-
     # check that directories exist
-    log.info('Guessing BOINC data dir is ' + str(boinc_data_dir))
-    if not os.path.isdir(boinc_data_dir):
+    log.info('Guessing BOINC data dir is ' + str(BOINC_DATA_DIR))
+    if not os.path.isdir(BOINC_DATA_DIR):
         print_and_log('BOINC data dir does not appear to exist. If you have it in a non-standard location, please edit config.py so we know where to look','ERROR')
         input('Press enter to exit')
         quit()
-    log.info('Guessing Gridcoin data dir is ' + str(gridcoin_data_dir))
-    if not os.path.isdir(gridcoin_data_dir):
+    log.info('Guessing Gridcoin data dir is ' + str(GRIDCOIN_DATA_DIR))
+    if not os.path.isdir(GRIDCOIN_DATA_DIR):
         print_and_log('Gridcoin data dir does not appear to exist. If you have it in a non-standard location, please edit config.py so we know where to look','ERROR')
         input('Press enter to continue or CTRL+C to quit')
         wallet_running=False
-    override_path = os.path.join(boinc_data_dir, 'global_prefs_override.xml')
+    override_path = os.path.join(BOINC_DATA_DIR, 'global_prefs_override.xml')
     override_dest_path=os.path.join(os.getcwd(),'global_prefs_override_backup.xml')
 
     try:
@@ -2553,7 +2562,7 @@ if __name__ == '__main__':
 
     # auto-detect password for BOINC RPC if it exists and user didn't know
     # BOINC on Windows automatically generates an RPC password
-    auth_location = os.path.join(boinc_data_dir, 'gui_rpc_auth.cfg')
+    auth_location = os.path.join(BOINC_DATA_DIR, 'gui_rpc_auth.cfg')
     if not boinc_password:
         try:
             with open(auth_location, 'r') as file:
@@ -2562,7 +2571,7 @@ if __name__ == '__main__':
                     boinc_password = data
         except Exception as e:
             # This error can generally be disregarded on Linux/OSX
-            if 'WINDOWS' in found_platform.upper():
+            if 'WINDOWS' in FOUND_PLATFORM.upper():
                 print('Error reading boinc RPC file at {}: {}'.format(auth_location, e))
                 log.error('Error reading boinc RPC file at {}: {}'.format(auth_location, e))
             else:
@@ -2584,17 +2593,17 @@ if __name__ == '__main__':
     gridcoin_conf = None
     loop = asyncio.get_event_loop()
     try:
-        boinc_client = BoincClientConnection(config_dir=boinc_data_dir)
+        boinc_client = BoincClientConnection(config_dir=BOINC_DATA_DIR)
     except Exception as e:
         print_and_log('Unable to open BOINC data directory. You may need to specify location in config. Error ' + str(e),'ERROR')
         input('Press enter to exit')
         quit()
     if wallet_running:
         try:
-            gridcoin_conf = get_config_parameters(gridcoin_data_dir)
+            gridcoin_conf = get_gridcoin_config_parameters(GRIDCOIN_DATA_DIR)
         except Exception as e:
-            print('Error parsing gridcoin config file in directory: '+gridcoin_data_dir+' Error: '+str(e))
-            log.error('Error parsing gridcoin config file in directory: ' + gridcoin_data_dir + ' Error: ' + str(e))
+            print('Error parsing gridcoin config file in directory: ' + GRIDCOIN_DATA_DIR + ' Error: ' + str(e))
+            log.error('Error parsing gridcoin config file in directory: ' + GRIDCOIN_DATA_DIR + ' Error: ' + str(e))
             wallet_running=False
             rpc_user = None
             gridcoin_rpc_password = None
@@ -2606,9 +2615,9 @@ if __name__ == '__main__':
             rpc_port = gridcoin_conf.get('rpcport')
         if not rpc_user or not gridcoin_rpc_password or not rpc_port:
             print('Error: Gridcoin wallet is not configured to accept RPC commands based on config file from ' + str(
-                gridcoin_data_dir))
+                GRIDCOIN_DATA_DIR))
             log.error('Error: Gridcoin wallet is not configured to accept RPC commands based on config file from ' + str(
-                gridcoin_data_dir))
+                GRIDCOIN_DATA_DIR))
             print(
                 'RPC commands enable us to talk to the Gridcoin client and get information about project magnitude ratios')
             print('Would you like us to automatically configure your Gridcoin client to accept RPC commands?')
@@ -2624,7 +2633,7 @@ if __name__ == '__main__':
             if answer == "N":
                 print('Ok, we won\'t')
             else:
-                with open(os.path.join(gridcoin_data_dir, 'gridcoinresearch.conf'), "a") as myfile:
+                with open(os.path.join(GRIDCOIN_DATA_DIR, 'gridcoinresearch.conf'), "a") as myfile:
                     from random import choice
                     from string import ascii_uppercase
                     from string import ascii_lowercase
@@ -2762,7 +2771,7 @@ if __name__ == '__main__':
     if not SCRIPTED_RUN:
         answer = input("")
     print_and_log('Starting control of BOINC...','DEBUG')
-    if "DARWIN" in found_platform.upper() and not check_sidestake_results:
+    if "DARWIN" in FOUND_PLATFORM.upper() and not check_sidestake_results:
         print_and_log('Sidestaking must be setup for BOINC control on OS X as "crunch for dev" is not an option. Re-run the script to set this up.','ERROR')
         quit()
 

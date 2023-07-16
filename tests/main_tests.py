@@ -188,3 +188,35 @@ def test_get_gridcoin_config_parameters():
     assert result['rpcport']=='9876'
     assert result['rpcuser'] == 'myusername'
     assert result['rpcpassword'] == 'mypassword'
+
+def test_check_sidestake():
+    # check it notices when sidestaking disabled
+    config={
+        'enablesidestaking': '0',
+        'sidestake': ['bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2,1', 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K,1'],
+        'rpcport': '9876',
+        'rpcallowip': '127.0.0.1',
+        'server': '1',
+        'rpcuser': 'myusername',
+        'rpcpassword': 'mypassword'}
+    assert not main.check_sidestake(config,'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2',1)
+    # check it notices if value too low
+    config={
+        'enablesidestaking': '1',
+        'sidestake': ['bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2,1', 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K,1'],
+        'rpcport': '9876',
+        'rpcallowip': '127.0.0.1',
+        'server': '1',
+        'rpcuser': 'myusername',
+        'rpcpassword': 'mypassword'}
+    assert not main.check_sidestake(config, 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2', 5)
+    # assert it correctly detects sidestake
+    config = {
+        'enablesidestaking': '1',
+        'sidestake': ['bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2,1', 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K,1'],
+        'rpcport': '9876',
+        'rpcallowip': '127.0.0.1',
+        'server': '1',
+        'rpcuser': 'myusername',
+        'rpcpassword': 'mypassword'}
+    assert main.check_sidestake(config, 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2', 1)

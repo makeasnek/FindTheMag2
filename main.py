@@ -893,18 +893,21 @@ def credit_history_file_to_list(credithistoryfileabspath: str) -> List[Dict[str,
     Note that ESTIMATEDFLOPS comes from the project and EXITCODE will always be zero.
     """
     statslist = []
-    with open(credithistoryfileabspath, mode='r', encoding='ASCII', errors='ignore') as f:
-        parsed = xmltodict.parse(f.read())
-        for logentry in parsed.get('project_statistics', {}).get('daily_statistics', []):
-            stats = {}
-            if not isinstance(logentry, dict):
-                continue
-            stats['TIME'] = logentry['day']
-            stats['USERTOTALCREDIT'] = logentry['user_total_credit']
-            stats['USERRAC'] = logentry['user_expavg_credit']
-            stats['HOSTTOTALCREDIT'] = logentry['host_total_credit']
-            stats['HOSTRAC'] = logentry['host_expavg_credit']
-            statslist.append(stats)
+    try:
+        with open(credithistoryfileabspath, mode='r', encoding='ASCII', errors='ignore') as f:
+            parsed = xmltodict.parse(f.read())
+            for logentry in parsed.get('project_statistics', {}).get('daily_statistics', []):
+                stats = {}
+                if not isinstance(logentry, dict):
+                    continue
+                stats['TIME'] = logentry['day']
+                stats['USERTOTALCREDIT'] = logentry['user_total_credit']
+                stats['USERRAC'] = logentry['user_expavg_credit']
+                stats['HOSTTOTALCREDIT'] = logentry['host_total_credit']
+                stats['HOSTRAC'] = logentry['host_expavg_credit']
+                statslist.append(stats)
+    except Exception as e:
+        log.error('Error reading statsfile {} {}'.format(credithistoryfileabspath,e))
     return statslist
 
 def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union[int, float, Dict[str, Union[float, str]]]]]:

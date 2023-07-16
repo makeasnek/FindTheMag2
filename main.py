@@ -1054,6 +1054,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
 
 def add_mag_to_combined_stats(combined_stats: dict, mag_ratios: Dict[str, float], approved_projects: List[str],preferred_projects:List[str] ) -> Tuple[dict,List[str]]:
     """
+    Add magnitude to combined_stats dict. Adds in dict and returns it as well.
     :param combined_stats: COMBINED_STATS from main.py
     :param mag_ratios: mag ratios returned from get_project_mag_ratios. A dict with project URL as key and mag ratio as value
     :return: COMBINED_STATS w/ mag ratios added to us, list of projects which are being crunched but not on approved projects list
@@ -1064,7 +1065,7 @@ def add_mag_to_combined_stats(combined_stats: dict, mag_ratios: Dict[str, float]
         if not found_mag_ratio:
             if project_url not in approved_projects:
                 if project_url not in preferred_projects:
-                    unapproved_list.append(project_url.lower())
+                    unapproved_list.append(project_url)
             project_stats['COMPILED_STATS']['AVGMAGPERHOUR'] = 0
             project_stats['COMPILED_STATS']['MAGPERCREDIT'] = 0
             continue

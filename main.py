@@ -1091,25 +1091,32 @@ def is_project_eligible(project_url: str, project_stats: dict)->bool:
         return True
     return False
 
+def get_first_non_ignored_project(project_list:List[str],ignored_projects:List[str])->Union[str,None]:
+    return_value=None
+    for project in project_list:
+        if project not in ignored_projects:
+            return project
+    log.error('Error: No projects found in get_first_non_ignored_project')
+    return return_value
 def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[str], percentdiff: int = 10,quiet:bool=False) -> List[
     str]:
     """
     Given combinedstats, return most mag efficient project(s). This is the #1 most efficient project and any other projects which are within percentdiff of that number.
+    If no project found, return empty list
+    Ignores ignored projects
     :param combinedstats: combinedstats dict
     :param percentdiff: Maximum percent diff
-    :return: List of project URLs
+    :return: List of project URLs or empty list if none found
     """
     return_list = []
-    highest_project=None
-    try:
-        highest_project = next(iter(combinedstats))  # first project is the "highest project" until we test others against it
-    except Exception as e:
-        if not quiet:
-            print_and_log('Searching for most mag efficient projects.. No projects found? Assuming this is a brand new BOINC install'+str(e),'ERROR')
+    highest_project=get_first_non_ignored_project(list(combinedstats.keys()),ignored_projects)
+    if not highest_project:
+        log.error('No highest project found in get_most_mag_efficient_project')
         return []
-
     # find the highest project
     for project_url, project_stats in combinedstats.items():
+        if project_url in ignored_projects:
+            continue
         current_mag_per_hour=project_stats['COMPILED_STATS']['AVGMAGPERHOUR']
         highest_mag_per_hour=combinedstats[highest_project]['COMPILED_STATS']['AVGMAGPERHOUR']
         if current_mag_per_hour > highest_mag_per_hour and is_project_eligible(project_url, project_stats):
@@ -1120,7 +1127,7 @@ def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[
                                                                        combinedstats[highest_project]['COMPILED_STATS'][
                                                                         'AVGMAGPERHOUR']))
         log.info('\n\nHighest mag/hr project //with at least 10 completed WUs// is {} w/ {}/hr of credit.'.format(
-            highest_project.lower(),
+            highest_project,
             combinedstats[highest_project]['COMPILED_STATS'][
                 'AVGMAGPERHOUR']))
     return_list.append(highest_project)
@@ -1131,6 +1138,8 @@ def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[
     for project_url, project_stats in combinedstats.items():
         current_avg_mag=project_stats['COMPILED_STATS']['AVGMAGPERHOUR']
         if project_url == highest_project:
+            continue
+        if project_url in ignored_projects:
             continue
         if minimum_for_inclusion <= current_avg_mag and is_project_eligible(project_url, project_stats) and current_avg_mag!=0:
             if not quiet:

@@ -545,73 +545,49 @@ def update_check()->None:
     available,security,print_me=update_fetch()
     if available:
         print_and_log(print_me,'INFO')
-def get_grc_price()->float:
+def get_grc_price(sample_text:str)->Union[float,None]:
     """
-    Gets average GRC price from three online sources.
+    Gets average GRC price from three online sources. Returns None if unable to determine
+    @sample_text: Used for testing. Just a "view source" of all pages added together
     """
+    # Dictionary for places we query in format key=url, value=Tuple[nickname,regex]. Note they all must match group 2
+    price_url_dict:Dict[str,Tuple[str,Union[str,re.Pattern]]]={
+        'https://coinmarketcap.com/currencies/gridcoin/':('coinmarketcap.com','("low24h":)(\d*.\d*)'),
+        'https://finance.yahoo.com/quote/GRC-USD/':('yahoo.com','(data-field="regularMarketPrice" data-trend="none" data-pricehint="\d" value=")(\d*\.\d*)'),
+        'https://www.coingecko.com/en/coins/gridcoin-research':('coingecko',re.compile('(data-coin-id="243" data-coin-symbol="grc" data-target="price.price">\$)(\d*\.\d*)(</span>)',flags=re.MULTILINE|re.IGNORECASE)),
+    }
     import requests as req
     found_prices=[]
     headers=req.utils.default_headers()
     headers.update( {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
     })
-    # Get price from coinmarketcap
-    url='https://coinmarketcap.com/currencies/gridcoin/'
-    regex=re.compile('(<div class="priceValue "><span>\$)(\d*\.\d*)(</span>)')
-    resp=''
-    try:
-        resp = req.get(url,headers=headers).text
-    except Exception as e:
-        pass
-    regex_result=re.search(regex, resp)
-    if regex_result:
-        answer = float(regex_result.group(2))
-        log.info('Found GRC price of {} from coinmarketcap'.format(answer))
-        found_prices.append(answer)
-    else:
-        DATABASE['TABLE_STATUS']='Error getting info from coinmarketcap'
-        print('Error getting info from coinmarketcap')
-
-    # Get price from Yahoo
-    url = 'https://finance.yahoo.com/quote/GRC-USD/'
-    regex = re.compile('(data-field="regularMarketPrice" data-trend="none" data-pricehint="\d" value=")(\d*\.\d*)')
-    resp=''
-    try:
-        resp = req.get(url,headers=headers).text
-    except Exception as e:
-        pass
-    regex_result = re.search(regex, resp)
-    if regex_result:
-        answer=float(regex_result.group(2))
-        log.info('Found GRC price of {} from Yahoo'.format(answer))
-        found_prices.append(answer)
-    else:
-        DATABASE['TABLE_STATUS']='Error getting info from Yahoo'
-        print('Error getting info from Yahoo')
-
-    # Get price from coingecko
-    url = 'https://www.coingecko.com/en/coins/gridcoin-research'
-    regex = re.compile('(data-coin-symbol="grc" data-target="price.price">\$)(\d*.\d*)',flags=re.MULTILINE|re.IGNORECASE)
-    resp = ''
-    try:
-        resp = req.get(url, headers=headers).text
-    except Exception as e:
-        pass
-    regex_result = re.search(regex, resp)
-    if regex_result:
-        answer = float(regex_result.group(2))
-        log.info('Found GRC price of {} from coingecko'.format(answer))
-        found_prices.append(answer)
-    else:
-        DATABASE['TABLE_STATUS']='Error getting info from coingecko'
-        log.error('Error getting info from coingecko')
+    for url,info in price_url_dict.items():
+        regex=info[1]
+        name=info[0]
+        resp=''
+        if sample_text:
+            resp=sample_text
+        else:
+            try:
+                resp = req.get(url,headers=headers).text
+            except Exception as e:
+                log.error('Error fetching stats from {}: {}'.format(name,e))
+        regex_result=re.search(regex, resp)
+        if regex_result:
+            answer = float(regex_result.group(2))
+            log.info('Found GRC price of {} from {}'.format(answer,name))
+            found_prices.append(answer)
+        else:
+            DATABASE['TABLE_STATUS']='Error getting info from coinmarketcap'
+            print_and_log('Error getting info from {}'.format(name),'ERROR')
     # Return average of all found prices
     if len(found_prices)>0:
         DATABASE['TABLE_STATUS'] = 'Found GRC price {}'.format(sum(found_prices)/len(found_prices))
         return(sum(found_prices)/len(found_prices))
     else:
         DATABASE['TABLE_STATUS'] = 'Unable to find GRC price'
-        return 0
+        return None
 def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
     """
     Gets current whitelist from Gridcoinstats
@@ -2212,7 +2188,8 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if price_check_calc > max(price_check_interval,60):
             grc_price = get_grc_price()
             DATABASE['GRCPRICELASTCHECKED'] = datetime.datetime.now()
-            DATABASE['GRCPRICE'] = grc_price
+            if grc_price:
+                DATABASE['GRCPRICE'] = grc_price
         else:
             grc_price=DATABASE['GRCPRICE']
         # Check profitability of all projects, if none profitable (and user doesn't want unprofitable crunching), sleep for 1hr

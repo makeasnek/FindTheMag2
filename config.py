@@ -17,8 +17,8 @@ preferred_projects={}
 #}
 # percent of resources to dedicate to preferred projects
 preferred_projects_percent=10  # example: 80. This is ignored if preferred_projects has no projects in it. Rest of weight is assigned to most profitable project according to further settings below
-# projects on the ignored_projects list will always have their weight set to zero.
-ignored_projects=['https://foldingathome.div72.xyz/','http://exampleproject.com/project2'] # leave as is if you have no ignored projects
+# projects on the IGNORED_PROJECTS list will always have their weight set to zero.
+IGNORED_PROJECTS=['https://foldingathome.div72.xyz/', 'http://exampleproject.com/project2'] # leave as is if you have no ignored projects
 ##########################################################################################################################################
 ##############    PROFITABILITY SETTINGS. EDIT THESE IF YOU WANT PROFITABILITY TAKEN INTO ACCOUNT WHEN SUGGESTING WEIGHTS   ##############
 ##########################################################################################################################################

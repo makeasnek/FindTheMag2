@@ -33,7 +33,7 @@ warnings.filterwarnings('ignore',category=DeprecationWarning)
 # Set default settings for all vars
 preferred_projects_percent:float=80
 preferred_projects:Dict[str, int]={}
-ignored_projects:List[str] = ['https://foldingathome.div72.xyz/']
+IGNORED_PROJECTS:List[str] = ['https://foldingathome.div72.xyz/']
 BOINC_DATA_DIR:Union[str,None]=None
 GRIDCOIN_DATA_DIR:Union[str,None]=None
 control_boinc:bool=False
@@ -1078,12 +1078,16 @@ def add_mag_to_combined_stats(combined_stats: dict, mag_ratios: Dict[str, float]
 
 def is_project_eligible(project_url: str, project_stats: dict)->bool:
     """
-    Returns if project is eligible based on completed tasks
+    Returns True if project is eligible based on completed tasks, IGNORED_PROJECTS. Returns True on error.
     """
     # Ignore projects and projects w less than 10 completed tasks are ineligible
-    if project_url in ignored_projects:
+    if project_url in IGNORED_PROJECTS:
         return False
-    if int(project_stats['COMPILED_STATS']['TOTALTASKS']) >= 10:
+    try:
+        if int(project_stats['COMPILED_STATS']['TOTALTASKS']) >= 10:
+            return True
+    except Exception as e:
+        log.error('Error in is_project_eligible for project {} {}'.format(project_url,e))
         return True
     return False
 
@@ -1101,8 +1105,7 @@ def get_most_mag_efficient_projects(combinedstats: dict, ignored_projects: List[
         highest_project = next(iter(combinedstats))  # first project is the "highest project" until we test others against it
     except Exception as e:
         if not quiet:
-            print('Searching for most mag efficient projects.. No projects found? Assuming this is a brand new BOINC install'+str(e))
-        log.error('Searching for most mag efficient projects.. No projects found? Assuming this is a brand new BOINC install'+str(e))
+            print_and_log('Searching for most mag efficient projects.. No projects found? Assuming this is a brand new BOINC install'+str(e),'ERROR')
         return []
 
     # find the highest project
@@ -2228,12 +2231,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             if dev_loop:
                 COMBINED_STATS_DEV, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, dev_project_weights = generate_stats(
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects,
-                    ignored_projects=ignored_projects, quiet=True, ignore_unattached=True,
+                    ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
                     attached_list=ATTACHED_PROJECT_SET, mag_ratios=mag_ratios)
             else:
                 COMBINED_STATS, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, dev_project_weights = generate_stats(
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects,
-                    ignored_projects=ignored_projects, quiet=True, ignore_unattached=True,
+                    ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
                     attached_list=ATTACHED_PROJECT_SET,mag_ratios=mag_ratios)
             # Get list of projects ordered by priority
             highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=COMBINED_STATS,
@@ -2791,7 +2794,7 @@ if __name__ == '__main__':
     except Exception as e:
         print_and_log('Error getting project URL list from BOINC '+str(e),'ERROR')
 
-    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,dev_project_weights=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects, ignored_projects=ignored_projects, quiet=True, mag_ratios=mag_ratios)
+    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,dev_project_weights=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects, ignored_projects=IGNORED_PROJECTS, quiet=True, mag_ratios=mag_ratios)
     log.debug('Printing pretty stats...')
     # calculate starting efficiency stats
     if 'STARTMAGHR' not in DATABASE:

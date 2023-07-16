@@ -86,6 +86,8 @@ LOOKUP_URL_TO_BOINC={} # lookup table for uppered URLs -> BOINC urls. Note the k
 LOOKUP_URL_TO_BOINC_DEV={} # lookup table for uppered URLs -> BOINC urls for dev client. Note the key is NOT the canonical url, just an uppered URL for performance reasons.
 ATTACHED_PROJECT_SET=set()
 ATTACHED_PROJECT_SET_DEV=set()
+COMBINED_STATS={}
+COMBINED_STATS_DEV={}
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
     1: 'always',
@@ -230,7 +232,7 @@ class BoincClientConnection:
             for project in parsed['projects']['project']:
                 return_list.append(project['url'])
         return return_list
-def combine_dicts(dict1:Dict[str,str],dict2:Dict[str,str])->None:
+def combine_dicts(dict1:Dict[str,Any],dict2:Dict[str,Any])->None:
     """
     Given dict1, dict2, add dict2 to dict1, over-writing anything in dict1.
     @param dict1:
@@ -910,36 +912,14 @@ def credit_history_file_to_list(credithistoryfileabspath: str) -> List[Dict[str,
         log.error('Error reading statsfile {} {}'.format(credithistoryfileabspath,e))
     return statslist
 
-def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union[int, float, Dict[str, Union[float, str]]]]]:
+def parse_stats_file(stat_list:List[Dict[str,str]])->Dict[str,Dict[str,Union[str,float,int]]]:
     """
-    :param config_dir_abs_path: Absolute path to BOINC data directory
-    :return: Dict of stats in format COMBINEDSTATSEXAMPLE in main.py
+
+    @param stat_list: output from stat_file_to_list
+    @return:
     """
-    stats_files:List[str] = []
-    credit_history_files:List[str] = []
-    return_stats = {}
-
-    # find files to search through, add them to lists
-    for file in os.listdir(config_dir_abs_path):
-        if 'job_log' in file:
-            stats_files.append(os.path.join(config_dir_abs_path, file))
-        if file.startswith('statistics_') and file.endswith('.xml'):
-            credit_history_files.append(os.path.join(config_dir_abs_path, file))
-    log.debug('Found stats_files: ' + str(stats_files))
-    log.debug('Found historical credit info files at: ' + str(credit_history_files))
-
-    # Process stats files
-    for statsfile in stats_files:
-        project_url = project_url_from_stats_file(os.path.basename(statsfile))
-        stat_list = stat_file_to_list(statsfile)
-        # log.debug('In statsfile for '+project_url)
-        # Compute the first and last date in the stats file. Currently not used but does work
-        # startdate = str(datetime.datetime.fromtimestamp(float(stat_list[0]['STARTTIME'])).strftime('%m-%d-%Y'))
-        # lastdate = str(datetime.datetime.fromtimestamp(float(stat_list[len(stat_list) - 1]['STARTTIME'])).strftime('%m-%d-%Y'))
-        # log.debug('Start date is '+startdate)
-        if project_url not in return_stats:
-            return_stats[project_url] = {'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
-        wu_history = return_stats[project_url]['WU_HISTORY']
+    try:
+        wu_history={}
         for wu in stat_list:
             date = str(datetime.datetime.fromtimestamp(float(wu['STARTTIME'])).strftime('%m-%d-%Y'))
             if date not in wu_history:
@@ -947,36 +927,14 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
             wu_history[date]['TOTALWUS'] += 1
             wu_history[date]['total_wall_time'] += float(wu['WALLTIME'])
             wu_history[date]['total_cpu_time'] += float(wu['CPUTIME'])
-
-    # process credit logs
-    for credit_history_file in credit_history_files:
-        project_url = project_url_from_credit_history_file(os.path.basename(credit_history_file))
-        credithistorylist = credit_history_file_to_list(credit_history_file)
-        for index, entry in enumerate(credithistorylist):
-            # print('In credit_history_file for ' + project_url)
-            # startdate = str(datetime.datetime.fromtimestamp(float(credithistorylist[0]['TIME'])).strftime('%m-%d-%Y'))
-            # lastdate = str( datetime.datetime.fromtimestamp(float(credithistorylist[len(credithistorylist) - 1]['TIME'])).strftime('%m-%d-%Y'))
-            if index == len(credithistorylist) - 1: # Skip the last entry as it's already calculated at the previous entry
-                continue
-            next_entry = credithistorylist[index + 1]
-            current_time = float(entry['TIME'])
-            delta_credits = float(next_entry['HOSTTOTALCREDIT']) - float(entry['HOSTTOTALCREDIT'])
-            # Add found info to combined average stats
-            date = str(datetime.datetime.fromtimestamp(float(current_time)).strftime('%m-%d-%Y'))
-            if project_url not in return_stats:
-                return_stats[project_url] = {'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
-            if 'CREDIT_HISTORY' not in return_stats[project_url]:
-                return_stats[project_url]['CREDIT_HISTORY'] = {}
-            credit_history = return_stats[project_url]['CREDIT_HISTORY']
-            if 'COMPILED STATS' not in return_stats[project_url]:
-                return_stats[project_url]['COMPILED_STATS'] = {}
-            if date not in credit_history:
-                credit_history[date] = {}
-            if 'CREDITAWARDED' not in credit_history[date]:
-                credit_history[date]["CREDITAWARDED"] = 0
-            credit_history[date]['CREDITAWARDED'] += delta_credits
-    # find averages
-    for project_url, parent_dict in return_stats.items():
+    except Exception as e:
+        log.error('Error in parse_stats_file: {}'.format(e))
+    else:
+        return wu_history
+def calculate_credit_averages(my_stats:dict)->Dict[str,Dict[str,float]]:
+    return_stats={}
+    for project_url, parent_dict in my_stats.items():
+        return_stats[project_url]={}
         total_wus = 0
         total_credit = 0
         total_cpu_time = 0
@@ -1007,23 +965,98 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
             avg_cpu_time = total_cpu_time / total_wus
             avg_credit_per_task = total_credit / total_wus
             credits_per_hour = (total_credit / (total_wall_time))
-        parent_dict['COMPILED_STATS']['TOTALCREDIT'] = total_credit
-        parent_dict['COMPILED_STATS']['AVGWALLTIME'] = avg_wall_time
-        parent_dict['COMPILED_STATS']['AVGCPUTIME'] = avg_cpu_time
-        parent_dict['COMPILED_STATS']['AVGCREDITPERTASK'] = avg_credit_per_task
-        parent_dict['COMPILED_STATS']['TOTALTASKS'] = total_wus
-        parent_dict['COMPILED_STATS']['TOTALWALLTIME'] = total_wall_time
-        parent_dict['COMPILED_STATS']['TOTALCPUTIME'] = total_cpu_time
-        parent_dict['COMPILED_STATS']['AVGCREDITPERHOUR'] = credits_per_hour
-        parent_dict['COMPILED_STATS']['XDAYWALLTIME'] = x_day_wall_time
-        log.debug('For project {} this host has crunched {} WUs for {} total credit with an average of {} credits per WU. {} hours were spent on these WUs for {} credit/hr'.format(project_url.lower(), total_wus, round(total_credit,2), round(avg_credit_per_task,2), round((total_wall_time),2),round(credits_per_hour,2)))
+        return_stats[project_url]['TOTALCREDIT'] = total_credit
+        return_stats[project_url]['AVGWALLTIME'] = avg_wall_time
+        return_stats[project_url]['AVGCPUTIME'] = avg_cpu_time
+        return_stats[project_url]['AVGCREDITPERTASK'] = avg_credit_per_task
+        return_stats[project_url]['TOTALTASKS'] = total_wus
+        return_stats[project_url]['TOTALWALLTIME'] = total_wall_time
+        return_stats[project_url]['TOTALCPUTIME'] = total_cpu_time
+        return_stats[project_url]['AVGCREDITPERHOUR'] = credits_per_hour
+        return_stats[project_url]['XDAYWALLTIME'] = x_day_wall_time
+        log.debug(
+            'For project {} this host has crunched {} WUs for {} total credit with an average of {} credits per WU. {} hours were spent on these WUs for {} credit/hr'.format(
+                project_url.lower(), total_wus, round(total_credit, 2), round(avg_credit_per_task, 2),
+                round((total_wall_time), 2), round(credits_per_hour, 2)))
+    return return_stats
+def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union[int, float, Dict[str, Union[float, str]]]]]:
+    """
+    :param config_dir_abs_path: Absolute path to BOINC data directory
+    :return: Dict of stats, or empty dict if encounters errors
+    """
+    stats_files:List[str] = []
+    credit_history_files:List[str] = []
+    return_stats = {}
+
+    # find files to search through, add them to lists
+    try:
+        for file in os.listdir(config_dir_abs_path):
+            if 'job_log' in file:
+                stats_files.append(os.path.join(config_dir_abs_path, file))
+            if file.startswith('statistics_') and file.endswith('.xml'):
+                credit_history_files.append(os.path.join(config_dir_abs_path, file))
+    except Exception as e:
+        log.error('Error listing stats files: {}'.format(e))
+        return {}
+    log.debug('Found stats_files: ' + str(stats_files))
+    log.debug('Found historical credit info files at: ' + str(credit_history_files))
+
+    # Process stats files
+    for statsfile in stats_files:
+        project_url = project_url_from_stats_file(os.path.basename(statsfile))
+        project_url=resolve_url_database(project_url)
+        if project_url not in return_stats:
+            return_stats[project_url] = {'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
+        stat_list = stat_file_to_list(statsfile)
+        parsed=parse_stats_file(stat_list)
+        return_stats[project_url]['WU_HISTORY']=parsed
+
+    # process credit logs
+    for credit_history_file in credit_history_files:
+        project_url = project_url_from_credit_history_file(os.path.basename(credit_history_file))
+        project_url=resolve_url_database(project_url)
+        credithistorylist = credit_history_file_to_list(credit_history_file)
+
+        # add info from credit history files
+        for index, entry in enumerate(credithistorylist):
+            try:
+                # print('In credit_history_file for ' + project_url)
+                # startdate = str(datetime.datetime.fromtimestamp(float(credithistorylist[0]['TIME'])).strftime('%m-%d-%Y'))
+                # lastdate = str( datetime.datetime.fromtimestamp(float(credithistorylist[len(credithistorylist) - 1]['TIME'])).strftime('%m-%d-%Y'))
+                if index == len(credithistorylist) - 1: # Skip the last entry as it's already calculated at the previous entry
+                    continue
+                # quick sanity checks
+                if project_url not in return_stats:
+                    return_stats[project_url] = {'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
+                if 'CREDIT_HISTORY' not in return_stats[project_url]:
+                    return_stats[project_url]['CREDIT_HISTORY'] = {}
+                if 'COMPILED STATS' not in return_stats[project_url]:
+                    return_stats[project_url]['COMPILED_STATS'] = {}
+
+                credit_history = return_stats[project_url]['CREDIT_HISTORY']
+                next_entry = credithistorylist[index + 1]
+                current_time = float(entry['TIME'])
+                delta_credits = float(next_entry['HOSTTOTALCREDIT']) - float(entry['HOSTTOTALCREDIT'])
+                # Add found info to combined average stats
+                date = str(datetime.datetime.fromtimestamp(float(current_time)).strftime('%m-%d-%Y'))
+                if date not in credit_history:
+                    credit_history[date] = {}
+                if 'CREDITAWARDED' not in credit_history[date]:
+                    credit_history[date]["CREDITAWARDED"] = 0
+                credit_history[date]['CREDITAWARDED'] += delta_credits
+            except Exception as e:
+                log.error('Error parsing credit history files: {}'.format(e))
+    # find averages
+    found_averages=calculate_credit_averages(return_stats)
+    for url,stats_dict in found_averages.items():
+        combine_dicts(return_stats[url]['COMPILED_STATS'],stats_dict)
     return return_stats
 
 def add_mag_to_combined_stats(combined_stats: dict, mag_ratios: Dict[str, float], approved_projects: List[str],preferred_projects:List[str] ) -> Tuple[dict,List[str]]:
     """
-    :param combined_stats: combined_stats from main.py
+    :param combined_stats: COMBINED_STATS from main.py
     :param mag_ratios: mag ratios returned from get_project_mag_ratios. A dict with project URL as key and mag ratio as value
-    :return: combined_stats w/ mag ratios added to us, list of projects which are being crunched but not on approved projects list
+    :return: COMBINED_STATS w/ mag ratios added to us, list of projects which are being crunched but not on approved projects list
     """
     unapproved_list=[]
     for project_url, project_stats in combined_stats.items():
@@ -1329,12 +1362,12 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
         print('Crunching for developer, main BOINC is paused. You can monitor by connecting BOINC manager to 127.0.0.1:31418 pwd: {}'.format(DEV_BOINC_PASSWORD))
     # print improved stats
     addl=''
-    curr_avg_mag=get_avg_mag_hr(combined_stats)
+    curr_avg_mag=get_avg_mag_hr(COMBINED_STATS)
     if curr_avg_mag>DATABASE['STARTMAGHR'] and DATABASE['STARTMAGHR']>0:
         increase=(curr_avg_mag-DATABASE['STARTMAGHR'])/DATABASE['STARTMAGHR']
         addl=" That's an increase of {:.2f}%!".format(increase*100)
     print('When you started using this tool, your average mag/hr was: {:.4f} now it is {:.4f}'.format(
-        DATABASE['STARTMAGHR'], get_avg_mag_hr(combined_stats))+addl)
+        DATABASE['STARTMAGHR'], get_avg_mag_hr(COMBINED_STATS)) + addl)
     print('Hours crunched for you vs dev: {:.1f}|{:.1f} '.format(DATABASE['FTMTOTAL']/60,DATABASE['DEVTIMETOTAL']/60))
     # print final line
     if not check_sidestake_results:
@@ -1354,10 +1387,6 @@ def in_list(str,list)->bool:
 def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,float]=None,ignored_projects:List[str]=None,quiet:bool=False,ignore_unattached:bool=False,attached_list:Set[str]=None,mag_ratios:Dict[str,float]=None):
     if not attached_list:
         attached_list=[]
-    if not preferred_projects:
-        preferred_projects=preferred_projects
-    if not ignored_projects:
-        ignored_projects=ignored_projects
     weak_stats=[]
     if not quiet:
         print('Gathering project stats...')
@@ -1369,11 +1398,12 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
     # Calculate project weights w/ credit/hr
     final_project_weights = {}
     dev_project_weights = {}
-    # Uppercase preferred_projects list
+    # Canonicalize preferred_projects list
     for url in list(preferred_projects.keys()):
         weight=preferred_projects[url]
         del preferred_projects[url]
-        preferred_projects[url] = weight
+        canonicalized=resolve_url_database(url)
+        preferred_projects[canonicalized] = weight
     # ignore unattached projects if requested
     if ignore_unattached:
         for project in APPROVED_PROJECT_URLS:
@@ -1382,6 +1412,8 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
                 ignored_projects.append(project)
                 log.warning('Ignoring whitelisted project {} bc not attached'.format(project))
     combined_stats,unapproved_projects = add_mag_to_combined_stats(combined_stats, mag_ratios, APPROVED_PROJECT_URLS,list(preferred_projects.keys()))
+
+    # Detect attached projects which are not whitelisted or in preferred_projects
     if len(unapproved_projects)>0:
         print('Warning: Projects below were found in your BOINC config but are not on the gridcoin approval list or your preferred projects list. If you want them to be given weight, be sure to add them to your preferred projects')
         log.warning(
@@ -1410,20 +1442,20 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
             continue
         combined_stats_extract=combined_stats.get(project_url)
         if not combined_stats_extract:
-            log.debug('Warning: project has no stats, setting project weight to one: ' + project_url.lower())
-            final_project_weights[project_url] = 1
-            total_mining_weight_remaining -= 1
-            dev_project_weights[project_url] = 0
-            weak_stats.append(project_url.lower())
+            weak_stats.append(project_url)
             continue
         total_tasks = int(combined_stats_extract['COMPILED_STATS']['TOTALTASKS'])
         if total_tasks < 10:
-            log.debug('Warning: project does not have enough tasks to compute accurate average, setting project weight to one: ' + project_url.lower())
-            weak_stats.append(project_url.lower())
+            weak_stats.append(project_url)
+            continue
         if project_url not in most_efficient_projects or total_tasks < 10:
-            final_project_weights[project_url] = 1
-            total_mining_weight_remaining -= 1
-    if len(most_efficient_projects)>0:
+            weak_stats.append(project_url)
+    # assign weight of one to all project without enough stats
+    for project_url in weak_stats:
+        final_project_weights[project_url] = 1
+        total_mining_weight_remaining -= 1
+        dev_project_weights[project_url] = 0
+    if len(weak_stats)>0:
         if quiet:
             log.debug('The following projects do not have enough stats to be calculated accurately, assigning them a weight of one: '+str(weak_stats))
         else:
@@ -2081,7 +2113,7 @@ def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:
     # generate table to print pretty
     os.system('cls' if os.name == 'nt' else 'clear')  # clear terminal
     table_dict = {}
-    for project_url, stats_dict in combined_stats.items():
+    for project_url, stats_dict in COMBINED_STATS.items():
         table_dict[project_url] = {}
         priority_results_extract=priority_results.get(project_url)
         if priority_results_extract:
@@ -2100,7 +2132,7 @@ def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:
             if stat_name=='AVGMAGPERHOUR':
                 rounding=3
             table_dict[project_url][renamed] = str(round(float(stat_value), rounding))
-        final_project_weights_extract = final_project_weights.get(project_url)
+        final_project_weights_extract = FINAL_PROJECT_WEIGHTS.get(project_url)
         if final_project_weights_extract:
             table_dict[project_url]['WEIGHT']=str(final_project_weights_extract)
         else:
@@ -2120,8 +2152,10 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     existing_cpu_mode=None
     existing_gpu_mode=None
     # these variables are referenced outside the loop (or in recursive calls of the loop) so should be made global
-    global combined_stats
-    global final_project_weights
+    global COMBINED_STATS
+    global COMBINED_STATS_DEV
+    global FINAL_PROJECT_WEIGHTS
+    global FINAL_PROJECT_WEIGHTS_DEV
     global total_preferred_weight
     global total_mining_weight
     global highest_priority_projects
@@ -2188,15 +2222,21 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if ((abs(stats_calc_delta.days)*24*60)+(abs(stats_calc_delta.seconds)/60)) > recalculate_stats_interval: #only re-calculate stats every x minutes
             log.debug('Calculating stats..')
             DATABASE['STATSLASTCALCULATED'] = datetime.datetime.now()
-            combined_stats = config_files_to_stats(BOINC_DATA_DIR)
-            # total_time = combined_stats_to_total_time(combined_stats) # Not sure what this line did but commented out, we'll see if anything breaks
-            combined_stats, final_project_weights, total_preferred_weight, total_mining_weight, dev_project_weights = generate_stats(
-                APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects,
-                ignored_projects=ignored_projects, quiet=True, ignore_unattached=True,
-                attached_list=ATTACHED_PROJECT_SET,mag_ratios=mag_ratios)
+            COMBINED_STATS = config_files_to_stats(BOINC_DATA_DIR)
+            # total_time = combined_stats_to_total_time(COMBINED_STATS) # Not sure what this line did but commented out, we'll see if anything breaks
+            if dev_loop:
+                COMBINED_STATS_DEV, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, dev_project_weights = generate_stats(
+                    APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects,
+                    ignored_projects=ignored_projects, quiet=True, ignore_unattached=True,
+                    attached_list=ATTACHED_PROJECT_SET, mag_ratios=mag_ratios)
+            else:
+                COMBINED_STATS, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, dev_project_weights = generate_stats(
+                    APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects,
+                    ignored_projects=ignored_projects, quiet=True, ignore_unattached=True,
+                    attached_list=ATTACHED_PROJECT_SET,mag_ratios=mag_ratios)
             # Get list of projects ordered by priority
-            highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=combined_stats,
-                                                                                       project_weights=final_project_weights,
+            highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=COMBINED_STATS,
+                                                                                       project_weights=FINAL_PROJECT_WEIGHTS,
                                                                                        attached_projects=ATTACHED_PROJECT_SET, quiet=True)
             log.debug('Highest priority projects are: '+str(highest_priority_projects))
             # print some pretty stats
@@ -2219,8 +2259,8 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if only_BOINC_if_profitable and not dev_loop:
             profitability_list=[]
             for project in highest_priority_projects:
-                profitability_result=profitability_check(grc_price=grc_price,exchange_fee=exchange_fee,host_power_usage=host_power_usage,grc_sell_price=grc_sell_price,local_kwh=local_kwh,project=project,min_profit_per_hour=min_profit_per_hour,combined_stats=combined_stats)
-                benchmarking_result=benchmark_check(project_url=project,combined_stats=combined_stats,benchmarking_minimum_wus=benchmarking_minimum_wus,benchmarking_minimum_time=benchmarking_minimum_time,benchmarking_delay_in_days=benchmarking_delay_in_days,skip_benchmarking=skip_benchmarking)
+                profitability_result=profitability_check(grc_price=grc_price, exchange_fee=exchange_fee, host_power_usage=host_power_usage, grc_sell_price=grc_sell_price, local_kwh=local_kwh, project=project, min_profit_per_hour=min_profit_per_hour, combined_stats=COMBINED_STATS)
+                benchmarking_result=benchmark_check(project_url=project, combined_stats=COMBINED_STATS, benchmarking_minimum_wus=benchmarking_minimum_wus, benchmarking_minimum_time=benchmarking_minimum_time, benchmarking_delay_in_days=benchmarking_delay_in_days, skip_benchmarking=skip_benchmarking)
                 profitability_list.append(profitability_result)
                 profitability_list.append(benchmarking_result)
             if True not in profitability_list:
@@ -2361,20 +2401,20 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         for highest_priority_project in project_loop:
             boincified_url=resolve_url_boinc_rpc(highest_priority_project,dev_mode=dev_loop)
             database_url=resolve_url_database(highest_priority_project)
-            benchmark_result=benchmark_check(project_url=database_url,combined_stats=combined_stats,benchmarking_minimum_wus=benchmarking_minimum_wus,benchmarking_minimum_time=benchmarking_minimum_time,benchmarking_delay_in_days=benchmarking_delay_in_days,skip_benchmarking=skip_benchmarking)
+            benchmark_result=benchmark_check(project_url=database_url, combined_stats=COMBINED_STATS, benchmarking_minimum_wus=benchmarking_minimum_wus, benchmarking_minimum_time=benchmarking_minimum_time, benchmarking_delay_in_days=benchmarking_delay_in_days, skip_benchmarking=skip_benchmarking)
             profitability_result = profitability_check(grc_price=grc_price, exchange_fee=exchange_fee,
                                                        host_power_usage=host_power_usage,
                                                        grc_sell_price=grc_sell_price, local_kwh=local_kwh,
                                                        project=highest_priority_project,
                                                        min_profit_per_hour=min_profit_per_hour,
-                                                       combined_stats=combined_stats)
+                                                       combined_stats=COMBINED_STATS)
             if only_BOINC_if_profitable and not benchmark_result and not profitability_result and not dev_loop:
                 DATABASE['TABLE_STATUS']='No fetch for {} bc not profitable'.format(database_url)
                 update_table(dev_loop=dev_loop)
                 log.info('Skipping work fetch for {} bc not profitable and only_boinc_if_profitable is set to true'.format(database_url))
                 continue
             # If user has set to only mine highest mag project if profitable and it's not profitable or in benchmarking mode, skip
-            if only_mine_if_profitable and not profitability_result and final_project_weights[database_url]!=1 and not dev_loop:
+            if only_mine_if_profitable and not profitability_result and FINAL_PROJECT_WEIGHTS[database_url]!=1 and not dev_loop:
                 DATABASE['TABLE_STATUS']='Skipping work fetch for {} bc not profitable and only_mine_if_profitable set to true'.format(database_url)
                 update_table(dev_loop=dev_loop)
                 log.info('Skipping work fetch for {} bc not profitable and only_mine_if_profitable set to true'.format(
@@ -2553,9 +2593,9 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, safe_exit) # Capture ctrl+c from client to exit gracefully
     update_check() # Check for updates to FTM
-    combined_stats = {}
+    COMBINED_STATS = {}
     APPROVED_PROJECT_URLS = []
-    # combined_stats has format:
+    # COMBINED_STATS has format:
 #    COMBINED_STATS_EXAMPLE = {
 #        'HTTP://PROJECT.COM/PROJECT': {
 #            'COMPILED_STATS': {
@@ -2750,14 +2790,14 @@ if __name__ == '__main__':
     except Exception as e:
         print_and_log('Error getting project URL list from BOINC '+str(e),'ERROR')
 
-    combined_stats,final_project_weights,total_preferred_weight,total_mining_weight,dev_project_weights=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS,preferred_projects=preferred_projects,ignored_projects=ignored_projects,quiet=True,mag_ratios=mag_ratios)
+    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,dev_project_weights=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=preferred_projects, ignored_projects=ignored_projects, quiet=True, mag_ratios=mag_ratios)
     log.debug('Printing pretty stats...')
     # calculate starting efficiency stats
     if 'STARTMAGHR' not in DATABASE:
-        DATABASE['STARTMAGHR']=get_avg_mag_hr(combined_stats)
+        DATABASE['STARTMAGHR']=get_avg_mag_hr(COMBINED_STATS)
     else:
         original_avg_mag_hr=DATABASE['STARTMAGHR']
-        current_avg_mag_hr=get_avg_mag_hr(combined_stats)
+        current_avg_mag_hr=get_avg_mag_hr(COMBINED_STATS)
         if current_avg_mag_hr>original_avg_mag_hr and original_avg_mag_hr!=0:
             percent_increase=((current_avg_mag_hr-original_avg_mag_hr)/original_avg_mag_hr)*100
             print('When you started using this tool, your average mag/hr was: {:.4f} now it is {:.4f}, a {}% increase!'.format(
@@ -2767,7 +2807,7 @@ if __name__ == '__main__':
                 original_avg_mag_hr, current_avg_mag_hr))
     #generate table to print pretty
     table_dict={}
-    for project_url,stats_dict in combined_stats.items():
+    for project_url,stats_dict in COMBINED_STATS.items():
         table_dict[project_url]={}
         for stat_name,stat_value in stats_dict['COMPILED_STATS'].items():
             rounding=2
@@ -2784,7 +2824,7 @@ if __name__ == '__main__':
     print_and_log('Total weight for preferred projects is ' + str(round(float(total_preferred_weight),2)),'INFO')
     print_and_log('Total weight for mining projects is ' + str(round(float(total_mining_weight),2)),'INFO')
     print_and_log('FINAL SUGGESTED PROJECT WEIGHTS','INFO')
-    for project,weight in final_project_weights.items():
+    for project,weight in FINAL_PROJECT_WEIGHTS.items():
         print_and_log(project.lower()+': '+str(weight),'INFO')
     if check_sidestake_results:
         print('~~---***Wow THANK YOU for sidestaking to our development. You rock!***---~~~')

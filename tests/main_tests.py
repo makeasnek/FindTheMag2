@@ -70,3 +70,16 @@ def test_resolve_url_database():
 def test_resolve_url_list_to_database(test_resolve_url_database):
     url_list=['https://www.boinc.com/myproject','http://boinc.com/myproject']
     assert main.resolve_url_list_to_database(url_list)==["BOINC.COM/MYPROJECT","BOINC.COM/MYPROJECT"]
+def test_temp_check():
+    # test it only activates when temp control enabled
+    main.ENABLE_TEMP_CONTROL=False
+    assert main.temp_check()
+    # make sure it turns on and off at correct setpoints
+    main.ENABLE_TEMP_CONTROL = True
+    main.TEMP_COMMAND='echo 67'
+    main.START_TEMP=66
+    main.STOP_TEMP=70
+    assert  main.temp_check()
+    main.TEMP_COMMAND = 'echo 77'
+    assert not main.temp_check()
+

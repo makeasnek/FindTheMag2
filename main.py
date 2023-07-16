@@ -60,12 +60,12 @@ dev_fee:float=.05
 VERSION=2.3
 DEV_RPC_PORT=31418
 log_level='WARNING'
-start_temp:int=65
-stop_temp:int=75
-temp_command=None
-enable_temp_control=True # Enable controlling BOINC based on temp. Default: False
-temp_sleep_time=10
-temp_regex=r'\d*'
+START_TEMP:int=65
+STOP_TEMP:int=75
+TEMP_COMMAND=None
+ENABLE_TEMP_CONTROL=True # Enable controlling BOINC based on temp. Default: False
+TEMP_SLEEP_TIME=10
+TEMP_REGEX= r'\d*'
 max_logfile_size_in_mb=10
 rolling_weight_window=60
 lookback_period=30
@@ -412,45 +412,52 @@ async def is_boinc_crunching(rpc_client:libs.pyboinc.rpc_client)->bool:
         print("Error checking if BOINC is crunching. If you continue to see this error, make sure BOINC is running")
         log.error('Error checking if BOINC is crunching (in is_boinc_crunching: '.format(e))
         return False
-async def setup_connection(boinc_ip:str=boinc_ip,boinc_password:str=boinc_password,port:int=31416)->Union[libs.pyboinc.rpc_client,None]:
+async def setup_connection(boinc_ip:str=boinc_ip,boinc_password:str=boinc_password,port:int=31416)->Union[libs.pyboinc.rpc_client.RPCClient,None]:
     """
     Sets up a BOINC RPC client connection
     """
     rpc_client = None
+    if not boinc_ip:
+        boinc_ip='127.0.0.1'
     rpc_client = await init_rpc_client(boinc_ip, boinc_password, port=port)
     return rpc_client
 def temp_check()->bool:
     """
-    Returns True if we should keep crunching based on temperature, False otherwise
+    Returns True if we should keep crunching based on temperature or have issues measuring temp, False otherwise
     """
-    if not enable_temp_control:
+    if not ENABLE_TEMP_CONTROL:
         return True
     text=''
-    if temp_url:
+    if TEMP_URL:
         import requests as req
         try:
-            text=req.get(temp_url).text
+            text=req.get(TEMP_URL).text
         except Exception as e:
             print_and_log('Error checking temp: {}'.format(e),'ERROR')
             return True
-    elif temp_command:
-        command=shlex.split(temp_command)
+    elif TEMP_COMMAND:
+        command=shlex.split(TEMP_COMMAND)
         try:
-            text=subprocess.check_output(command)
+            text=subprocess.check_output(command).decode()
         except Exception as e:
             print_and_log('Error checking temp: {}'.format(e),'ERROR')
             return True
-    command_output=config.temp_function()
+    command_output=TEMP_FUNCTION()
     match=None
     if command_output:
         text=str(command_output)
-        pattern=re.compile(temp_regex)
-        match = re.search(pattern, text)
+        match = re.search(TEMP_REGEX, text)
+    if text:
+        match = re.search(TEMP_REGEX, text)
     if match:
-        found_temp=int(match.group(0))
-        log.debug('Found temp {}'.format(found_temp))
-        if found_temp > stop_temp or found_temp < start_temp:
-            return False
+        try:
+            found_temp=int(match.group(0))
+            log.debug('Found temp {}'.format(found_temp))
+            if found_temp > STOP_TEMP or found_temp < START_TEMP:
+                return False
+        except Exception as e:
+            print('Error parsing temp {} {}'.format(match,e))
+            return True
     else:
         print('No temps found!')
         log.error('No temps found!')
@@ -2199,7 +2206,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 continue
 
         # If we have enabled temperature control, verify that crunching is allowed at current temp
-        if enable_temp_control:
+        if ENABLE_TEMP_CONTROL:
             # Get BOINC's starting CPU and GPU modes
             existing_mode_info = loop.run_until_complete(run_rpc_command(rpc_client, 'get_cc_status'))
             if not existing_mode_info:
@@ -2226,14 +2233,14 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     while True: # Keep sleeping until we pass a temp check
                         log.debug('Sleeping due to temperature')
                         # Put BOINC into sleep mode, automatically reverting if script closes unexpectedly
-                        sleep_interval=str(int(((60*temp_sleep_time)+60)))
+                        sleep_interval=str(int(((60 * TEMP_SLEEP_TIME) + 60)))
                         loop.run_until_complete(
                             run_rpc_command(rpc_client, 'set_run_mode', 'never', sleep_interval))
                         loop.run_until_complete(
                             run_rpc_command(rpc_client, 'set_gpu_mode', 'never', sleep_interval))
                         DATABASE['TABLE_SLEEP_REASON']= 'Temperature'
                         update_table(dev_loop=dev_loop)
-                        sleep(60*temp_sleep_time)
+                        sleep(60 * TEMP_SLEEP_TIME)
                         if temp_check():
                             # Reset to initial crunching modes now that temp is satisfied
                             loop.run_until_complete(

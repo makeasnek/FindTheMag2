@@ -783,14 +783,14 @@ def check_sidestake(config_params:Dict[str,Union[str,List[str]]],address:str,min
                 return True
     return False
 
-def projecturlfromstatsfile(statsfilename: str) -> str:
+def project_url_from_stats_file(statsfilename: str) -> str:
     """
     Guess a project url from the name of a stats file
     """
     # remove extraneous information from name
     statsfilename = statsfilename.replace('job_log_', '')
-    statsfilename = statsfilename.split('_')[0]
     statsfilename = statsfilename.replace('.txt', '')
+    statsfilename = statsfilename.replace('_', '/')
     return resolve_url_database(statsfilename)
 def project_url_from_credit_history_file(filename: str) -> str:
     """
@@ -924,7 +924,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
 
     # Process stats files
     for statsfile in stats_files:
-        project_url = projecturlfromstatsfile(os.path.basename(statsfile))
+        project_url = project_url_from_stats_file(os.path.basename(statsfile))
         stat_list = stat_file_to_list(statsfile)
         # log.debug('In statsfile for '+project_url)
         # Compute the first and last date in the stats file. Currently not used but does work

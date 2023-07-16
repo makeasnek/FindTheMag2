@@ -220,3 +220,7 @@ def test_check_sidestake():
         'rpcuser': 'myusername',
         'rpcpassword': 'mypassword'}
     assert main.check_sidestake(config, 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2', 1)
+def test_project_url_from_stats_file():
+    assert main.project_url_from_stats_file('job_log_www.worldcommunitygrid.org.txt')=='WORLDCOMMUNITYGRID.ORG'
+    assert main.project_url_from_stats_file('job_log_escatter11.fullerton.edu_nfs.txt')=='ESCATTER11.FULLERTON.EDU/NFS'
+    assert main.project_url_from_stats_file('job_log_www.rechenkraft.net_yoyo.txt')=='RECHENKRAFT.NET/YOYO'

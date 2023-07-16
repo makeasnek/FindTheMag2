@@ -683,10 +683,16 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
     while current_loops<max_loops:
         current_loops+=1
         # Ask BOINC for a list of file transfers
-        allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'get_file_transfers'))
-        cleaned_response=''
+        allow_response=None
+        cleaned_response = ''
+        try:
+            allow_response=loop.run_until_complete(run_rpc_command(rpc_client,'get_file_transfers'))
+        except Exception as e:
+            log.error('Error w/ wait_till_no_xfers,allow respponse exception {}'.format(e))
+            sleep(loop_wait_in_seconds)
+            continue
         if not allow_response:
-            log.debug('Error w/ wait_till_no_xfers, no allow_response')
+            log.error('Error w/ wait_till_no_xfers, no allow_response')
             sleep(loop_wait_in_seconds)
             continue
         if xfers_happening(allow_response):
@@ -696,14 +702,16 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
         # Remove whitespace etc
         if isinstance(allow_response,list):
             log.error('Unexpected response1 in wait_till_no_xfers: ' + str(allow_response))
+            sleep(loop_wait_in_seconds)
+            continue
         elif isinstance(allow_response,str):
-            cleaned_response=allow_response.replace(' ','')
-            cleaned_response=cleaned_response.replace('\n','')
+            cleaned_response=re.sub('\s*','',allow_response)
             if cleaned_response=='': # There are no transfers, yay!
                 return
             else:
                 log.error('Unexpected response2 in wait_till_no_xfers: ' + str(cleaned_response))
         log.error('Unexpected response3 in wait_till_no_xfers: ' + str(cleaned_response))
+        sleep(loop_wait_in_seconds)
 
 
 def get_gridcoin_config_parameters(gridcoin_dir:str)->Dict[str, str]:

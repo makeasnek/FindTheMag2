@@ -588,9 +588,10 @@ def get_grc_price(sample_text:str)->Union[float,None]:
     else:
         DATABASE['TABLE_STATUS'] = 'Unable to find GRC price'
         return None
-def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
+def get_approved_project_urls_web(query_result:str=None)->Dict[str,str]:
     """
     Gets current whitelist from Gridcoinstats
+    @query_result: used for testing
     """
     # Check if cache is available
     if 'GSPROJECTLIST' in DATABASE and 'GSRESOLVERDICT' in DATABASE:
@@ -601,42 +602,45 @@ def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
     delta=datetime.datetime.now()-DATABASE.get('LASTGRIDCOINSTATSPROJECTCHECK',datetime.datetime(1993,3,3))
     if abs(delta.days)<1 and cache_available:
         log.debug('Returning cached version of gridcoinstats data')
-        return DATABASE['GSPROJECTLIST'],DATABASE['GSRESOLVERDICT']
+        return DATABASE['GSRESOLVERDICT']
+
     # Otherwise, request it
     import json
-    url='https://www.gridcoinstats.eu/API/simpleQuery.php?q=listprojects'
-    import requests as req
-    try:
-        resp = req.get(url)
-    except Exception as e:
-        print('Error fetching magnitude stats from {}'.format(url))
-        log.error('Error fetching magnitude stats from {}: {}'.format(url,e))
-        if cache_available:
-            return DATABASE['GSPROJECTLIST'], DATABASE['GSRESOLVERDICT']
-        else:
-            log.debug('Exiting safely')
-            safe_exit(None, None)
-    else:
-        if 'BOINC' not in resp.text.upper():
-            log.error('Error fetching magnitude stats from {}'.format(url))
+    if not query_result:
+        import requests as req
+        url='https://www.gridcoinstats.eu/API/simpleQuery.php?q=listprojects'
+        try:
+            resp = req.get(url)
+        except Exception as e:
+            print('Error fetching magnitude stats from {}'.format(url))
+            log.error('Error fetching magnitude stats from {}: {}'.format(url,e))
             if cache_available:
-                log.debug('Returning cached magnitude stats')
-                return DATABASE['GSPROJECTLIST'], DATABASE['GSRESOLVERDICT']
+                return DATABASE['GSRESOLVERDICT']
             else:
                 log.debug('Exiting safely')
-                safe_exit(None,None)
+                safe_exit(None, None)
+        else:
+            if 'BOINC' not in resp.text.upper():
+                log.error('Error fetching magnitude stats from {}'.format(url))
+                if cache_available:
+                    log.debug('Returning cached magnitude stats')
+                    return DATABASE['GSRESOLVERDICT']
+                else:
+                    log.debug('Exiting safely')
+                    safe_exit(None,None)
+            query_result=resp.text
 
     # Parse what we got back
     return_list:List[str]= []
     project_resolver_dict:Dict[str,str]={}
     loaded_json={}
     try:
-        loaded_json=json.loads(resp.text)
+        loaded_json=json.loads(query_result)
     except Exception as e:
         log.error('Error parsing data from Gridcoinstats {}'.format(e))
         if cache_available:
             log.error('Returning old gridcoinstats data'.format(e))
-            return DATABASE['GSPROJECTLIST'], DATABASE['GSRESOLVERDICT']
+            return DATABASE['GSRESOLVERDICT']
         else:
             print('Unable to continue...')
             safe_exit(None,None)
@@ -645,7 +649,7 @@ def get_approved_project_urls_web()->Tuple[List[str],Dict[str,str]]:
     DATABASE['LASTGRIDCOINSTATSPROJECTCHECK']=datetime.datetime.now()
     DATABASE['GSPROJECTLIST']=return_list
     DATABASE['GSRESOLVERDICT']=project_resolver_dict
-    return return_list,project_resolver_dict
+    return project_resolver_dict
 def xfers_happening(xfer_list:list)->bool:
     """
     Returns True if any active xfers are happening, false if none are happening or if only stalled xfers exist
@@ -2701,8 +2705,8 @@ if __name__ == '__main__':
         log.warning('Unable to connect to gridcoin wallet! {} Trying web-based option...'.format(e))
         wallet_running=False
         try:
-            source_urls, project_resolver_dict = get_approved_project_urls_web()
-            APPROVED_PROJECT_URLS=resolve_url_list_to_database(source_urls)
+            project_resolver_dict = get_approved_project_urls_web()
+            APPROVED_PROJECT_URLS=resolve_url_list_to_database(list(project_resolver_dict.values()))
             mag_ratios=get_project_mag_ratios_from_url(project_resolver_dict=project_resolver_dict)
         except Exception as e:
             print_and_log('Error getting project URL list from URL. Are you sure it\'s open? Error: '+str(e),'ERROR')

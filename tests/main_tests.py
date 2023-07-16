@@ -224,3 +224,19 @@ def test_project_url_from_stats_file():
     assert main.project_url_from_stats_file('job_log_www.worldcommunitygrid.org.txt')=='WORLDCOMMUNITYGRID.ORG'
     assert main.project_url_from_stats_file('job_log_escatter11.fullerton.edu_nfs.txt')=='ESCATTER11.FULLERTON.EDU/NFS'
     assert main.project_url_from_stats_file('job_log_www.rechenkraft.net_yoyo.txt')=='RECHENKRAFT.NET/YOYO'
+
+def test_project_url_from_credit_history_file():
+    assert main.project_url_from_credit_history_file('statistics_boinc.multi-pool.info_latinsquares.xml')=='BOINC.MULTI-POOL.INFO/LATINSQUARES'
+    assert main.project_url_from_credit_history_file('statistics_boinc.bakerlab.org_rosetta.xml')=='BOINC.BAKERLAB.ORG/ROSETTA'
+    assert main.project_url_from_credit_history_file('statistics_milkyway.cs.rpi.edu_milkyway.xml')=='MILKYWAY.CS.RPI.EDU/MILKYWAY'
+def test_stat_file_to_list():
+    example="""1680334251 ue 4017.278236 ct 3454.260000 fe 200000000000000 nm TASK1 et 3465.445294 es 0
+1680334604 ue 4017.278236 ct 3805.396000 fe 200000000000000 nm TASK2 et 3819.634777 es 0
+1680336346 ue 2381.072619 ct 2074.329000 fe 70000000000000 nm TASK3 et 2094.352010 es 0
+1680337549 ue 3190.839339 ct 2930.237000 fe 70000000000000 nm TASK4 et 2944.508444 es 0"""
+    result=main.stat_file_to_list(None,example)
+    assert result==[
+        {'STARTTIME': '1680334251', 'ESTTIME': '4017.278236', 'CPUTIME': '3454.260000', 'ESTIMATEDFLOPS': '200000000000000', 'TASKNAME': 'TASK1', 'WALLTIME': '3465.445294', 'EXITCODE': '0'},
+        {'STARTTIME': '1680334604', 'ESTTIME': '4017.278236', 'CPUTIME': '3805.396000', 'ESTIMATEDFLOPS': '200000000000000', 'TASKNAME': 'TASK2', 'WALLTIME': '3819.634777', 'EXITCODE': '0'},
+        {'STARTTIME': '1680336346', 'ESTTIME': '2381.072619', 'CPUTIME': '2074.329000', 'ESTIMATEDFLOPS': '70000000000000', 'TASKNAME': 'TASK3', 'WALLTIME': '2094.352010', 'EXITCODE': '0'},
+        {'STARTTIME': '1680337549', 'ESTTIME': '3190.839339', 'CPUTIME': '2930.237000', 'ESTIMATEDFLOPS': '70000000000000', 'TASKNAME': 'TASK4', 'WALLTIME': '2944.508444', 'EXITCODE': '0'}]

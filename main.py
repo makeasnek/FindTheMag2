@@ -798,51 +798,54 @@ def project_url_from_credit_history_file(filename: str) -> str:
     """
     filename = filename.replace('statistics_', '')
     filename = filename.replace('.xml', '')
-    filename = filename.split('_')[0]
+    filename = filename.replace('_','/')
     return resolve_url_database(filename)
-def stat_file_to_list(stat_file_abs_path: str) -> List[Dict[str, str]]:
+def stat_file_to_list(stat_file_abs_path: str=None,content:str=None) -> List[Dict[str, str]]:
     """
         Turns a BOINC job log into list of dicts we can use, each dict is a task. Dicts have keys below:
         STARTTIME,ESTTIME,CPUTIME,ESTIMATEDFLOPS,TASKNAME,WALLTIME,EXITCODE
         Note that ESTIMATEDFLOPS comes from the project and EXITCODE will always be zero.
         All values and keys in dicts are strings.
 
-        BOINC's job log format is:
+        @content: added for testing
+    """
+    """
+            BOINC's job log format is:
 
 [ue]	Estimated runtime	BOINC Client estimate (seconds)
 [ct]	CPU time		Measured CPU runtime at completion (seconds)
 [fe]	Estimated FLOPs count	From project (integer)
 [nm]	Task name		From project
 [et]	Elapsed time 		Wallclock runtime at completion (seconds)
-
     """
     stats_list = []
     try:
-        with open(stat_file_abs_path, mode='r', errors='ignore') as f:
-            for log_entry in f:
-                #log.debug('Found logentry '+str(log_entry))
-                match=None
-                try:
-                    match = re.search(r'(\d*)( ue )([\d\.]*)( ct )([\d\.]*)( fe )(\d*)( nm )(\S*)( et )([\d\.]*)( es )(\d)',log_entry)
-                except Exception as e:
-                    print(
-                        'Error reading BOINC job log at ' + stat_file_abs_path + ' maybe it\'s corrupt? Line: error: '.format(log_entry,e))
-                    log.error(
-                        'Error reading BOINC job log at ' + stat_file_abs_path + ' maybe it\'s corrupt? Line: error: '.format(
-                            log_entry, e))
-                if not match:
-                    print('Encountered log entry in unknown format: ' + log_entry)
-                    log.error('Encountered log entry in unknown format: ' + log_entry)
-                    continue
-                stats = dict()
-                stats['STARTTIME'] = match.group(1)
-                stats['ESTTIME'] = match.group(3)
-                stats['CPUTIME'] = match.group(5)
-                stats['ESTIMATEDFLOPS'] = match.group(7)
-                stats['TASKNAME'] = match.group(9)
-                stats['WALLTIME'] = match.group(11)
-                stats['EXITCODE'] = match.group(13)
-                stats_list.append(stats)
+        if not content:
+            content=open(stat_file_abs_path, mode='r', errors='ignore').read()
+        for log_entry in content.splitlines():
+            #log.debug('Found logentry '+str(log_entry))
+            match=None
+            try:
+                match = re.search(r'(\d*)( ue )([\d\.]*)( ct )([\d\.]*)( fe )(\d*)( nm )(\S*)( et )([\d\.]*)( es )(\d)',log_entry)
+            except Exception as e:
+                print(
+                    'Error reading BOINC job log at ' + stat_file_abs_path + ' maybe it\'s corrupt? Line: error: '.format(log_entry,e))
+                log.error(
+                    'Error reading BOINC job log at ' + stat_file_abs_path + ' maybe it\'s corrupt? Line: error: '.format(
+                        log_entry, e))
+            if not match:
+                print('Encountered log entry in unknown format: ' + log_entry)
+                log.error('Encountered log entry in unknown format: ' + log_entry)
+                continue
+            stats = dict()
+            stats['STARTTIME'] = match.group(1)
+            stats['ESTTIME'] = match.group(3)
+            stats['CPUTIME'] = match.group(5)
+            stats['ESTIMATEDFLOPS'] = match.group(7)
+            stats['TASKNAME'] = match.group(9)
+            stats['WALLTIME'] = match.group(11)
+            stats['EXITCODE'] = match.group(13)
+            stats_list.append(stats)
         return stats_list
     except Exception as e:
         print('Error reading BOINC job log at '+stat_file_abs_path+' maybe it\'s corrupt? '+str(e))

@@ -1,4 +1,4 @@
-import pytest,main
+import pytest,main,datetime
 
 def test_check_sidestake():
     empty={}
@@ -82,4 +82,46 @@ def test_temp_check():
     assert  main.temp_check()
     main.TEMP_COMMAND = 'echo 77'
     assert not main.temp_check()
+
+
+# Tests that require a network connection to work. Should be run sparingly for this reason
+def test_update_fetch():
+    actual_version = main.VERSION
+    actual_update_check=main.DATABASE.get('LASTUPDATECHECK')
+    update_text="""## Format: Version, SecurityBool (1 or 0), Notes
+    ## UPDATE FILE FOR FINDTHEMAG DO NOT DELETE THIS LINE
+    1.0,0,Original Version
+    2.0,0,Main version
+    2.1,0,Update is strongly suggested fixes several major bugs in project handling
+    2.2,1,FindTheMag critical security update please see Github for more info
+    2.3,0,Various usability improvements and crash fixes
+    """
+    # assert it finds updates incl security updates
+    main.DATABASE['LASTUPDATECHECK']=datetime.datetime(1997,3,3)
+    update, security, text = main.update_fetch(update_text,.1)
+    assert update
+    assert security
+    assert text
+    # assert no false positives
+    main.DATABASE['LASTUPDATECHECK'] = datetime.datetime(1997, 3, 3)
+    update, security, text = main.update_fetch(update_text,1000)
+    assert not update
+    assert not security
+    assert not text
+    # assert correctly identifying security updates
+    main.DATABASE['LASTUPDATECHECK'] = datetime.datetime(1997, 3, 3)
+    update,security,text=main.update_fetch(update_text,2.2)
+    assert update
+    assert not security
+    assert text
+    # assert not checking too often
+    main.DATABASE['LASTUPDATECHECK'] = datetime.datetime.now()
+    update,security,text=main.update_fetch(update_text,.1)
+    assert not update
+    assert not security
+    assert not text
+    # reset original variables
+    main.VERSION = actual_version
+    if actual_update_check:
+        main.DATABASE['LASTUPDATECHECK']=actual_update_check
 

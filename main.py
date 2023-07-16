@@ -282,7 +282,7 @@ def resolve_url_boinc_rpc(url:str,known_attached_projects:Set[str]=None,known_at
                 LOOKUP_URL_TO_BOINC[original_uppered] = known_attached_project
                 return known_attached_project
             else:
-                print('{} not in {}'.format(uppered,known_attached_project.upper()))
+                log.debug('{} not in {} in resolve_boinc_url_rpc'.format(uppered,known_attached_project.upper()))
 
     for known_boinc_project in known_boinc_projects:
         if uppered in known_boinc_project.upper():
@@ -465,58 +465,86 @@ def temp_check()->bool:
     return True
 
 
+def update_fetch(update_text:str=None,current_ver:float=None)->Tuple[bool,bool,Union[str,None]]:
+    """
+    Check for updates. Return True and string to print if updates found, False otherwise
+    @update_text: used for testing purposes
+    @current_ver: added for testing purposes
+    @return: If update is available, if it is a security update, a string to print
+    """
+    update_return=False
+    return_string=''
+    security_update_return=False
+
+    # added for testing purposes
+    if update_text:
+        resp=update_text
+    else:
+        resp=None
+    print('current_ver is {}'.format(current_ver))
+    if not current_ver:
+        current_ver=VERSION
+
+    # If we've checked for updates in the last week, ignore
+    delta=datetime.datetime.now()-DATABASE.get('LASTUPDATECHECK',datetime.datetime(1997,3,3))
+    if abs(delta.days)<7:
+        return False,False,None
+    # Get update status from Github
+    if not resp:
+        import requests as req
+        headers = req.utils.default_headers()
+        headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
+        })
+        url='https://raw.githubusercontent.com/makeasnek/FindTheMag2/main/updates.txt'
+        try:
+            resp = req.get(url,headers=headers).text
+        except Exception as e:
+            DATABASE['TABLE_STATUS']='Error checking for updates {}'.format(e)
+            log.error('Error checking for updates {}'.format(e))
+            return False,False,None
+        if 'UPDATE FILE FOR FINDTHEMAG DO NOT DELETE THIS LINE' not in resp:
+            DATABASE['TABLE_STATUS']='Error checking for updates invalid update file'
+            log.error('Error checking for updates invalid update file')
+            return False,False,None
+    try:
+        for line in resp.splitlines():
+            if line.startswith('#'):
+                continue
+            if line=='':
+                continue
+            if ',' not in line:
+                continue
+            split=line.split(',')
+            version=float(split[0])
+            if split[1]=='1':
+                security=True
+            else:
+                security=False
+            notes=split[2]
+            if version>current_ver:
+                if security:
+                    security_update_return=True
+                    update_return=True
+                    return_string= return_string + 'Version {} available. This is an important security update. Changes include {}\n'.format(version,notes)
+                else:
+                    update_return=True
+                    return_string = return_string + 'Version {} available. Changes include {}\n'.format(
+                        version, notes)
+    except Exception as e:
+        log.error("Error parsing update file")
+    DATABASE['LASTUPDATECHECK'] = datetime.datetime.now()
+    if return_string=='':
+        return_string=None
+    return update_return,security_update_return,return_string
 
 def update_check()->None:
     """
     Check for updates to the FindTheMag tool
     """
-    # If we've checked for updates in the last week, ignore
-    delta=datetime.datetime.now()-DATABASE.get('LASTUPDATECHECK',datetime.datetime(1997,3,3))
-    if abs(delta.days)<7:
-        return
-    import requests as req
-    headers=req.utils.default_headers()
-    headers.update( {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
-    })
-
-    # Get update status from Github
-    url='https://raw.githubusercontent.com/makeasnek/FindTheMag2/main/updates.txt'
-    try:
-        resp = req.get(url,headers=headers).text
-    except Exception as e:
-        DATABASE['TABLE_STATUS']='Error checking for updates {}'.format(e)
-        log.error('Error checking for updates {}'.format(e))
-        return
-    if 'UPDATE FILE FOR FINDTHEMAG DO NOT DELETE THIS LINE' not in resp:
-        DATABASE['TABLE_STATUS']='Error checking for updates invalid update file'
-        log.error('Error checking for updates invalid update file')
-        return None
-    for line in resp.splitlines():
-        if line.startswith('#'):
-            continue
-        if line=='':
-            continue
-        if ',' not in line:
-            continue
-        split=line.split(',')
-        version=float(split[0])
-        if split[1]=='1':
-            security=True
-        else:
-            security=False
-        notes=split[2]
-        if version>VERSION:
-            if security:
-                security_text='This is an important security update.'
-            else:
-                security_text=''
-            print('There is an updated version of this tool available ({}). {} Major changes include: {} '.format(version,security_text,notes))
-            log.info(
-                'There is an updated version of this tool available ({}). {} Major changes include: {} '.format(version,
-                                                                                                               security_text,
-                                                                                                               notes))
-    DATABASE['LASTUPDATECHECK']=datetime.datetime.now()
+    available,security,print_me=update_fetch()
+    if available:
+        print_and_log(print_me,'INFO')
 def get_grc_price()->float:
     """
     Gets average GRC price from three online sources.

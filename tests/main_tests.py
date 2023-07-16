@@ -157,4 +157,25 @@ def test_get_approved_project_urls_web():
     assert len(answer)>3
     assert 'Amicable_Numbers' in answer
     assert answer.get('Amicable_Numbers')=='SECH.ME/BOINC/AMICABLE'
+def test_xfers_happening():
+    # test xfer list w stalled xfers
+    xfer_list=[
+        {
+            'status':0,
+            'persistent_file_xfer':{
+                'num_retries':2
+            }
+         }
+    ]
+    assert not main.xfers_happening(xfer_list)
+    # test empty xfer list
+    xfer_list = []
+    assert not main.xfers_happening(xfer_list)
+    # test xfer list w xfers happening
+    xfer_list = [
+        {
+            'status': 0,
+        }
+    ]
+    assert main.xfers_happening(xfer_list)
 

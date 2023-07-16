@@ -652,21 +652,26 @@ def get_approved_project_urls_web(query_result:str=None)->Dict[str,str]:
     return project_resolver_dict
 def xfers_happening(xfer_list:list)->bool:
     """
-    Returns True if any active xfers are happening, false if none are happening or if only stalled xfers exist
+    Returns True if any active xfers are happening, false if none are happening, if only stalled xfers exist, or if unable to determine
     """
     # Known statuses:
     # 0 = Active
     if isinstance(xfer_list,str):
         return False
-    for xfer in xfer_list:
-        if str(xfer['status'])=='0':
-            if 'persistent_file_xfer' in xfer:
-                if float(xfer['persistent_file_xfer'].get('num_retries',0))>1:
-                    continue # assume xfers with multiple retries are stalled
-            return True
-        else:
-            log.warning('Found xfer with unknown status: ' + str(xfer))
+    try:
+        for xfer in xfer_list:
+            if str(xfer['status'])=='0':
+                if 'persistent_file_xfer' in xfer:
+                    if float(xfer['persistent_file_xfer'].get('num_retries',0))>1:
+                        continue # assume xfers with multiple retries are stalled
+                return True
+            else:
+                log.warning('Found xfer with unknown status: ' + str(xfer))
+        return False
+    except Exception as e:
+        log.error('Error parsing xfers: {}:{}'.format(xfer_list,e))
     return False
+
 def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
     """
     Wait for BOINC to finish all pending xfers, return None when done

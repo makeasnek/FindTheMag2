@@ -179,3 +179,12 @@ def test_xfers_happening():
     ]
     assert main.xfers_happening(xfer_list)
 
+def test_get_gridcoin_config_parameters():
+    result=main.get_gridcoin_config_parameters('.')
+    assert result.get('enablesidestaking')=='1'
+    assert isinstance(result.get('sidestake'),list)
+    assert 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2,1' in result.get('sidestake',[])
+    assert 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K,1' in result.get('sidestake', [])
+    assert result['rpcport']=='9876'
+    assert result['rpcuser'] == 'myusername'
+    assert result['rpcpassword'] == 'mypassword'

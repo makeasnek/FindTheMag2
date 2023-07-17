@@ -403,3 +403,44 @@ def test_get_project_mag_ratios_from_response():
     lookback_period=30
     result=main.get_project_mag_ratios_from_response(response,lookback_period,project_resolver_dict)
     assert result=={'SECH.ME/BOINC/AMICABLE': 8.91264681577104e-05, 'SRBASE.MY-FIREWALL.ORG/SR5': 8.539680314693781e-05, 'SIDOCK.SI/SIDOCK': 0.003301081663199078, 'GENE.DISI.UNITN.IT/TEST': 0.0035177177490411625, 'WORLDCOMMUNITYGRID.ORG/BOINC': 0.0009398350573579004, 'ASTEROIDSATHOME.NET/BOINC': 0.003858841063201462, 'EINSTEIN.PHYS.UWM.EDU': 4.0056880080044686e-05, 'FOLDINGATHOME.DIV72.XYZ': 2.354611008478076e-05, 'MILKYWAY.CS.RPI.EDU/MILKYWAY': 0.00017020525368876164, 'ESCATTER11.FULLERTON.EDU/NFS': 0.0014315462447158976, 'NUMBERFIELDS.ASU.EDU/NUMBERFIELDS': 0.0003832862658003348, 'BOINC.MULTI-POOL.INFO/LATINSQUARES': 0.004925403380069366, 'BOINC.BAKERLAB.ORG/ROSETTA': 0.010315385227402484, 'UNIVERSEATHOME.PL/UNIVERSE': 0.00028549726782855914, 'RECHENKRAFT.NET/YOYO': 0.0018665701101050107}
+def test_profitability_check():
+    # profitable if you sell GRC for a 1000 USD
+    grc_price=0.00
+    exchange_fee=.10
+    main.HOST_COST_PER_HOUR=1
+    grc_sell_price=1000
+    min_profit_per_hour=0
+    combined_stats={
+        'myproject.com':{
+            'COMPILED_STATS':{
+                'AVGMAGPERHOUR':4
+            }
+        }
+    }
+    assert main.profitability_check(grc_price,exchange_fee,grc_sell_price,'myproject.com',min_profit_per_hour,combined_stats)
+    # not profitable if grc is worth zero
+    grc_sell_price=0
+    assert not main.profitability_check(grc_price, exchange_fee, grc_sell_price, 'myproject.com', min_profit_per_hour,
+                                    combined_stats)
+    # not profitable if expenses too high
+    main.HOST_COST_PER_HOUR=10
+    grc_sell_price=1
+    assert not main.profitability_check(grc_price, exchange_fee, grc_sell_price, 'myproject.com', min_profit_per_hour,
+                                        combined_stats)
+def test_get_avg_mag_hr():
+    combined_stats={
+        'myproject.com':{
+            'COMPILED_STATS':{
+                'TOTALWALLTIME':1,
+                'AVGMAGPERHOUR':2
+            }
+        },
+        'myproject2.com':{
+            'COMPILED_STATS':{
+                'TOTALWALLTIME':1,
+                'AVGMAGPERHOUR':2
+            }
+        }
+    }
+    result=main.get_avg_mag_hr(combined_stats)
+    assert result==2

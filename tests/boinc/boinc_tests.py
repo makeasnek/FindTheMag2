@@ -1,5 +1,7 @@
 # Tests for functions which communicate with BOINC. These will obviously fail if BOINC is not open.
 # Note that due to async nature of many BOINC functions, they must be wrapped in loop.run_until_complete()
+import datetime
+
 import pytest
 
 import config
@@ -88,3 +90,6 @@ def test_prefs_check(test_setup_connection):
     }
     result1 = loop.run_until_complete(main.prefs_check(RPC_CONNECTION_OBJECT, global_prefs, disk_usage,True))
     assert not result1
+def test_json_default():
+    return_dict=main.json_default(datetime.datetime.now())
+    assert isinstance(return_dict,dict)

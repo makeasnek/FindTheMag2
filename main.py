@@ -1919,7 +1919,7 @@ def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_d
         return None
     else:
         return response
-def profitability_check(grc_price:float,exchange_fee:float,host_power_usage:float,grc_sell_price:Union[None,float],local_kwh:float,project:str,min_profit_per_hour:float,combined_stats:dict)->bool:
+def profitability_check(grc_price:float,exchange_fee:float,grc_sell_price:Union[None,float],project:str,min_profit_per_hour:float,combined_stats:dict)->bool:
     """
     Returns True if crunching is profitable right now. False otherwise.
     """

@@ -225,12 +225,15 @@ class BoincClientConnection:
         return return_list
 def grc_project_name_to_url(searchname:str,all_projects:Dict[str,Dict[str,Any]])->Union[str,None]:
     """
-    Convert a project name into its project url, then UPPERCASE it
+    Convert a project name into its canonical project URL
     : param : all_projects putput from listprojects rpc command
     """
-    for found_project_name, project_dict in all_projects.items():
+    for found_project_name, found_project_dict in all_projects.items():
         if found_project_name.upper()==searchname.upper():
-            return project_dict['base_url'].upper()
+            if isinstance(found_project_dict,str):
+                return found_project_dict
+            elif isinstance(found_project_dict,dict):
+                return found_project_dict['base_url']
     return None
 def combine_dicts(dict1:Dict[str,Any],dict2:Dict[str,Any])->None:
     """
@@ -1215,7 +1218,7 @@ def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None
     """
     global PROJECT_MAG_RATIOS_CACHE
     projects = {}
-    return_dict = {}
+    return_dict = None
     mag_per_project = 0
 
     try:
@@ -1224,32 +1227,15 @@ def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None
             response=command_result
         if not grc_projects:
             grc_projects=grc_client.run_command('listprojects')
-        for i in range(0, lookback_period):
-            superblock=response['result'][i]
-            if i == 0:
-                total_magnitude = superblock['total_magnitude']
-                total_projects = superblock['total_projects']
-                mag_per_project = total_magnitude / total_projects
-            for project_name, project_stats in superblock['Contract Contents']['projects'].items():
-                if project_name not in projects:
-                    if i==0:
-                        projects[project_name] = []
-                    else:
-                        continue # skip projects which are on greylist
-                projects[project_name].append(project_stats['rac'])
-        for project_name, project_racs in projects.items():
-            average_rac = sum(project_racs) / len(project_racs)
-            project_url = grc_project_name_to_url(project_name,grc_projects)
-            canonical_url=resolve_url_database(project_url)
-            return_dict[canonical_url] = mag_per_project / average_rac
+        return_dict=get_project_mag_ratios_from_response(response['result'],lookback_period,grc_projects)
+        return return_dict
     except Exception as e:
         if len(PROJECT_MAG_RATIOS_CACHE)>0:
             print_and_log('Error communicating with Gridcoin wallet {}, using cached data!'.format(e),'ERROR')
             return PROJECT_MAG_RATIOS_CACHE
         else:
             print_and_log('Error communicating with Gridcoin wallet! {}'.format(e),'ERROR')
-            return {}
-    PROJECT_MAG_RATIOS_CACHE=return_dict
+            return None
     return return_dict
 def project_url_to_name_boinc(url:str,project_names:dict=None):
     """
@@ -1879,23 +1865,11 @@ def project_name_to_url(searchname:str, project_resolver_dict:Dict[str,str])->Un
         if found_project_name.upper()==searchname.upper():
             return resolve_url_database(project_url)
     return None
-def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_dict:Dict[str,str]=None) -> Union[Dict[str, float],None]:
-    """
-    :param lookback_period: number of superblocks to look back to determine average
-    :return: Dictionary w/ key as project URL and value as project mag ratio (mag per unit of RAC)
-    """
-    import requests as req
-    import json
-    projects = {}
-    return_dict = {}
-    mag_per_project = 0
-    url='https://www.gridcoinstats.eu/API/simpleQuery.php?q=superblocks'
-    try:
-        resp = req.get(url)
-    except Exception as e:
-        print('Error retrieving project mag ratios from gridcoinstats.eu')
-        return None
-    loaded_json=json.loads(resp.text)
+def get_project_mag_ratios_from_response(response:dict,lookback_period: int = 30,project_resolver_dict:Dict[str,str]=None) -> Union[Dict[str, float],None]:
+    loaded_json=response
+    projects= {}
+    return_dict={}
+    global PROJECT_MAG_RATIOS_CACHE
     for i in range(0, lookback_period):
         superblock = loaded_json[i]
         if i == 0:
@@ -1911,9 +1885,40 @@ def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_d
             projects[project_name].append(project_stats['rac'])
     for project_name, project_racs in projects.items():
         average_rac = sum(project_racs) / len(project_racs)
-        project_url = project_name_to_url(project_name, project_resolver_dict)
-        return_dict[project_url] = mag_per_project / average_rac
+        project_url = grc_project_name_to_url(project_name, project_resolver_dict)
+        canonical_url = resolve_url_database(project_url)
+        return_dict[canonical_url] = mag_per_project / average_rac
+    PROJECT_MAG_RATIOS_CACHE = return_dict
     return return_dict
+def get_project_mag_ratios_from_url(lookback_period: int = 30,project_resolver_dict:Dict[str,str]=None) -> Union[Dict[str, float],None]:
+    """
+    :param lookback_period: number of superblocks to look back to determine average
+    :return: Dictionary w/ key as project URL and value as project mag ratio (mag per unit of RAC)
+    """
+    import requests as req
+    import json
+    projects = {}
+    return_dict = {}
+    mag_per_project = 0
+    url='https://www.gridcoinstats.eu/API/simpleQuery.php?q=superblocks'
+    try:
+        resp = req.get(url)
+    except Exception as e:
+        print('Error retrieving project mag ratios from gridcoinstats.eu')
+        if len(PROJECT_MAG_RATIOS_CACHE)>0:
+            print_and_log('Error communicating with gridcoinstats for magnitude info, using cached data','ERROR')
+            return PROJECT_MAG_RATIOS_CACHE
+        else:
+            print_and_log('Error communicating with gridcoinstats for magnitude info, no cached data available', 'ERROR')
+        return None
+    try:
+        loaded_json=json.loads(resp.text)
+        response=get_project_mag_ratios_from_response(loaded_json,lookback_period,project_resolver_dict)
+    except Exception as e:
+        log.error('E in get_project_mag_ratios_from_url:{}'.format(e))
+        return None
+    else:
+        return response
 def profitability_check(grc_price:float,exchange_fee:float,host_power_usage:float,grc_sell_price:Union[None,float],local_kwh:float,project:str,min_profit_per_hour:float,combined_stats:dict)->bool:
     """
     Returns True if crunching is profitable right now. False otherwise.

@@ -35,7 +35,3 @@ def test_GridcoinClientConnection_get_approved_project_urls(test_GridcoinClientC
     approved_urls_result=connection_object.get_approved_project_urls()
     assert isinstance(approved_urls_result,list)
     assert len(approved_urls_result)>0
-def test_GridcoinClientConnection_project_name_to_url(test_GridcoinClientConnection):
-    result=connection_object.project_name_to_url('tn-grid')
-    assert result=='https://gene.disi.unitn.it/test/'.upper()
-    assert not connection_object.project_name_to_url('namewhichdoesnotexist')

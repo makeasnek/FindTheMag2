@@ -1314,7 +1314,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
     values={}
     working_dict=copy.deepcopy(table_dict)
     # convert urls to nice names, add USD/GRC/hr
-    for url in list(working_dict.keys()):
+    for url in working_dict.keys():
         name=project_url_to_name(url,ALL_BOINC_PROJECTS)
         if not name:
             name=url
@@ -1404,12 +1404,8 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
         print('Consider donating to this app\'s development directly or via sidestake: RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K. Sidestaking means you can skip crunching for dev')
     print('Use Ctrl+C to exit FTM and return BOINC to previous config')
     print('*' * table_width)
-def in_list(str,list)->bool:
-    search_str=str.upper()
-    search_str=search_str.replace('HTTPS://','')
-    search_str = search_str.replace('HTTP://', '')
-    search_str = search_str.replace('WWW.', '')
-    search_str = search_str.replace('WORLDCOMMUNITYGRID.ORG/BOINC/', 'WORLDCOMMUNITYGRID.ORG') # fix for WCG
+def in_list(my_str:str,list:List[str])->bool:
+    search_str=resolve_url_database(my_str)
     for item in list:
         if search_str==item.upper() or search_str in item.upper():
             return True

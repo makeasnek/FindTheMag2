@@ -88,6 +88,7 @@ ATTACHED_PROJECT_SET=set()
 ATTACHED_PROJECT_SET_DEV=set()
 COMBINED_STATS={}
 COMBINED_STATS_DEV={}
+PROJECT_MAG_RATIOS_CACHE={}
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
     1: 'always',
@@ -201,15 +202,6 @@ class GridcoinClientConnection:
         for projectname,project in all_projects['result'].items():
             return_list.append(project['base_url'].upper())
         return return_list
-    def project_name_to_url(self,searchname:str)->Union[str,None]:
-        """
-        Convert a project name into its project url, then UPPERCASE it
-        """
-        all_projects = self.run_command('listprojects')
-        for found_project_name, project_dict in all_projects['result'].items():
-            if found_project_name.upper()==searchname.upper():
-                return project_dict['base_url'].upper()
-        return None
 class BoincClientConnection:
     """
     A simple class for grepping BOINC config files etc. Doesn't do any RPC communication. This class and any
@@ -232,6 +224,15 @@ class BoincClientConnection:
             for project in parsed['projects']['project']:
                 return_list.append(project['url'])
         return return_list
+def grc_project_name_to_url(searchname:str,all_projects:Dict[str,Dict[str,Any]])->Union[str,None]:
+    """
+    Convert a project name into its project url, then UPPERCASE it
+    : param : all_projects putput from listprojects rpc command
+    """
+    for found_project_name, project_dict in all_projects.items():
+        if found_project_name.upper()==searchname.upper():
+            return project_dict['base_url'].upper()
+    return None
 def combine_dicts(dict1:Dict[str,Any],dict2:Dict[str,Any])->None:
     """
     Given dict1, dict2, add dict2 to dict1, over-writing anything in dict1.
@@ -1158,6 +1159,11 @@ def sidestake_prompt(check_sidestake_results:bool, check_type:str, address:str)-
     """
     A function to interactively ask user if they want to setup a sidestake, sets up a sidestake if they say yes
     """
+    # If user is sidestaking, skip rest of this function
+    if check_sidestake_results:
+        return
+    message1=''
+    message2=''
     if check_type=='FOUNDATION':
         message1='It appears that you have not enabled sidestaking to the Gridcoin foundation in your wallet. We believe it is only fair that people benefiting from the Gridcoin network contribute back to it' \
                  '\nSidestaking enables you to contribute a small % of your staking profits (you can choose the %)' \
@@ -1174,68 +1180,77 @@ def sidestake_prompt(check_sidestake_results:bool, check_type:str, address:str)-
                  "\n Setting a sidestake amount also skips the 'crunching for dev' portion of this tool which will save you some disk space and CPU time. " \
                  "\n Do you want to setup a sidestake? Please answer \"Y\" or \"N\" (without quotes)"
         message2='What percent would you like to donate to the developers of this tool? Enter a number like 5 for 5%. Please enter whole numbers only'
-    else:
-        message1=''
-        message2=''
-    if not check_sidestake_results:
-        answer = input(message1)
-        while answer not in ['Y', 'N']:
-            print('Error: Y or N not entered. Try again please :)')
-            answer = input("")
-        if answer == 'N':
-            if check_type=='FOUNDATION':
-                print('Ok no problem, it is your choice after all!')
-                return
-            if check_type=='DEVELOPER':
-                print('Ok no problem, it is your choice after all!')
-                return
-        answer = input(message2)
-        converted_value = None
-        while not converted_value:
-            try:
-                converted_value = int(answer)
-            except Exception as e:
-                print("Hmm... that didn't seem to work, let's try again. Please enter a whole number")
-                answer = input("")
-        conf_file = os.path.join(GRIDCOIN_DATA_DIR, 'gridcoinresearch.conf')
+    answer = input(message1)
+    while answer not in ['Y', 'N']:
+        print('Error: Y or N not entered. Try again please :)')
+        answer = input("")
+    if answer == 'N':
+        return
+    answer = input(message2)
+    converted_value = None
+    while not converted_value:
         try:
-            sidestake_entry='sidestake='+address+',' + str(converted_value)
-            with open(conf_file, "a") as myfile:
-                if 'enablesidestaking=1' not in str(myfile):
-                    myfile.write("enablesidestaking=1\n")
-                if sidestake_entry.upper() not in str(myfile).upper():
-                    myfile.write(sidestake_entry + '\n')
+            converted_value = int(answer)
         except Exception as e:
-            print_and_log('Error saving sidestake settings, maybe no access to gridcoinresearch.conf? Trying to write to {} error was {}'.format(conf_file,e),'ERROR')
-def get_project_mag_ratios(grc_client: GridcoinClientConnection, lookback_period: int = 30) -> Dict[
+            print("Hmm... that didn't seem to work, let's try again. Please enter a whole number")
+            answer = input("")
+    conf_file = os.path.join(GRIDCOIN_DATA_DIR, 'gridcoinresearch.conf')
+    try:
+        sidestake_entry='sidestake='+address+',' + str(converted_value)
+        with open(conf_file, "a") as myfile:
+            uppered=str(myfile).upper()
+            if 'enablesidestaking=1' not in uppered:
+                myfile.write("enablesidestaking=1\n")
+            if sidestake_entry.upper() not in uppered:
+                myfile.write(sidestake_entry + '\n')
+    except Exception as e:
+        print_and_log('Error saving sidestake settings, maybe no access to gridcoinresearch.conf? Trying to write to {} error was {}'.format(conf_file,e),'ERROR')
+def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None, lookback_period: int = 30, response:dict=None,grc_projects:Union[Dict[str,str],None]=None) -> Dict[
     str, float]:
     """
-    :param grc_client:
+    :param grc_client: Should only be None if testing
     :param lookback_period: number of superblocks to look back to determine average
+    :param response: Added for testing purposes
+    :param grc_projects: Output of listprojects command on wallet, should usually be None unless testing
     :return: Dictionary w/ key as project URL and value as project mag ratio (mag per unit of RAC)
     """
+    global PROJECT_MAG_RATIOS_CACHE
     projects = {}
     return_dict = {}
     mag_per_project = 0
-    command_result= grc_client.run_command('superblocks', [30, True])
-    for i in range(0, lookback_period):
-        superblock=command_result['result'][i]
-        if i == 0:
-            total_magnitude = superblock['total_magnitude']
-            total_projects = superblock['total_projects']
-            mag_per_project = total_magnitude / total_projects
-        for project_name, project_stats in superblock['Contract Contents']['projects'].items():
-            if project_name not in projects:
-                if i==0:
-                    projects[project_name] = []
-                else:
-                    continue # skip projects which are on greylist
-            projects[project_name].append(project_stats['rac'])
-    for project_name, project_racs in projects.items():
-        average_rac = sum(project_racs) / len(project_racs)
-        project_url = grc_client.project_name_to_url(project_name)
-        canonical_url=resolve_url_database(project_url)
-        return_dict[canonical_url] = mag_per_project / average_rac
+
+    try:
+        if not response:
+            command_result= grc_client.run_command('superblocks', [30, True])
+            response=command_result
+        if not grc_projects:
+            grc_projects=grc_client.run_command('listprojects')
+        for i in range(0, lookback_period):
+            superblock=response['result'][i]
+            if i == 0:
+                total_magnitude = superblock['total_magnitude']
+                total_projects = superblock['total_projects']
+                mag_per_project = total_magnitude / total_projects
+            for project_name, project_stats in superblock['Contract Contents']['projects'].items():
+                if project_name not in projects:
+                    if i==0:
+                        projects[project_name] = []
+                    else:
+                        continue # skip projects which are on greylist
+                projects[project_name].append(project_stats['rac'])
+        for project_name, project_racs in projects.items():
+            average_rac = sum(project_racs) / len(project_racs)
+            project_url = grc_project_name_to_url(project_name,grc_projects)
+            canonical_url=resolve_url_database(project_url)
+            return_dict[canonical_url] = mag_per_project / average_rac
+    except Exception as e:
+        if len(PROJECT_MAG_RATIOS_CACHE)>0:
+            print_and_log('Error communicating with Gridcoin wallet {}, using cached data!'.format(e),'ERROR')
+            return PROJECT_MAG_RATIOS_CACHE
+        else:
+            print_and_log('Error communicating with Gridcoin wallet! {}'.format(e),'ERROR')
+            return {}
+    PROJECT_MAG_RATIOS_CACHE=return_dict
     return return_dict
 def project_url_to_name_boinc(url:str,project_names:dict=None):
     """
@@ -1251,7 +1266,7 @@ def project_url_to_name_boinc(url:str,project_names:dict=None):
         if canonical_url in project_url or canonical_url==project_url:
             return name
     return url
-def project_url_to_name(url:str,project_names:dict=None):
+def project_url_to_name(url:str,project_names:Dict[str,str]=None):
     """
 
     @param url: URL of a BOINC project

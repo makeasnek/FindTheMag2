@@ -151,6 +151,24 @@ if not GRIDCOIN_DATA_DIR:
     else:
         GRIDCOIN_DATA_DIR = os.path.join(Path.home(), 'AppData\Roaming\GridcoinResearch\\')
 
+class BOINCLogMessage:
+    """
+    A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently quite barebones.
+    """
+    def __init__(self, regex:str):
+        self.regex=re.compile(regex)
+    def ignore_cache(self)->bool:
+        """
+        Returns True if this message can be ignored when checking log entries for cache status
+        @return:
+        """
+        return True
+    def ignore_backoff(self)->bool:
+        """
+        Returns True if this message can be ignored when checking log entries for backoff information
+        @return:
+        """
+        return True
 class GridcoinClientConnection:
     """
     A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently quite barebones.
@@ -1559,6 +1577,11 @@ async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client)->None:
             log.error('Error ending task: {}: {}'.format(task,e))
 
 async def nnt_all_projects(rpc_client: libs.pyboinc.rpc_client)->None:
+    """
+    NNT all projects, return when done or if encountered errors
+    @param rpc_client:
+    @return:
+    """
     try:
         project_status_reply = await rpc_client.get_project_status()
         found_projects = []
@@ -1573,32 +1596,10 @@ async def nnt_all_projects(rpc_client: libs.pyboinc.rpc_client)->None:
     except Exception as e:
         log.error('Error NNTing all projects: {}'.format(e))
 def ignore_message_from_check_log_entries(message):
-    ignore_phrases=[
-        'work fetch resumed by user',
-        'update requested by user',
-        'sending scheduler request',
-        'scheduler request completed',
-        'project requested delay',
-        'work fetch suspended by user',
-        'Started download of',
-        'Finished download of',
-        'Starting task',
-        'Requesting new tasks'
-        'last request too recent'
-        'master file download succeeded',
-        'No tasks sent',
-        'Requesting new tasks for',
-        'no tasks are available for',
-        'computation for task',
-        'started upload of',
-        'finished upload of',
-        'This computer has reached a limit on tasks in progress',
-        'Upgrade to the latest driver to process tasks using your computer\'s GPU',
-        'project has no tasks available'
-    ]
+    ignore_phrases=['WORK FETCH RESUMED BY USER', 'UPDATE REQUESTED BY USER', 'SENDING SCHEDULER REQUEST', 'SCHEDULER REQUEST COMPLETED', 'PROJECT REQUESTED DELAY', 'WORK FETCH SUSPENDED BY USER', 'STARTED DOWNLOAD OF', 'FINISHED DOWNLOAD OF', 'STARTING TASK', 'REQUESTING NEW TASKSLAST REQUEST TOO RECENTMASTER FILE DOWNLOAD SUCCEEDED', 'NO TASKS SENT', 'REQUESTING NEW TASKS FOR', 'NO TASKS ARE AVAILABLE FOR', 'COMPUTATION FOR TASK', 'STARTED UPLOAD OF', 'FINISHED UPLOAD OF', 'THIS COMPUTER HAS REACHED A LIMIT ON TASKS IN PROGRESS', "UPGRADE TO THE LATEST DRIVER TO PROCESS TASKS USING YOUR COMPUTER'S GPU", 'PROJECT HAS NO TASKS AVAILABLE']
     uppered_message=str(message).upper()
     for phrase in ignore_phrases:
-        if phrase.upper() in uppered_message:
+        if phrase in uppered_message:
             return True
     if 'UP TO' in uppered_message and 'NEEDS' in uppered_message and 'IS AVAILABLE FOR USE' in uppered_message and 'BUT ONLY' in uppered_message:
         return True
@@ -1680,26 +1681,11 @@ def project_backoff(project_name:str,messages)->bool:
         """
         #Phrases which indicate project SHOULD be backed off
         # removed 'project requested delay' from positive phrases because projects always provide this, even if work was provided!
-        positive_phrases=['project has no tasks available','scheduler request failed','no tasks sent','last request too recent','An NVIDIA GPU is required to run tasks for this project']
+        positive_phrases=['PROJECT HAS NO TASKS AVAILABLE','SCHEDULER REQUEST FAILED','NO TASKS SENT','LAST REQUEST TOO RECENT','AN NVIDIA GPU IS REQUIRED TO RUN TASKS FOR THIS PROJECT']
         # Phrases which indicate project SHOULD NOT be backed off
-        negative_phrases=["Not requesting tasks: don't need",'started download','Finished download of']
+        negative_phrases=["NOT REQUESTING TASKS: DON'T NEED",'STARTED DOWNLOAD','FINISHED DOWNLOAD OF']
         # Phrases which indicate we can skip this log entry
-        ignore_phrases = [
-            'work fetch resumed by user',
-            'update requested by user',
-            'work fetch suspended by user',
-            'Starting task',
-            'Requesting new tasks',
-            'sending scheduler request',
-            'scheduler request completed',
-            'started upload',
-            'finished upload',
-            'master file download succeeded',
-            'fetching scheduler list',
-            'Upgrade to the latest driver to process tasks using your computer\'s GPU',
-            'not started and deadline has passed',
-            'Project requested delay of'
-        ]
+        ignore_phrases = ['WORK FETCH RESUMED BY USER', 'UPDATE REQUESTED BY USER', 'WORK FETCH SUSPENDED BY USER', 'STARTING TASK', 'REQUESTING NEW TASKS', 'SENDING SCHEDULER REQUEST', 'SCHEDULER REQUEST COMPLETED', 'STARTED UPLOAD', 'FINISHED UPLOAD', 'MASTER FILE DOWNLOAD SUCCEEDED', 'FETCHING SCHEDULER LIST', "UPGRADE TO THE LATEST DRIVER TO PROCESS TASKS USING YOUR COMPUTER'S GPU", 'NOT STARTED AND DEADLINE HAS PASSED', 'PROJECT REQUESTED DELAY OF']
         uppered_project = project_name.upper()
         for message in messages:
             uppered_body=message['body'].upper()
@@ -1712,11 +1698,11 @@ def project_backoff(project_name:str,messages)->bool:
             if backoff_ignore_message(message,ignore_phrases):
                 continue
             for phrase in positive_phrases:
-                if phrase.upper() in uppered_body:
+                if phrase in uppered_body:
                     log.debug('Backing off {} bc {} in logs'.format(project_name, phrase))
                     return True
             for phrase in negative_phrases:
-                if phrase.upper() in uppered_body:
+                if phrase in uppered_body:
                     return False
             if 'NEEDS' in uppered_body and 'BUT ONLY' in uppered_body and 'IS AVAILABLE FOR USE' in uppered_body:
                 log.debug('Backing off {} bc NEEDS BUT ONLY AVAILABLE FOR USE in logs'.format(project_name), 'DEBUG')
@@ -1730,7 +1716,7 @@ def backoff_ignore_message(message:Dict[str,Any],ignore_phrases:List[str])->bool
     """
     uppered=str(message['body']).upper()
     for phrase in ignore_phrases:
-        if phrase.upper() in uppered:
+        if phrase in uppered:
             return True
     if 'GOT' in uppered and 'NEW TASKS' in uppered:
         return True

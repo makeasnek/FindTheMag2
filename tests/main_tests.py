@@ -444,3 +444,11 @@ def test_get_avg_mag_hr():
     }
     result=main.get_avg_mag_hr(combined_stats)
     assert result==2
+@pytest.fixture()
+def test_json_default():
+    return_dict=main.json_default(datetime.datetime.now())
+    assert isinstance(return_dict,dict)
+def test_object_hook(test_json_default):
+    return_dict=main.json_default(datetime.datetime.now())
+    result=main.object_hook(return_dict)
+    assert isinstance(result,datetime.datetime)

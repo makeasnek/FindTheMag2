@@ -362,28 +362,37 @@ def test_center_align():
     assert result=='      '
 def test_ignore_message_from_check_log_entries():
     assert main.ignore_message_from_check_log_entries('WORK FETCH SUSPENDED BY USERS')
+def make_fake_boinc_log_entry(messages:List[str],project:str)->List[Dict[str,str]]:
+    return_list=[]
+    for message in messages:
+        now=datetime.datetime.now()
+        append_message=str(now)+' | '+ project +' | '+message
+        return_dict={
+            'time':now,
+            'body':append_message,
+            'project':project
+        }
+        return_list.append(return_dict)
+    return return_list
 def test_cache_full():
-    def make_fake_boinc_log_entry(messages:List[str],project:str)->List[Dict[str,str]]:
-        return_list=[]
-        for message in messages:
-            now=datetime.datetime.now()
-            append_message=str(now)+' | '+ project +' | '+message
-            return_dict={
-                'time':now,
-                'body':append_message,
-                'project':project
-            }
-            return_list.append(return_dict)
-        return return_list
-
-
     # check it realizes both caches full
     messages=['testproject CPU: JOB CACHE FULL',"TESTPROJECT NOT REQUESTING TASKS: DON'T NEED (JOB CACHE FULL)","testproject GPU: JOB CACHE FULL","testproject: GPUS NOT USABLE"]
     test_messages=make_fake_boinc_log_entry(messages,'testproject')
     assert main.cache_full('testproject',test_messages)
+    # make sure it's not counting other projects
+    messages = ['testproject CPU: JOB CACHE FULL', "TESTPROJECT NOT REQUESTING TASKS: DON'T NEED (JOB CACHE FULL)",
+                "testproject GPU: JOB CACHE FULL", "testproject: GPUS NOT USABLE"]
+    test_messages = make_fake_boinc_log_entry(messages, 'testproject')
+    assert not main.cache_full('anotherproject', test_messages)
     # check it realizes cpu is full on system w no gpu
     messages=["NOT REQUESTING TASKS: DON'T NEED ()",'CPU: JOB CACHE FULL']
     test_messages = make_fake_boinc_log_entry(messages, 'testproject')
     assert main.cache_full('testproject', test_messages)
-
+def test_project_backoff():
+    messages = ['PROJECT HAS NO TASKS AVAILABLE','SCHEDULER REQUEST FAILED']
+    test_messages = make_fake_boinc_log_entry(messages, 'testproject')
+    assert main.project_backoff('testproject', test_messages)
+    messages = ["NOT REQUESTING TASKS: DON'T NEED", 'STARTED DOWNLOAD']
+    test_messages = make_fake_boinc_log_entry(messages, 'testproject')
+    assert not main.project_backoff('testproject', test_messages)
 

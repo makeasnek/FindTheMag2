@@ -1425,7 +1425,7 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
     final_project_weights = {}
     dev_project_weights = {}
     # Canonicalize preferred_projects list
-    for url in list(preferred_projects.keys()):
+    for url in preferred_projects.keys():
         weight=preferred_projects[url]
         del preferred_projects[url]
         canonicalized=resolve_url_database(url)
@@ -1516,10 +1516,24 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
         final_project_weights[project_url] += intended_weight
     return combined_stats,final_project_weights,total_preferred_weight,total_mining_weight,dev_project_weights
 async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client)->None:
-    task_list=get_task_list(rpc_client)
+    """
+    Attempts to kill unstarted tasks, returns None if encounters problems
+    @param rpc_client:
+    @return:
+    """
+    task_list=None
+    project_status_reply=None
+    try:
+        task_list=get_task_list(rpc_client)
+    except Exception as e:
+        log.error('Error getting task list from BOINC: {}'.format(e))
     if not isinstance(task_list,list):
         return
-    project_status_reply = await rpc_client.get_project_status()
+    try:
+        project_status_reply = await rpc_client.get_project_status()
+    except Exception as e:
+        log.error('Error getting projectstatusreply: {}'.format(e))
+        return
     found_projects = [] # DEBUG ADDED TYPE THIS CORRECTLY
     for task in task_list:
         try:

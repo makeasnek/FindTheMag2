@@ -327,3 +327,38 @@ def test_get_project_mag_ratios():
     grc_projects={'Amicable_Numbers': {'version': 2, 'display_name': 'Amicable Numbers', 'url': 'https://sech.me/boinc/Amicable/@', 'base_url': 'https://sech.me/boinc/Amicable/', 'display_url': 'https://sech.me/boinc/Amicable/', 'stats_url': 'https://sech.me/boinc/Amicable/stats/', 'gdpr_controls': False, 'time': '2023-07-14 10:58:32 UTC'}, 'asteroids@home': {'version': 2, 'display_name': 'asteroids@home', 'url': 'https://asteroidsathome.net/boinc/@', 'base_url': 'https://asteroidsathome.net/boinc/', 'display_url': 'https://asteroidsathome.net/boinc/', 'stats_url': 'https://asteroidsathome.net/boinc/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:01:32 UTC'}, 'einstein@home': {'version': 2, 'display_name': 'einstein@home', 'url': 'https://einstein.phys.uwm.edu/@', 'base_url': 'https://einstein.phys.uwm.edu/', 'display_url': 'https://einstein.phys.uwm.edu/', 'stats_url': 'https://einstein.phys.uwm.edu/stats/', 'gdpr_controls': True, 'time': '2023-07-14 11:04:33 UTC'}, 'folding@home': {'version': 2, 'display_name': 'folding@home', 'url': 'https://foldingathome.div72.xyz/@', 'base_url': 'https://foldingathome.div72.xyz/', 'display_url': 'https://foldingathome.div72.xyz/', 'stats_url': 'https://foldingathome.div72.xyz/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:07:33 UTC'}, 'milkyway@home': {'version': 2, 'display_name': 'milkyway@home', 'url': 'https://milkyway.cs.rpi.edu/milkyway/@', 'base_url': 'https://milkyway.cs.rpi.edu/milkyway/', 'display_url': 'https://milkyway.cs.rpi.edu/milkyway/', 'stats_url': 'https://milkyway.cs.rpi.edu/milkyway/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:10:33 UTC'}, 'nfs@home': {'version': 2, 'display_name': 'nfs@home', 'url': 'https://escatter11.fullerton.edu/nfs/@', 'base_url': 'https://escatter11.fullerton.edu/nfs/', 'display_url': 'https://escatter11.fullerton.edu/nfs/', 'stats_url': 'https://escatter11.fullerton.edu/nfs/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:13:34 UTC'}, 'numberfields@home': {'version': 2, 'display_name': 'numberfields@home', 'url': 'https://numberfields.asu.edu/NumberFields/@', 'base_url': 'https://numberfields.asu.edu/NumberFields/', 'display_url': 'https://numberfields.asu.edu/NumberFields/', 'stats_url': 'https://numberfields.asu.edu/NumberFields/stats/', 'gdpr_controls': True, 'time': '2023-07-14 11:16:34 UTC'}, 'odlk1': {'version': 2, 'display_name': 'odlk1', 'url': 'https://boinc.multi-pool.info/latinsquares/@', 'base_url': 'https://boinc.multi-pool.info/latinsquares/', 'display_url': 'https://boinc.multi-pool.info/latinsquares/', 'stats_url': 'https://boinc.multi-pool.info/latinsquares/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:19:35 UTC'}, 'rosetta@home': {'version': 2, 'display_name': 'rosetta@home', 'url': 'https://boinc.bakerlab.org/rosetta/@', 'base_url': 'https://boinc.bakerlab.org/rosetta/', 'display_url': 'https://boinc.bakerlab.org/rosetta/', 'stats_url': 'https://boinc.bakerlab.org/rosetta/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:22:35 UTC'}, 'SiDock@home': {'version': 2, 'display_name': 'SiDock@home', 'url': 'https://www.sidock.si/sidock/@', 'base_url': 'https://www.sidock.si/sidock/', 'display_url': 'https://www.sidock.si/sidock/', 'stats_url': 'https://www.sidock.si/sidock/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:25:35 UTC'}, 'SRBase': {'version': 2, 'display_name': 'SRBase', 'url': 'https://srbase.my-firewall.org/sr5/@', 'base_url': 'https://srbase.my-firewall.org/sr5/', 'display_url': 'https://srbase.my-firewall.org/sr5/', 'stats_url': 'https://srbase.my-firewall.org/sr5/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:28:36 UTC'}, 'TN-Grid': {'version': 2, 'display_name': 'TN-Grid', 'url': 'https://gene.disi.unitn.it/test/@', 'base_url': 'https://gene.disi.unitn.it/test/', 'display_url': 'https://gene.disi.unitn.it/test/', 'stats_url': 'https://gene.disi.unitn.it/test/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:31:36 UTC'}, 'universe@home': {'version': 2, 'display_name': 'universe@home', 'url': 'https://universeathome.pl/universe/@', 'base_url': 'https://universeathome.pl/universe/', 'display_url': 'https://universeathome.pl/universe/', 'stats_url': 'https://universeathome.pl/universe/stats/', 'gdpr_controls': True, 'time': '2023-07-14 11:34:36 UTC'}, 'World_Community_Grid': {'version': 2, 'display_name': 'World Community Grid', 'url': 'https://www.worldcommunitygrid.org/boinc/@', 'base_url': 'https://www.worldcommunitygrid.org/boinc/', 'display_url': 'https://www.worldcommunitygrid.org/', 'stats_url': 'https://www.worldcommunitygrid.org/boinc/stats/', 'gdpr_controls': True, 'time': '2023-07-14 11:37:37 UTC'}, 'yoyo@home': {'version': 2, 'display_name': 'yoyo@home', 'url': 'https://www.rechenkraft.net/yoyo/@', 'base_url': 'https://www.rechenkraft.net/yoyo/', 'display_url': 'https://www.rechenkraft.net/yoyo/', 'stats_url': 'https://www.rechenkraft.net/yoyo/stats/', 'gdpr_controls': False, 'time': '2023-07-14 11:40:37 UTC'}}
     answer=main.get_project_mag_ratios(None,30,grc_response,grc_projects)
     assert answer==expected_answer
+def test_left_align():
+    my_string='test'
+    total_len=10
+    # test padding of one
+    min_pad=1
+    result=main.left_align(my_string,total_len,min_pad)
+    assert result=='test      '
+    # test padding of zero
+    min_pad = 0
+    result = main.left_align(my_string, total_len, min_pad)
+    assert result=='test      '
+    # test padding > total_len
+    total_len = 5
+    min_pad = 2
+    result = main.left_align(my_string, total_len, min_pad)
+    assert result=='tes  '
+def test_center_align():
+    my_string='test'
+    total_len=10
+    # test padding of one
+    min_pad=1
+    result=main.center_align(my_string,total_len,min_pad)
+    assert result=='   test   '
+    # test string+pad>total_len
+    total_len=9
+    min_pad = 3
+    result = main.center_align(my_string, total_len, min_pad)
+    assert result == '   tes   '
+    # test padding > total_len
+    total_len = 6
+    min_pad = 3
+    result = main.center_align(my_string, total_len, min_pad)
+    assert result=='      '
+
+

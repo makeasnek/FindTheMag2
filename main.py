@@ -1268,7 +1268,7 @@ def project_url_to_name_boinc(url:str,project_names:dict=None):
     return url
 def project_url_to_name(url:str,project_names:Dict[str,str]=None):
     """
-
+    Low importance function only used when printing table. Don't use for anything else!
     @param url: URL of a BOINC project
     @param project_names: project names db from BOINC
     @return: human-readable project name
@@ -1285,21 +1285,23 @@ def project_url_to_name(url:str,project_names:Dict[str,str]=None):
 def left_align(yourstring:str,total_len:int,min_pad:int=0)->str:
     """
     Return left-aligned string with a total len of X and min_padding (extra space on right side) of min_pad, cutting off string if needed
-    If min_pad==1, it looks like this ' yourstring '
+    If min_pad==1, it looks like this 'yourstring '
     """
     if len(yourstring)>=total_len-min_pad:
         yourstring=yourstring[0:total_len-(min_pad)]
     space_left=total_len-(len(yourstring)+min_pad)
-    right_pad = ' ' * space_left
+    right_pad = ' ' * (space_left+min_pad)
     return yourstring+right_pad
 def center_align(yourstring:str,total_len:int,min_pad:int=0)->str:
     """
     Return center-aligned string with a total len of X and min_padding (extra space on right & left side) of min_pad, cutting off string if needed
-    If min_pad==1, it looks like this ' yourstring '
+    If min_pad==1, it looks like this ' yourstring '. If padding can't be equal on both sides, add +1 to right side
     """
-    if len(yourstring)>=total_len-min_pad:
-        yourstring=yourstring[0:total_len-(min_pad)]
-    space_left=total_len-(len(yourstring)+min_pad)
+    total_min_pad=min_pad*2
+    room_for_string=total_len-total_min_pad
+    if len(yourstring)>=room_for_string:
+        yourstring=yourstring[0:room_for_string]
+    space_left=total_len-len(yourstring)
     left_pad=' '*floor(space_left/2)
     right_pad = ' ' * ceil(space_left/2)
     return left_pad+yourstring+right_pad

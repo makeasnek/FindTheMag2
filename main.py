@@ -1622,7 +1622,10 @@ def cache_full(project_name:str,messages)->bool:
             continue
         uppered_message_body=message['body'].upper()
         if uppered_project==message['project'].upper():
-            if "Not requesting tasks: don't need".upper() in uppered_message_body:
+            if "CPU: JOB CACHE FULL" in uppered_message_body or "NOT REQUESTING TASKS: DON'T NEED (JOB CACHE FULL)" in uppered_message_body:
+                cpu_full = True
+                log.debug('CPU cache appears full {}'.format(message['body']))
+            if "NOT REQUESTING TASKS: DON'T NEED".upper() in uppered_message_body:
                 if 'GPU' not in message['body'].upper():
                     gpu_full=True # if no GPU, GPU cache is always full
                 if "CPU: JOB CACHE FULL" in uppered_message_body or "NOT REQUESTING TASKS: DON'T NEED (JOB CACHE FULL)" in uppered_message_body:

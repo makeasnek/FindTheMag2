@@ -1,7 +1,7 @@
 import json
 
 import pytest,main,datetime
-
+from typing import Dict,List,Union,Any,Tuple
 def test_check_sidestake_original():
     empty={}
     assert not main.check_sidestake(empty,'a',2)
@@ -360,5 +360,30 @@ def test_center_align():
     min_pad = 3
     result = main.center_align(my_string, total_len, min_pad)
     assert result=='      '
+def test_ignore_message_from_check_log_entries():
+    assert main.ignore_message_from_check_log_entries('WORK FETCH SUSPENDED BY USERS')
+def test_cache_full():
+    def make_fake_boinc_log_entry(messages:List[str],project:str)->List[Dict[str,str]]:
+        return_list=[]
+        for message in messages:
+            now=datetime.datetime.now()
+            append_message=str(now)+' | '+ project +' | '+message
+            return_dict={
+                'time':now,
+                'body':append_message,
+                'project':project
+            }
+            return_list.append(return_dict)
+        return return_list
+
+
+    # check it realizes both caches full
+    messages=['testproject CPU: JOB CACHE FULL',"TESTPROJECT NOT REQUESTING TASKS: DON'T NEED (JOB CACHE FULL)","testproject GPU: JOB CACHE FULL","testproject: GPUS NOT USABLE"]
+    test_messages=make_fake_boinc_log_entry(messages,'testproject')
+    assert main.cache_full('testproject',test_messages)
+    # check it realizes cpu is full on system w no gpu
+    messages=["NOT REQUESTING TASKS: DON'T NEED ()",'CPU: JOB CACHE FULL']
+    test_messages = make_fake_boinc_log_entry(messages, 'testproject')
+    assert main.cache_full('testproject', test_messages)
 
 

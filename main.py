@@ -1385,7 +1385,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
         DATABASE['STARTMAGHR'], get_avg_mag_hr(COMBINED_STATS)) + addl)
     print('Hours crunched for you vs dev: {:.1f}|{:.1f} '.format(DATABASE['FTMTOTAL']/60,DATABASE['DEVTIMETOTAL']/60))
     # print final line
-    if not check_sidestake_results:
+    if not CHECK_SIDESTAKE_RESULTS:
         print('Consider donating to this app\'s development directly or via sidestake: RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K. Sidestaking means you can skip crunching for dev')
     print('Use Ctrl+C to exit FTM and return BOINC to previous config')
     print('*' * table_width)
@@ -2104,8 +2104,8 @@ def should_crunch_for_dev(dev_loop:bool) -> bool:
     if dev_loop:
         log.debug('Should not start dev crunching bc already in dev loop')
         return False
-    if check_sidestake_results:
-        log.debug('Should skip dev mode bc check_sidestake_results')
+    if CHECK_SIDESTAKE_RESULTS:
+        log.debug('Should skip dev mode bc CHECK_SIDESTAKE_RESULTS')
         return False
     if FORCE_DEV_MODE:
         log.debug('Should start dev crunching bc FORCE_DEV_MODE')
@@ -2778,7 +2778,7 @@ if __name__ == '__main__':
     ALL_BOINC_PROJECTS=loop.run_until_complete(get_all_projects(rpc_client))
 
     # Get project list from Gridcoin wallet and/or gridcoinstats, check sidestakes
-    check_sidestake_results=False
+    CHECK_SIDESTAKE_RESULTS=False
     foundation_address = 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2'
     developer_address = 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K'
     mag_ratios={} # added to prevent pycharm "may be undefined". Can't be though because the app quits if it can't be found
@@ -2804,15 +2804,15 @@ if __name__ == '__main__':
             quit()
     else:
         # Check sidestakes, prompt user to enable them if they don't exist
-        check_sidestake_results = check_sidestake(gridcoin_conf, foundation_address, 1)
-        if not SCRIPTED_RUN and not check_sidestake_results:
-            sidestake_prompt(check_sidestake_results, 'FOUNDATION', foundation_address)
-        check_sidestake_results = check_sidestake(gridcoin_conf, developer_address, 1)
-        if not SCRIPTED_RUN and not check_sidestake_results:
-            sidestake_prompt(check_sidestake_results, 'DEVELOPER', developer_address)
+        CHECK_SIDESTAKE_RESULTS = check_sidestake(gridcoin_conf, foundation_address, 1)
+        if not SCRIPTED_RUN and not CHECK_SIDESTAKE_RESULTS:
+            sidestake_prompt(CHECK_SIDESTAKE_RESULTS, 'FOUNDATION', foundation_address)
+        CHECK_SIDESTAKE_RESULTS = check_sidestake(gridcoin_conf, developer_address, 1)
+        if not SCRIPTED_RUN and not CHECK_SIDESTAKE_RESULTS:
+            sidestake_prompt(CHECK_SIDESTAKE_RESULTS, 'DEVELOPER', developer_address)
         print(
             'Welcome to FindTheMag and thank you for trying out this tool. Your feedback and suggestions are welcome on the github page : )')
-        check_sidestake_results = check_sidestake(gridcoin_conf, developer_address, 1)
+        CHECK_SIDESTAKE_RESULTS = check_sidestake(gridcoin_conf, developer_address, 1)
 
 
     # Get project list from BOINC
@@ -2857,7 +2857,7 @@ if __name__ == '__main__':
     print_and_log('FINAL SUGGESTED PROJECT WEIGHTS','INFO')
     for project,weight in FINAL_PROJECT_WEIGHTS.items():
         print_and_log(project.lower()+': '+str(weight),'INFO')
-    if check_sidestake_results:
+    if CHECK_SIDESTAKE_RESULTS:
         print('~~---***Wow THANK YOU for sidestaking to our development. You rock!***---~~~')
         print('Yeeeehaw! We\'re going to the pony store!')
         print('This also means 100% of the crunching time on this machine will be under your account, no need to crunch for developer')
@@ -2880,7 +2880,7 @@ if __name__ == '__main__':
     if not SCRIPTED_RUN:
         answer = input("")
     print_and_log('Starting control of BOINC...','DEBUG')
-    if "DARWIN" in FOUND_PLATFORM.upper() and not check_sidestake_results:
+    if "DARWIN" in FOUND_PLATFORM.upper() and not CHECK_SIDESTAKE_RESULTS:
         print_and_log('Sidestaking must be setup for BOINC control on OS X as "crunch for dev" is not an option. Re-run the script to set this up.','ERROR')
         quit()
 

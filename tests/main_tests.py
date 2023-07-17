@@ -452,3 +452,23 @@ def test_object_hook(test_json_default):
     return_dict=main.json_default(datetime.datetime.now())
     result=main.object_hook(return_dict)
     assert isinstance(result,datetime.datetime)
+def test_should_crunch_for_dev():
+    # should return false is in dev loop
+    assert not main.should_crunch_for_dev(True)
+    # should return false if user is sidestaking
+    main.CHECK_SIDESTAKE_RESULTS=True
+    assert not main.should_crunch_for_dev(False)
+    # should return True if dev mode forced
+    main.CHECK_SIDESTAKE_RESULTS = False
+    main.FORCE_DEV_MODE=True
+    assert main.should_crunch_for_dev(False)
+    # should return True if due to crunch
+    main.FORCE_DEV_MODE = False
+    main.DATABASE['FTMTOTAL']=10000*60
+    main.DATABASE['DEVTIMETOTAL']=1*60
+    assert main.should_crunch_for_dev(False)
+    # should return True if not due to crunch
+    main.FORCE_DEV_MODE = False
+    main.DATABASE['FTMTOTAL'] = 98*60
+    main.DATABASE['DEVTIMETOTAL'] = 1*60
+    assert not main.should_crunch_for_dev(False)

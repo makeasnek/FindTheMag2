@@ -1715,7 +1715,7 @@ def project_backoff(project_name:str,messages)->bool:
         return False
 def backoff_ignore_message(message:Dict[str,Any],ignore_phrases:List[str])->bool:
     """
-    Returns True is message can be ignored while checking for backoffs. False otherwise
+    Returns True if message can be ignored while checking for backoffs. False otherwise
     """
     uppered=str(message['body']).upper()
     for phrase in ignore_phrases:
@@ -1763,16 +1763,19 @@ async def get_all_projects(rpc_client: libs.pyboinc.rpc_client)->Dict[str, str]:
     project_names['https://gene.disi.unitn.it/test/']='TN-Grid' # added bc BOINC client does not list this project for some reason
     return project_names
 async def get_attached_projects(rpc_client: libs.pyboinc.rpc_client)->Tuple[List[str], Dict[str, str]]:
-    project_status_reply = await rpc_client.get_project_status()
-    found_projects = []
-    project_names={}
-    for project in project_status_reply:
-        found_projects.append(project.master_url)
-        if isinstance(project.project_name,bool): # this happens if project is "attached" but unable to communicate w project due to it being down or some other issue
-            project_names[project.master_url] = project.master_url
-        else:
-            project_names[project.master_url]=project.project_name
-    return found_projects,project_names
+    try:
+        project_status_reply = await rpc_client.get_project_status()
+        found_projects = []
+        project_names={}
+        for project in project_status_reply:
+            found_projects.append(project.master_url)
+            if isinstance(project.project_name,bool): # this happens if project is "attached" but unable to communicate w project due to it being down or some other issue
+                project_names[project.master_url] = project.master_url
+            else:
+                project_names[project.master_url]=project.project_name
+        return found_projects,project_names
+    except Exception as e:
+        log.error('Error in get_attached_projects {}'.format(e))
 async def verify_boinc_connection(rpc_client:libs.pyboinc.rpc_client)->bool:
     """
     Checks if a BOINC client can be connected to and authorized.
@@ -1788,44 +1791,57 @@ async def verify_boinc_connection(rpc_client:libs.pyboinc.rpc_client)->bool:
     except Exception as e:
         log.error('Error connecting to BOINC in verify_boinc_connection: {}'.format(e))
         return False
-async def prefs_check(rpc_client: libs.pyboinc.rpc_client)->dict:
+async def prefs_check(rpc_client: libs.pyboinc.rpc_client,global_prefs:dict=None,disk_usage:dict=None,testing:bool=False)->bool:
     """
     Check that BOINC is configured in the way FTM needs. Currently checks disk usage settings and network settings,
-    warns user and quits if they are not correct.
+    warns user and quits if they are not correct. Also returns True is tests pass, false otherwise
+    : global_prefs : for testing only
+    : disk usage : for testing only
     """
     # authorize BOINC client
     authorize_response = await rpc_client.authorize()
     # get prefs
-    req = ET.Element('get_global_prefs_working')
-    response = await rpc_client._request(req)
-    parsed = parse_generic(response)  # returns True if successful
-    # get actual disk usage
-    req = ET.Element('get_disk_usage')
-    response = await rpc_client._request(req)
-    usage = parse_generic(response)  # returns True if successful
-    max_gb=int(float(parsed.get('disk_max_used_gb',0)))
-    used_max_gb=int(int(usage['d_allowed'])/1024/1024/1024)
+    return_val=True
+    if not global_prefs:
+        req = ET.Element('get_global_prefs_working')
+        response = await rpc_client._request(req)
+        parsed = parse_generic(response)  # returns True if successful
+        global_prefs=parsed
+    if not disk_usage:
+        # get actual disk usage
+        req = ET.Element('get_disk_usage')
+        response = await rpc_client._request(req)
+        usage = parse_generic(response)  # returns True if successful
+        disk_usage=usage
+    max_gb=int(float(global_prefs.get('disk_max_used_gb',0)))
+    used_max_gb=int(int(disk_usage['d_allowed'])/1024/1024/1024)
     if (max_gb<10 and max_gb!=0) or used_max_gb<9.5:
-        print("BOINC is configured to use less than 10GB, this tool will not run with <10GB allocated in order to prevent requesting base project files from projects too often.")
-        log.error("BOINC is configured to use less than 10GB, this tool will not run with <10GB allocated in order to prevent requesting base project files from projects too often.")
-        print('If you have configured BOINC to be able to use >=10GB and still get this message, it is because you are low on disk space and BOINC is responding to settings such as "don\'t use greater than X% of space" or "leave x% free"')
-        log.error(
-            'If you have configured BOINC to be able to use >=10GB and still get this message, it is because you are low on disk space and BOINC is responding to settings such as "don\'t use greater than X% of space" or "leave x% free"')
-        print('Press enter to quit')
-        input()
-        quit()
-    net_start_hour=int(float(parsed['net_start_hour']))+int(float(parsed['net_end_hour']))
+        if not testing:
+            print("BOINC is configured to use less than 10GB, this tool will not run with <10GB allocated in order to prevent requesting base project files from projects too often.")
+            log.error("BOINC is configured to use less than 10GB, this tool will not run with <10GB allocated in order to prevent requesting base project files from projects too often.")
+            print('If you have configured BOINC to be able to use >=10GB and still get this message, it is because you are low on disk space and BOINC is responding to settings such as "don\'t use greater than X% of space" or "leave x% free"')
+            log.error(
+                'If you have configured BOINC to be able to use >=10GB and still get this message, it is because you are low on disk space and BOINC is responding to settings such as "don\'t use greater than X% of space" or "leave x% free"')
+            print('Press enter to quit')
+            input()
+            quit()
+        else:
+            return_val=False
+    net_start_hour=int(float(global_prefs['net_start_hour']))+int(float(global_prefs['net_end_hour']))
     if net_start_hour!=0:
-        print(
+        if not testing:
+            print(
             'You have BOINC configured to only access the network at certain times, this tool requires constant '
             'internet availability.')
-        log.error(
-            'You have BOINC configured to only access the network at certain times, this tool requires constant '
-            'internet availability.')
-        print('Press enter to quit')
-        input()
-        quit()
-    return parsed
+            log.error(
+                'You have BOINC configured to only access the network at certain times, this tool requires constant '
+                'internet availability.')
+            print('Press enter to quit')
+            input()
+            quit()
+        else:
+            return_val=False
+    return return_val
 def get_highest_priority_project(combined_stats:dict,project_weights:Dict[str,int],min_recheck_time=min_recheck_time,attached_projects:Set[str]=None,quiet:bool=False)->Tuple[List[str],Dict[str,float]]:
     """
     Given STATS, return list of projects sorted by priority. Note that "benchmark" projects are compared to TOTAL time

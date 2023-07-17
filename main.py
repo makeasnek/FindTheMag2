@@ -150,25 +150,6 @@ if not GRIDCOIN_DATA_DIR:
         GRIDCOIN_DATA_DIR = os.path.join(Path.home(), 'Library/Application Support/GridcoinResearch/')
     else:
         GRIDCOIN_DATA_DIR = os.path.join(Path.home(), 'AppData\Roaming\GridcoinResearch\\')
-
-class BOINCLogMessage:
-    """
-    A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently quite barebones.
-    """
-    def __init__(self, regex:str):
-        self.regex=re.compile(regex)
-    def ignore_cache(self)->bool:
-        """
-        Returns True if this message can be ignored when checking log entries for cache status
-        @return:
-        """
-        return True
-    def ignore_backoff(self)->bool:
-        """
-        Returns True if this message can be ignored when checking log entries for backoff information
-        @return:
-        """
-        return True
 class GridcoinClientConnection:
     """
     A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently quite barebones.

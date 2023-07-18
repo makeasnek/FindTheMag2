@@ -2307,8 +2307,10 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if ((abs(mag_fetch_delta.days) * 24 * 60) + (abs(mag_fetch_delta.seconds) / 60)) > 1442:  # only re-check mag once a day:
             if MAG_RATIO_SOURCE=='WALLET':
                 MAG_RATIOS=get_project_mag_ratios(grc_client,LOOKBACK_PERIOD)
+                log.debug('Fetched MAG RATIOS from wallet, answer is: {}'.format(MAG_RATIOS))
             elif MAG_RATIO_SOURCE=='WEB':
                 MAG_RATIOS=get_project_mag_ratios_from_url(LOOKBACK_PERIOD)
+                log.debug('Fetched MAG RATIOS from web, answer is: {}'.format(MAG_RATIOS))
         if ((abs(stats_calc_delta.days)*24*60)+(abs(stats_calc_delta.seconds)/60)) > RECALCULATE_STATS_INTERVAL: #only re-calculate stats every x minutes
             log.debug('Calculating stats..')
             DATABASE['STATSLASTCALCULATED'] = datetime.datetime.now()

@@ -18,7 +18,6 @@ REPLY_TAG = "boinc_gui_rpc_reply"
 REQUEST_TAG = "boinc_gui_rpc_request"
 END_OF_MESSAGE = b"\x03"
 BOINC_ENCODING = "ISO-8859-1"
-PYTHON_VER=sys.version_info
 
 class _RPCClientRaw:
     """
@@ -47,10 +46,7 @@ class _RPCClientRaw:
         """
         req = ET.Element(REQUEST_TAG)
         req.append(request)
-        if PYTHON_VER.major>=3 and PYTHON_VER.minor<8:
-            req_str = ET.tostring(req, encoding=BOINC_ENCODING, short_empty_elements=True)
-        else:
-            req_str = ET.tostring(req, encoding=BOINC_ENCODING, xml_declaration=False, short_empty_elements=True)
+        req_str = ET.tostring(req, encoding=BOINC_ENCODING, xml_declaration=False, short_empty_elements=True)
         req_str = req_str.replace(b" />", b"/>")
         await self._write(req_str)
 

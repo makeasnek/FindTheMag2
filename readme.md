@@ -32,7 +32,7 @@ to use a small portion of your processing power (total of 1% of all crunching ti
 It is strongly suggested to have the Gridcoin wallet running on your machine (fully synced). If you do not have it 
 installed, it will try to fetch statistics from gridcoinstats.eu. This is less reliable in case of network issues and 
 is limited to once per day. The wallet doesn't need any coins in it, just an up-to-date copy of the blockchain. Your
-machine also requires **python 3.8 or higher**, though earlier versions may work they are unsupported. If you just 
+machine also requires **python 3.8 or higher**, earlier versions will not work. If you just 
 installed BOINC, this tool takes about 48 hours to start working as we have to wait for projects to grant you credit 
 for your work. Though really a week's worth of data is about the minimum you'd need to get useful information from this
 tool.

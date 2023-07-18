@@ -52,6 +52,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
 
 <b>If you use this utility to directly control your BOINC crunching:</b>
  * **5% of your processing power will be donated to development**. I hope you will see that this is only a small portion of the efficiency gain that this tool brings you. And that this tool represents many hundreds of hours of work. You may set a custom dev fee in the config, but it cannot be smaller than 1%. This donated processing power is accomplished by crunching projects under the developer's login. Don't worry, all crunching power still goes towards science!
+ * **You can skip the dev fee by having a sidestake setup to the dev, which FTM will help you set up (if you want it) at first run**
  * You will see most of your project set to "no new tasks" except one, this is how FTM controls BOINC. Your "highest priority project" determined by expected crunch time vs actual (determined by project weight) will have tasks requested, and FTM will continue requesting tasks for each project until the work cache is full.
  * You can continue to use tools like BOINC Manager or BOINCTUI to monitor your crunching
  * You can stop the script at any time and regain manual control of your BOINC client, it will be reset to the settings which existed before FTM was run. This means that if you edit BOINC's preferences (such as computing preferences) while FTM is running, FTM will reset those settings upon being closed.
@@ -65,7 +66,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
  * The secondary BOINC installed used to crunch for dev will respect the same settings your normal BOINC install is set to (whether or not to use GPU, # of cores, etc)
 
 ## Quickstart instructions
-<b>For all platforms</b>: Open the `config.py` file in a text editor and change the settings you want.
+<b>For all platforms</b>: Copy the `config.py` to `user_config.py` and change the settings you want.
 <h4>Windows</h4>
 
  - Download the latest version of python from python.org. Enable the "install to system path" option while installing.
@@ -89,7 +90,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
 
 ### Notes on profitability:
 This tool can be configured to only crunch when "profitable" based on Gridcoin's latest price. In order for this calculation to work correctly, you must input 
-your local electric rates and rig wattage information into the file named `config.py`. 
+your local electric rates and rig wattage information into the config file. 
 
 When you first run the tool, it will dedicate a minimum of 10 hours (or 5 WUs whichever comes first) of crunching to each project in "benchmarking"
 mode. This is crucial to determining the profitability of a project since the amount of credit you earn on

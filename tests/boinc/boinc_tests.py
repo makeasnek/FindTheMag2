@@ -23,7 +23,7 @@ def test_BoincClientConnection():
 @pytest.fixture()
 def test_setup_connection():
     global RPC_CONNECTION_OBJECT
-    RPC_CONNECTION_OBJECT=loop.run_until_complete(main.setup_connection(config.boinc_ip,config.boinc_password,config.boinc_port))
+    RPC_CONNECTION_OBJECT=loop.run_until_complete(main.setup_connection(config.BOINC_IP, config.BOINC_PASSWORD, config.BOINC_PORT))
     assert isinstance(RPC_CONNECTION_OBJECT,libs.pyboinc.rpc_client.RPCClient)
 def test_BoincClientConnection_get_project_list(test_BoincClientConnection):
     project_list=CONNECTION_OBJECT.get_project_list()

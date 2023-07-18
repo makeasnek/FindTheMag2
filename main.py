@@ -2850,6 +2850,7 @@ if __name__ == '__main__':
         source_urls = grc_client.get_approved_project_urls()
         log.debug('Got source_urls from wallet: {}'.format(source_urls)) # TODO remove
         APPROVED_PROJECT_URLS=resolve_url_list_to_database(source_urls)
+        log.debug('Got APPROVED from wallet: {}'.format(APPROVED_PROJECT_URLS))  # TODO remove
         MAG_RATIOS = get_project_mag_ratios(grc_client, LOOKBACK_PERIOD)
         DATABASE['MAGLASTCHECKED']=datetime.datetime.now()
         log.debug('Got MAG_RATIOS from wallet at startup: {}'.format(MAG_RATIOS))
@@ -2893,7 +2894,7 @@ if __name__ == '__main__':
     except Exception as e:
         print_and_log('Error getting project URL list from BOINC '+str(e),'ERROR')
 
-    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=True, MAG_RATIOS=MAG_RATIOS)
+    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=True, mag_ratios=MAG_RATIOS)
     log.debug('Printing pretty stats...')
     # calculate starting efficiency stats
     if 'STARTMAGHR' not in DATABASE:

@@ -1379,7 +1379,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
     # print header
     ## print first line
     print('*'*table_width)
-    print('*' + center_align('FINDTHEMAG V'.format(VERSION),table_width-2)+ '*')
+    print('*' + center_align('FINDTHEMAG V{}'.format(VERSION),table_width-2)+ '*')
     print('*' * table_width)
 
     ## print rest of header

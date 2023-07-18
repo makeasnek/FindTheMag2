@@ -2320,12 +2320,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 COMBINED_STATS_DEV, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, DEV_PROJECT_WEIGHTS = generate_stats(
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
-                    attached_list=ATTACHED_PROJECT_SET, MAG_RATIOS=MAG_RATIOS)
+                    attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
             else:
                 COMBINED_STATS, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, DEV_PROJECT_WEIGHTS = generate_stats(
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
-                    attached_list=ATTACHED_PROJECT_SET, MAG_RATIOS=MAG_RATIOS)
+                    attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
             # Get list of projects ordered by priority
             highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=COMBINED_STATS,
                                                                                        project_weights=FINAL_PROJECT_WEIGHTS,
@@ -2848,10 +2848,13 @@ if __name__ == '__main__':
     try:
         grc_client = GridcoinClientConnection(rpc_user=rpc_user,rpc_port=rpc_port,rpc_password=gridcoin_rpc_password)
         source_urls = grc_client.get_approved_project_urls()
+        log.debug('Got source_urls from wallet: {}'.format(source_urls)) # TODO remove
         APPROVED_PROJECT_URLS=resolve_url_list_to_database(source_urls)
         MAG_RATIOS = get_project_mag_ratios(grc_client, LOOKBACK_PERIOD)
         DATABASE['MAGLASTCHECKED']=datetime.datetime.now()
         log.debug('Got MAG_RATIOS from wallet at startup: {}'.format(MAG_RATIOS))
+        if not MAG_RATIOS:
+            raise ConnectionError('Issues connecting with Gridcoin wallet')
     except Exception as e:
         MAG_RATIO_SOURCE = 'WEB'
         print_and_log('Unable to connect to Gridcoin wallet. Assuming it doesn\'t exist. Error: ','ERROR')

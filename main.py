@@ -104,6 +104,25 @@ GPU_MODE_DICT = {
 DEV_BOINC_PASSWORD='' # this is only used for printing to table, not used elsewhere
 DEV_LOOP_RUNNING=False
 
+def resolve_url_database(url:str)->str:
+    """
+    Given a URL or list of URLs, return the canonical version used in DATABASE and other internal references. Note that some projects operate at multiple
+    URLs. This will choose one URL and collapse all other URLs into it.
+    @param url: A url you want canonicalized
+    """
+    uppered = url.upper()
+    if uppered in LOOKUP_URL_TO_DATABASE:
+        return LOOKUP_URL_TO_DATABASE[uppered]
+    uppered = uppered.replace('HTTPS://WWW.', '')
+    uppered = uppered.replace('HTTP://WWW.', '')
+    uppered = uppered.replace('HTTPS://', '')
+    uppered = uppered.replace('HTTP://', '')
+    if uppered.startswith('WWW.'): # this is needed as WWW. may legitimately exist in a url outside of the starting portion
+        uppered = uppered.replace('WWW.', '')
+    if uppered.endswith('/'): # remove trailing slashes
+        uppered=uppered[:-1]
+    LOOKUP_URL_TO_DATABASE[url.upper()]=uppered
+    return uppered
 # import user settings from config
 try:
     from config import *
@@ -115,10 +134,6 @@ if os.path.isfile('user_config.py'):
         from user_config import * # you can ignore an unresolved reference error here in pycharm since user is expected to create this file
     except Exception as e:
         print('Error opening user_config.py, using defaults! Error is: {}'.format(e))
-# if user has no preferred projects, their % of crunching should be 0
-if len(PREFERRED_PROJECTS)==0:
-    preferred_projects_percent:float=0
-
 # setup logging
 log = logging.getLogger()
 if LOG_LEVEL== 'NONE':
@@ -131,6 +146,21 @@ else:
     handler.setFormatter(formatter)
     log.addHandler(handler)
     log.info("Start FTM log FTM version {} at {}".format(VERSION,datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")))
+
+# canonicalize URLs given to us by user
+old_preferred_projects = copy.deepcopy(PREFERRED_PROJECTS)
+PREFERRED_PROJECTS = {}
+for url, amount in old_preferred_projects.items():
+    canonicalized = resolve_url_database(url)
+    PREFERRED_PROJECTS[canonicalized] = amount
+for url in list(IGNORED_PROJECTS):
+    IGNORED_PROJECTS.remove(url)
+    canonicalized = resolve_url_database(url)
+    IGNORED_PROJECTS.append(canonicalized)
+
+# if user has no preferred projects, their % of crunching should be 0
+if len(PREFERRED_PROJECTS) == 0:
+    preferred_projects_percent: float = 0
 
 # Detect platform, guess BOINC and Gridcoin directories if needed
 FOUND_PLATFORM = platform.system()
@@ -305,25 +335,6 @@ def resolve_url_list_to_database(url_list:List[str])->List[str]:
         return_list.append(resolve_url_database(url))
     return return_list
 
-def resolve_url_database(url:str)->str:
-    """
-    Given a URL or list of URLs, return the canonical version used in DATABASE and other internal references. Note that some projects operate at multiple
-    URLs. This will choose one URL and collapse all other URLs into it.
-    @param url: A url you want canonicalized
-    """
-    uppered = url.upper()
-    if uppered in LOOKUP_URL_TO_DATABASE:
-        return LOOKUP_URL_TO_DATABASE[uppered]
-    uppered = uppered.replace('HTTPS://WWW.', '')
-    uppered = uppered.replace('HTTP://WWW.', '')
-    uppered = uppered.replace('HTTPS://', '')
-    uppered = uppered.replace('HTTP://', '')
-    if uppered.startswith('WWW.'): # this is needed as WWW. may legitimately exist in a url outside of the starting portion
-        uppered = uppered.replace('WWW.', '')
-    if uppered.endswith('/'): # remove trailing slashes
-        uppered=uppered[:-1]
-    LOOKUP_URL_TO_DATABASE[url.upper()]=uppered
-    return uppered
 def shutdown_dev_client(quiet:bool=False)->None:
     exit_loop = asyncio.get_event_loop()
     log.info('Attempting to shut down dev client at safe_exit...')

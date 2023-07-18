@@ -134,6 +134,23 @@ if os.path.isfile('user_config.py'):
         from user_config import * # you can ignore an unresolved reference error here in pycharm since user is expected to create this file
     except Exception as e:
         print('Error opening user_config.py, using defaults! Error is: {}'.format(e))
+# verify all imports are upper-cased
+for variable in dir(config):
+    if variable.startswith('__'):
+        continue
+    if str(variable)!=variable.upper():
+        error='Error: variable from config file {} is not uppercased. Make sure all variables you set are uppercased and named the same as the template in config.py'.format(variable)
+        print(error)
+        quit()
+if os.path.exists('user_config.py'):
+    for variable in dir(user_config):
+        if variable.startswith('__'):
+            continue
+        if str(variable) != variable.upper():
+            error = 'Error: variable from config file {} is not uppercased. Make sure all variables you set are uppercased and named the same as the template in config.py'.format(
+                variable)
+            print(error)
+            quit()
 # setup logging
 log = logging.getLogger()
 if LOG_LEVEL== 'NONE':

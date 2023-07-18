@@ -759,6 +759,7 @@ def get_gridcoin_config_parameters(gridcoin_dir:str)->Dict[str, str]:
     :return: All config parameters found, preferring those in the json file to the conf. Note that sidestakes become a list as there may be multiple
     """
     return_dict=dict()
+    dupes={}
     if 'gridcoinsettings.json' in os.listdir(gridcoin_dir):
         with open(os.path.join(gridcoin_dir,'gridcoinsettings.json')) as json_file:
             config_dict=json.load(json_file)
@@ -792,12 +793,19 @@ def get_gridcoin_config_parameters(gridcoin_dir:str)->Dict[str, str]:
                     return_dict['sidestake'].append(value)
                     continue
                 if key in return_dict:
-                    print('Warning: multiple values found for '+key+' in gridcoin config file at '+os.path.join(gridcoin_dir,'gridcoinresearch.conf')+' using the first one we found')
-                    log.warning('Warning: multiple values found for ' + key + ' in gridcoin config file at ' + os.path.join(
-                        gridcoin_dir, 'gridcoinresearch.conf') + ' using the first one we found')
+                    if key not in dupes:
+                        dupes[key]=set()
+                    dupes[key].add(value)
                     continue
                 if key not in return_dict:
                     return_dict[key]=value
+    for key,value in dupes.items():
+        if len(value)>1:
+            print('Warning: multiple values found for ' + key + ' in gridcoin config file at ' + os.path.join(
+                gridcoin_dir, 'gridcoinresearch.conf') + ' using the first one we found')
+            log.warning('Warning: multiple values found for ' + key + ' in gridcoin config file at ' + os.path.join(
+                gridcoin_dir, 'gridcoinresearch.conf') + ' using the first one we found')
+
     return return_dict
 
 def check_sidestake(config_params:Dict[str,Union[str,List[str]]],address:str,minval:float)->bool:
@@ -1767,7 +1775,7 @@ async def get_all_projects(rpc_client: libs.pyboinc.rpc_client)->Dict[str, str]:
         project_names[project['url']]=project['name']
     project_names['https://gene.disi.unitn.it/test/']='TN-Grid' # added bc BOINC client does not list this project for some reason
     return project_names
-async def get_attached_projects(rpc_client: libs.pyboinc.rpc_client)->Tuple[List[str], Dict[str, str]]:
+async def get_attached_projects(rpc_client: libs.pyboinc.rpc_client)->Union[Tuple[List[str], Dict[str, str]],Tuple[None,None]]:
     try:
         project_status_reply = await rpc_client.get_project_status()
         found_projects = []
@@ -1781,6 +1789,7 @@ async def get_attached_projects(rpc_client: libs.pyboinc.rpc_client)->Tuple[List
         return found_projects,project_names
     except Exception as e:
         log.error('Error in get_attached_projects {}'.format(e))
+        return None,None
 async def verify_boinc_connection(rpc_client:libs.pyboinc.rpc_client)->bool:
     """
     Checks if a BOINC client can be connected to and authorized.
@@ -2822,6 +2831,9 @@ if __name__ == '__main__':
         print_and_log('Error: Unable to connect to BOINC client, quitting now', 'ERROR')
         quit()
     temp_project_set,temp_project_names = loop.run_until_complete(get_attached_projects(rpc_client)) # get project list from BOINC client directly. This is needed for correct capitalization
+    if not temp_project_set or not temp_project_names:
+        print_and_log('Error connecting to BOINC client, unable to get project list.','ERROR')
+        quit()
     ATTACHED_PROJECT_SET.update(temp_project_set)
     combine_dicts(BOINC_PROJECT_NAMES,temp_project_names)
     ALL_BOINC_PROJECTS=loop.run_until_complete(get_all_projects(rpc_client))

@@ -20,6 +20,7 @@ DATABASE format:
 'DEVTIMETOTAL': float # total amount of minutes crunched for dev
 'FTMTOTAL': float # total amount of minutes crunched for non-dev
 'LASTUPDATECHECK':datetime.datetime # last time we checked for updates from github
+'MAGLASTCHECKED': datetime.datetime # last time we queried mag amounts
 'STATSLASTCALCULATED':datetime.datetime # last time we calculated stats
 'LASTGRIDCOINSTATSPROJECTCHECK':datetime.datetime, # last time we checked gridcoinstats for projects
 'GSPROJECTLIST':List[str] # cached project list from gridcoinstats

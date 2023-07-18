@@ -89,6 +89,7 @@ ATTACHED_PROJECT_SET_DEV=set()
 COMBINED_STATS={}
 COMBINED_STATS_DEV={}
 PROJECT_MAG_RATIOS_CACHE={}
+MAG_RATIO_SOURCE:Union[str,None]=None # VALID VALUES: WALLET|WEB
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
     1: 'always',
@@ -1236,7 +1237,8 @@ def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None
         else:
             print_and_log('Error communicating with Gridcoin wallet! {}'.format(e),'ERROR')
             return None
-    return return_dict
+    else:
+        return return_dict
 def project_url_to_name_boinc(url:str,project_names:dict=None):
     """
     Same as project_url_to_name except returns names for parsing BOINC logs
@@ -2199,6 +2201,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     global ATTACHED_PROJECT_SET
     global ATTACHED_PROJECT_SET_DEV
     global BOINC_PROJECT_NAMES
+    global MAG_RATIOS
     if dev_loop:
         mode='DEV'
     else:
@@ -2253,8 +2256,14 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 break
 
 
-        # If we haven't re-calculated stats recently enough, do it
+        # If we haven't re-calculated stats or fetched mag recently enough, do it
         stats_calc_delta = datetime.datetime.now() - DATABASE.get('STATSLASTCALCULATED',datetime.datetime(1997,3,3))
+        mag_fetch_delta = datetime.datetime.now() - DATABASE.get('MAGLASTCHECKED',datetime.datetime(1997,3,3))
+        if ((abs(mag_fetch_delta.days) * 24 * 60) + (abs(mag_fetch_delta.seconds) / 60)) > 1442:  # only re-check mag once a day:
+            if MAG_RATIO_SOURCE=='WALLET':
+                MAG_RATIOS=get_project_mag_ratios(grc_client,LOOKBACK_PERIOD)
+            elif MAG_RATIO_SOURCE=='WEB':
+                MAG_RATIOS=get_project_mag_ratios_from_url(LOOKBACK_PERIOD)
         if ((abs(stats_calc_delta.days)*24*60)+(abs(stats_calc_delta.seconds)/60)) > RECALCULATE_STATS_INTERVAL: #only re-calculate stats every x minutes
             log.debug('Calculating stats..')
             DATABASE['STATSLASTCALCULATED'] = datetime.datetime.now()
@@ -2264,12 +2273,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 COMBINED_STATS_DEV, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, DEV_PROJECT_WEIGHTS = generate_stats(
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
-                    attached_list=ATTACHED_PROJECT_SET, mag_ratios=mag_ratios)
+                    attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
             else:
                 COMBINED_STATS, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, DEV_PROJECT_WEIGHTS = generate_stats(
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
-                    attached_list=ATTACHED_PROJECT_SET,mag_ratios=mag_ratios)
+                    attached_list=ATTACHED_PROJECT_SET,mag_ratios=MAG_RATIOS)
             # Get list of projects ordered by priority
             highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=COMBINED_STATS,
                                                                                        project_weights=FINAL_PROJECT_WEIGHTS,
@@ -2785,12 +2794,13 @@ if __name__ == '__main__':
     CHECK_SIDESTAKE_RESULTS=False
     foundation_address = 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2'
     developer_address = 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K'
-    mag_ratios={} # added to prevent pycharm "may be undefined". Can't be though because the app quits if it can't be found
+    MAG_RATIOS={} # added to prevent pycharm "may be undefined". Can't be though because the app quits if it can't be found
     try:
         grc_client = GridcoinClientConnection(rpc_user=rpc_user,rpc_port=rpc_port,rpc_password=gridcoin_rpc_password)
         source_urls = grc_client.get_approved_project_urls()
         APPROVED_PROJECT_URLS=resolve_url_list_to_database(source_urls)
-        mag_ratios = get_project_mag_ratios(grc_client, LOOKBACK_PERIOD)
+        MAG_RATIOS = get_project_mag_ratios(grc_client, LOOKBACK_PERIOD)
+        DATABASE['MAGLASTCHECKED']=datetime.datetime.now()
     except Exception as e:
         print_and_log('Unable to connect to Gridcoin wallet. Assuming it doesn\'t exist. Error: ','ERROR')
         log.error('{}'.format(e))
@@ -2801,12 +2811,16 @@ if __name__ == '__main__':
         try:
             project_resolver_dict = get_approved_project_urls_web()
             APPROVED_PROJECT_URLS=resolve_url_list_to_database(list(project_resolver_dict.values()))
-            mag_ratios=get_project_mag_ratios_from_url(project_resolver_dict=project_resolver_dict)
+            MAG_RATIOS=get_project_mag_ratios_from_url(project_resolver_dict=project_resolver_dict)
+            DATABASE['MAGLASTCHECKED'] = datetime.datetime.now()
         except Exception as e:
             print_and_log('Error getting project URL list from URL. Are you sure it\'s open? Error: '+str(e),'ERROR')
             input('Press enter to exit')
             quit()
+        else:
+            MAG_RATIO_SOURCE='WEB'
     else:
+        MAG_RATIO_SOURCE='WALLET'
         # Check sidestakes, prompt user to enable them if they don't exist
         CHECK_SIDESTAKE_RESULTS = check_sidestake(gridcoin_conf, foundation_address, 1)
         if not SCRIPTED_RUN and not CHECK_SIDESTAKE_RESULTS:
@@ -2825,7 +2839,7 @@ if __name__ == '__main__':
     except Exception as e:
         print_and_log('Error getting project URL list from BOINC '+str(e),'ERROR')
 
-    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=True, mag_ratios=mag_ratios)
+    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=True, mag_ratios=MAG_RATIOS)
     log.debug('Printing pretty stats...')
     # calculate starting efficiency stats
     if 'STARTMAGHR' not in DATABASE:

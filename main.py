@@ -90,6 +90,7 @@ COMBINED_STATS={}
 COMBINED_STATS_DEV={}
 PROJECT_MAG_RATIOS_CACHE={}
 TESTING:bool=False
+PRINT_URL_LOOKUP_TABLE:Dict[str,str]={} # used to convert urls for printing to table
 MAG_RATIO_SOURCE:Union[str,None]=None # VALID VALUES: WALLET|WEB
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
@@ -1295,10 +1296,13 @@ def project_url_to_name(url:str,project_names:Dict[str,str]=None):
     if not project_names:
         project_names=BOINC_PROJECT_NAMES
     canonical_url=resolve_url_database(url)
+    if url in PRINT_URL_LOOKUP_TABLE:
+        return PRINT_URL_LOOKUP_TABLE[url]
     found=url
     for project_url,name in project_names.items():
-        if canonical_url in project_url or canonical_url==project_url:
+        if canonical_url in project_url.upper() or canonical_url==project_url.upper():
             found=name.lower().replace('@home','').replace('athome','')
+    PRINT_URL_LOOKUP_TABLE[url]=found
     return found
 
 def left_align(yourstring:str,total_len:int,min_pad:int=0)->str:
@@ -1375,7 +1379,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
     # print header
     ## print first line
     print('*'*table_width)
-    print('*' + center_align('FINDTHEMAG V2.0',table_width-2)+ '*')
+    print('*' + center_align('FINDTHEMAG V'.format(VERSION),table_width-2)+ '*')
     print('*' * table_width)
 
     ## print rest of header

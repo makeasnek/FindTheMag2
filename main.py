@@ -69,6 +69,9 @@ TEMP_REGEX= r'\d*'
 MAX_LOGFILE_SIZE_IN_MB=10
 ROLLING_WEIGHT_WINDOW=60
 LOOKBACK_PERIOD=30
+DUMP_PROJECT_WEIGHTS:bool=False # Dump weights assigned to projects
+DUMP_PROJECT_PRIORITY:bool=False # Dump weights adjusted after considering current and past crunching time
+DUMP_RAC_MAG_RATIOS:bool=False # Dump the RAC:MAG ratios from each Gridcoin project
 
 # Some globals we need. I try to have all globals be ALL CAPS
 FORCE_DEV_MODE=False # used for debugging purposes to force crunching under dev account
@@ -1249,9 +1252,10 @@ def sidestake_prompt(check_sidestake_results:bool, check_type:str, address:str)-
                 myfile.write(sidestake_entry + '\n')
     except Exception as e:
         print_and_log('Error saving sidestake settings, maybe no access to gridcoinresearch.conf? Trying to write to {} error was {}'.format(conf_file,e),'ERROR')
-def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None, lookback_period: int = 30, response:dict=None,grc_projects:Union[Dict[str,str],None]=None) -> Dict[
-    str, float]:
+def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None, lookback_period: int = 30, response:dict=None,grc_projects:Union[Dict[str,str],None]=None) -> Union[Dict[
+    str, float],None]:
     """
+    Returns project mag ratios or None if issues
     :param grc_client: Should only be None if testing
     :param lookback_period: number of superblocks to look back to determine average
     :param response: Added for testing purposes
@@ -1261,15 +1265,19 @@ def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None
     global PROJECT_MAG_RATIOS_CACHE
     projects = {}
     return_dict = None
-    mag_per_project = 0
-
     try:
         if not response:
             command_result= grc_client.run_command('superblocks', [30, True])
             response=command_result
+        if not response:
+            raise ConnectionError('Issues w superblocks command')
         if not grc_projects:
             grc_projects=grc_client.run_command('listprojects')
+        if not grc_projects:
+            raise ConnectionError('Issues w listproject command')
         return_dict=get_project_mag_ratios_from_response(response['result'],lookback_period,grc_projects)
+        if DUMP_RAC_MAG_RATIOS:
+            save_stats(return_dict,'RAC_MAG_RATIOS')
         return return_dict
     except Exception as e:
         if len(PROJECT_MAG_RATIOS_CACHE)>0:
@@ -1278,8 +1286,6 @@ def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None
         else:
             print_and_log('Error communicating with Gridcoin wallet! {}'.format(e),'ERROR')
             return None
-    else:
-        return return_dict
 def project_url_to_name_boinc(url:str,project_names:dict=None):
     """
     Same as project_url_to_name except returns names for parsing BOINC logs
@@ -2019,9 +2025,16 @@ def benchmark_check(project_url:str,combined_stats:dict,benchmarking_minimum_wus
             log.debug('Forcing WU fetch on {} due to BENCHMARKING_DELAY_IN_DAYS'.format(project_url))
             return True
     return False
-def save_stats(database:dict)->None:
-    with open('stats.json', 'w') as fp:
-        json.dump(database, fp, default=json_default)
+def save_stats(database:Any,path:str=None)->None:
+    try:
+        if not path:
+            with open('stats.json', 'w') as fp:
+                json.dump(database, fp, default=json_default)
+        else:
+            with open(path+'.txt', 'w') as fp:
+                json.dump(database, fp, default=json_default)
+    except Exception as e:
+        log.error('Error saving db {}{}'.format(path,e))
 def custom_sleep(sleep_time:float,boinc_rpc_client,dev_loop:bool=False):
     """
     A function to sleep and update the DEVTIMECOUNTER
@@ -2326,10 +2339,14 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
                     attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
+                if DUMP_PROJECT_WEIGHTS:
+                    save_stats(FINAL_PROJECT_WEIGHTS, 'RAC_MAG_RATIOS')
             # Get list of projects ordered by priority
             highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=COMBINED_STATS,
                                                                                        project_weights=FINAL_PROJECT_WEIGHTS,
                                                                                        attached_projects=ATTACHED_PROJECT_SET, quiet=True)
+            if DUMP_PROJECT_PRIORITY and not dev_loop:
+                save_stats(priority_results, 'RAC_MAG_RATIOS')
             log.debug('Highest priority projects are: '+str(highest_priority_projects))
             # print some pretty stats
             update_table(dev_loop=dev_loop)

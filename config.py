@@ -2,7 +2,7 @@
 ############## GENERAL SETTINGS. YOU SHOULD EDIT THESE ##############
 #####################################################################
 ## This is the default config.py. You can make edits here, but it is suggested to make a file "user_config.py" in this same
-## directory, copy the contents of this file there, and make edits in user_config. This way, you can update with "git pull" and not
+## directory, copy the contents of this file there, and make edits in user_config. This way, you can update FTM with "git pull" and not
 ## have your settings over-written by defaults. Settings in user_config.py always override config.py.
 
 ## Editing tip: If using "None" for a setting, it must be written as None without any quotes. Capitalization matters
@@ -22,11 +22,11 @@ IGNORED_PROJECTS=['https://foldingathome.div72.xyz/', 'http://exampleproject.com
 ##########################################################################################################################################
 ##############    PROFITABILITY SETTINGS. EDIT THESE IF YOU WANT PROFITABILITY TAKEN INTO ACCOUNT WHEN SUGGESTING WEIGHTS   ##############
 ##########################################################################################################################################
+ONLY_BOINC_IF_PROFITABLE=False # suspend BOINC completely whenever crunching is not profitable
+ONLY_MINE_IF_PROFITABLE=False # only run non-preferred projects when doing so is profitable. Benchmarking will still occur.
 LOCAL_KWH=0.1542 # your local price of energy per kwh in USD. Default: 0.1542 (US National average). You can find this on your electric bill.
 GRC_SELL_PRICE=None # the price you intend to sell your mined GRC at. Leave None to use "current price" or put in USD value of 1 GRC. This is used to determine if mining is "profitable" or not
 EXCHANGE_FEE=0 # amount to factor into "sell price" when determining profitability. For 3% put .03, for 10% put .10 etc. Default is 0
-ONLY_BOINC_IF_PROFITABLE=False # suspend BOINC completely whenever crunching is not profitable
-ONLY_MINE_IF_PROFITABLE=False # only run non-preferred projects when doing so is profitable. Benchmarking will still occur.
 HOST_POWER_USAGE=70 # estimated wattage of your mining rig at full use. Check your power supply for the maximum it can deliver and use that number if unsure. Default 70
 MIN_PROFIT_PER_HOUR=0.00 # mining is only "profitable" if it generates greater than this amount of profit in USD. Default: 0.00
 
@@ -54,6 +54,16 @@ TEMP_SLEEP_TIME=10 # If we should stop crunching due to temp, sleep this many mi
 def TEMP_FUNCTION():
     # blah blah blah your code here
     return None
+##########################################################################################################################################
+############      MONITORING OPTIONS. EDIT THESE IF YOU WANT TO KEEP AN EYE ON WHAT FTM IS DOING INTERNALLY                   ############
+##########################################################################################################################################
+# If these options are enabled, they will periodically dump the contents of some internal variables to text files in the FTM directory
+# Set to True to enable
+DUMP_PROJECT_WEIGHTS:bool=False # Dump weights assigned to projects
+DUMP_PROJECT_PRIORITY:bool=False # Dump weights adjusted after considering current and past crunching time
+DUMP_RAC_MAG_RATIOS:bool=False # Dump the RAC:MAG ratios from each Gridcoin project
+
+
 ##########################################################################################################################################
 ##############                ADVANCED SETTINGS. DO NOT EDIT THESE IF YOU DON'T UNDERSTAND THEIR IMPLICATIONS               ##############
 ##########################################################################################################################################

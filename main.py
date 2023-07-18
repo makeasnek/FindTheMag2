@@ -89,6 +89,7 @@ ATTACHED_PROJECT_SET_DEV=set()
 COMBINED_STATS={}
 COMBINED_STATS_DEV={}
 PROJECT_MAG_RATIOS_CACHE={}
+TESTING:bool=False
 MAG_RATIO_SOURCE:Union[str,None]=None # VALID VALUES: WALLET|WEB
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
@@ -121,6 +122,8 @@ def resolve_url_database(url:str)->str:
         uppered = uppered.replace('WWW.', '')
     if uppered.endswith('/'): # remove trailing slashes
         uppered=uppered[:-1]
+    if 'WORLDCOMMUNITYGRID.ORG/BOINC' in uppered:
+        uppered='WORLDCOMMUNITYGRID.ORG'
     LOOKUP_URL_TO_DATABASE[url.upper()]=uppered
     return uppered
 # import user settings from config
@@ -132,6 +135,7 @@ except Exception as e:
 if os.path.isfile('user_config.py'):
     try:
         from user_config import * # you can ignore an unresolved reference error here in pycharm since user is expected to create this file
+        import user_config
     except Exception as e:
         print('Error opening user_config.py, using defaults! Error is: {}'.format(e))
 # verify all imports are upper-cased
@@ -300,14 +304,15 @@ def resolve_url_boinc_rpc(url:str,known_attached_projects:Set[str]=None,known_at
     @param known_attached_projects: Projects BOINC is attached to
     @param known_boinc_projects: Projects BOINC knows about via default install xml file (or rpc get_all_projects which returns the same)
     """
+    original_uppered = url.upper()
+    if 'FOLDINGATHOME' in original_uppered:
+        return url
     if not known_attached_projects:
         known_attached_projects=ATTACHED_PROJECT_SET
     if not known_attached_projects_dev:
         known_attached_projects_dev=ATTACHED_PROJECT_SET_DEV
     if not known_boinc_projects:
         known_boinc_projects=ALL_PROJECT_URLS
-
-    original_uppered=url.upper()
 
     # check quick lookup tables first
     if dev_mode:
@@ -515,7 +520,6 @@ def update_fetch(update_text:str=None,current_ver:float=None)->Tuple[bool,bool,U
         resp=update_text
     else:
         resp=None
-    print('current_ver is {}'.format(current_ver))
     if not current_ver:
         current_ver=VERSION
 
@@ -613,7 +617,7 @@ def get_grc_price(sample_text:str=None)->Union[float,None]:
             log.info('Found GRC price of {} from {}'.format(answer,name))
             found_prices.append(answer)
         else:
-            DATABASE['TABLE_STATUS']='Error getting info from coinmarketcap'
+            DATABASE['TABLE_STATUS']='Error getting info from {}'.format(name)
             print_and_log('Error getting info from {}'.format(name),'ERROR')
     # Return average of all found prices
     if len(found_prices)>0:
@@ -1329,7 +1333,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
     values={}
     working_dict=copy.deepcopy(table_dict)
     # convert urls to nice names, add USD/GRC/hr
-    for url in working_dict.keys():
+    for url in list(working_dict.keys()):
         name=project_url_to_name(url,ALL_BOINC_PROJECTS)
         if not name:
             name=url
@@ -2273,12 +2277,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 else:
                     ATTACHED_PROJECT_SET.update(temp_project_list)
                 # update ALL_BOINC_PROJECTS if we find any new names
-                for url,project_name in BOINC_PROJECT_NAMES:
+                for url,project_name in BOINC_PROJECT_NAMES.items():
                     if url not in ALL_BOINC_PROJECTS:
                         ALL_BOINC_PROJECTS[url]=project_name
                         ALL_BOINC_PROJECTS[resolve_url_database(url)]=project_name
             except Exception as e:
-                print_and_log('Transient error connecting to BOINC, sleeping 30s','ERROR')
+                print_and_log('Transient error connecting to BOINC, sleeping 30s: {}','ERROR')
                 sleep(30)
             else:
                 break
@@ -2945,7 +2949,11 @@ if __name__ == '__main__':
         print('Note that you will need to restart your computer after changing your group permissions')
         answer=input('Press enter to quit')
         quit()
-    loop.run_until_complete(prefs_check(rpc_client))
+    try:
+        loop.run_until_complete(prefs_check(rpc_client,testing=TESTING))
+    except Exception as e:
+        print_and_log('Error connecting to BOINC for prefs_check. Is BOINC running?','ERROR')
+        quit()
     # NNT all projects
     nnt_response = loop.run_until_complete(nnt_all_projects(rpc_client))
     # Abort unstarted tasks if the user requested it

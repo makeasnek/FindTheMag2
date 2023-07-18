@@ -8,3 +8,4 @@
 /.idea/
 /venv/
 scratch.py
+/user_config.py

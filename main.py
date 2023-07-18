@@ -1441,7 +1441,7 @@ def in_list(my_str:str,list:List[str])->bool:
         if search_str==item.upper() or search_str in item.upper():
             return True
     return False
-def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,float]=None,ignored_projects:List[str]=None,quiet:bool=False,ignore_unattached:bool=False,attached_list:Set[str]=None,mag_ratios:Dict[str,float]=None):
+def generate_stats(APPROVED_PROJECT_URLS:List[str], preferred_projects:Dict[str,float]=None, ignored_projects:List[str]=None, quiet:bool=False, ignore_unattached:bool=False, attached_list:Set[str]=None, mag_ratios:Dict[str,float]=None):
     if not attached_list:
         attached_list=[]
     weak_stats=[]
@@ -1468,7 +1468,7 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str],preferred_projects:Dict[str,f
             if boincified_url not in ATTACHED_PROJECT_SET:
                 ignored_projects.append(project)
                 log.warning('Ignoring whitelisted project {} bc not attached'.format(project))
-    combined_stats,unapproved_projects = add_mag_to_combined_stats(combined_stats, mag_ratios, APPROVED_PROJECT_URLS,list(preferred_projects.keys()))
+    combined_stats,unapproved_projects = add_mag_to_combined_stats(combined_stats, mag_ratios, APPROVED_PROJECT_URLS, list(preferred_projects.keys()))
 
     # Detect attached projects which are not whitelisted or in PREFERRED_PROJECTS
     if len(unapproved_projects)>0:
@@ -2320,12 +2320,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 COMBINED_STATS_DEV, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, DEV_PROJECT_WEIGHTS = generate_stats(
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
-                    attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
+                    attached_list=ATTACHED_PROJECT_SET, MAG_RATIOS=MAG_RATIOS)
             else:
                 COMBINED_STATS, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, DEV_PROJECT_WEIGHTS = generate_stats(
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
-                    attached_list=ATTACHED_PROJECT_SET,mag_ratios=MAG_RATIOS)
+                    attached_list=ATTACHED_PROJECT_SET, MAG_RATIOS=MAG_RATIOS)
             # Get list of projects ordered by priority
             highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=COMBINED_STATS,
                                                                                        project_weights=FINAL_PROJECT_WEIGHTS,
@@ -2851,7 +2851,9 @@ if __name__ == '__main__':
         APPROVED_PROJECT_URLS=resolve_url_list_to_database(source_urls)
         MAG_RATIOS = get_project_mag_ratios(grc_client, LOOKBACK_PERIOD)
         DATABASE['MAGLASTCHECKED']=datetime.datetime.now()
+        log.debug('Got MAG_RATIOS from wallet at startup: {}'.format(MAG_RATIOS))
     except Exception as e:
+        MAG_RATIO_SOURCE = 'WEB'
         print_and_log('Unable to connect to Gridcoin wallet. Assuming it doesn\'t exist. Error: ','ERROR')
         log.error('{}'.format(e))
         print('It is suggested to install the Gridcoin wallet for the most up-to-date magnitude information')
@@ -2863,12 +2865,11 @@ if __name__ == '__main__':
             APPROVED_PROJECT_URLS=resolve_url_list_to_database(list(project_resolver_dict.values()))
             MAG_RATIOS=get_project_mag_ratios_from_url(project_resolver_dict=project_resolver_dict)
             DATABASE['MAGLASTCHECKED'] = datetime.datetime.now()
+            log.debug('Got MAG_RATIOS from web at startup: {}'.format(MAG_RATIOS))
         except Exception as e:
             print_and_log('Error getting project URL list from URL. Are you sure it\'s open? Error: '+str(e),'ERROR')
             input('Press enter to exit')
             quit()
-        else:
-            MAG_RATIO_SOURCE='WEB'
     else:
         MAG_RATIO_SOURCE='WALLET'
         # Check sidestakes, prompt user to enable them if they don't exist
@@ -2889,7 +2890,7 @@ if __name__ == '__main__':
     except Exception as e:
         print_and_log('Error getting project URL list from BOINC '+str(e),'ERROR')
 
-    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=True, mag_ratios=MAG_RATIOS)
+    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=True, MAG_RATIOS=MAG_RATIOS)
     log.debug('Printing pretty stats...')
     # calculate starting efficiency stats
     if 'STARTMAGHR' not in DATABASE:

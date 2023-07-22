@@ -345,8 +345,7 @@ def resolve_url_boinc_rpc(url:str,known_attached_projects:Set[str]=None,known_at
             if uppered in known_attached_project.upper():
                 LOOKUP_URL_TO_BOINC[original_uppered] = known_attached_project
                 return known_attached_project
-            else:
-                log.debug('{} not in {} in resolve_boinc_url_rpc'.format(uppered,known_attached_project.upper()))
+        log.debug('{} not in in known attached projects in resolve_url_boinc_rpc'.format(uppered))
 
     for known_boinc_project in known_boinc_projects:
         if uppered in known_boinc_project.upper():
@@ -1880,7 +1879,7 @@ def get_highest_priority_project(combined_stats:dict, project_weights:Dict[str,i
         total_xday_time+=projectstats['COMPILED_STATS']['XDAYWALLTIME']
         total_time += projectstats['COMPILED_STATS']['TOTALWALLTIME']
     #print('Calculating project weights: total time is {}'.format(total_xday_time))
-    log.debug('Calculating project weights: total time is {}'.format(total_xday_time))
+    log.debug('Calculating project weights: total windowed time is {}'.format(total_xday_time))
     for project,weight in project_weights.items():
         if not in_list(project,attached_projects):
             log.debug('skipping project bc not attached {}'.format(project))

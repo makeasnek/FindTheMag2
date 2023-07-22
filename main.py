@@ -72,6 +72,7 @@ LOOKBACK_PERIOD=30
 DUMP_PROJECT_WEIGHTS:bool=False # Dump weights assigned to projects
 DUMP_PROJECT_PRIORITY:bool=False # Dump weights adjusted after considering current and past crunching time
 DUMP_RAC_MAG_RATIOS:bool=False # Dump the RAC:MAG ratios from each Gridcoin project
+DEV_FEE_MODE:str="CRUNCH" # valid values: CRUNCH|SIDESTAKE
 
 # Some globals we need. I try to have all globals be ALL CAPS
 FORCE_DEV_MODE=False # used for debugging purposes to force crunching under dev account
@@ -95,6 +96,7 @@ PROJECT_MAG_RATIOS_CACHE={}
 TESTING:bool=False
 PRINT_URL_LOOKUP_TABLE:Dict[str,str]={} # used to convert urls for printing to table
 MAG_RATIO_SOURCE:Union[str,None]=None # VALID VALUES: WALLET|WEB
+CHECK_SIDESTAKE_RESULTS = False
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
     1: 'always',
@@ -1272,7 +1274,7 @@ def get_project_mag_ratios(grc_client: Union[GridcoinClientConnection,None]=None
         if not response:
             raise ConnectionError('Issues w superblocks command')
         if not grc_projects:
-            grc_projects=grc_client.run_command('listprojects')
+            grc_projects=grc_client.run_command('listprojects')['result']
         if not grc_projects:
             raise ConnectionError('Issues w listproject command')
         return_dict=get_project_mag_ratios_from_response(response['result'],lookback_period,grc_projects)
@@ -1436,6 +1438,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
     print('When you started using this tool, your average mag/hr was: {:.4f} now it is {:.4f}'.format(
         DATABASE['STARTMAGHR'], get_avg_mag_hr(COMBINED_STATS)) + addl)
     print('Hours crunched for you vs dev: {:.1f}|{:.1f} '.format(DATABASE['FTMTOTAL']/60,DATABASE['DEVTIMETOTAL']/60))
+    print('Dev fee mode: {}'.format(DEV_FEE_MODE.lower()))
     # print final line
     if not CHECK_SIDESTAKE_RESULTS:
         print('Consider donating to this app\'s development directly or via sidestake: RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K. Sidestaking means you can skip crunching for dev')
@@ -2340,13 +2343,13 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
                     attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
                 if DUMP_PROJECT_WEIGHTS:
-                    save_stats(FINAL_PROJECT_WEIGHTS, 'RAC_MAG_RATIOS')
+                    save_stats(FINAL_PROJECT_WEIGHTS, 'FINAL_PROJECT_WEIGHTS')
             # Get list of projects ordered by priority
             highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=COMBINED_STATS,
                                                                                        project_weights=FINAL_PROJECT_WEIGHTS,
                                                                                        attached_projects=ATTACHED_PROJECT_SET, quiet=True)
             if DUMP_PROJECT_PRIORITY and not dev_loop:
-                save_stats(priority_results, 'RAC_MAG_RATIOS')
+                save_stats(priority_results, 'PRIORITY_RESULTS')
             log.debug('Highest priority projects are: '+str(highest_priority_projects))
             # print some pretty stats
             update_table(dev_loop=dev_loop)
@@ -2858,7 +2861,6 @@ if __name__ == '__main__':
     ALL_BOINC_PROJECTS=loop.run_until_complete(get_all_projects(rpc_client))
 
     # Get project list from Gridcoin wallet and/or gridcoinstats, check sidestakes
-    CHECK_SIDESTAKE_RESULTS=False
     foundation_address = 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2'
     developer_address = 'RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K'
     MAG_RATIOS={} # added to prevent pycharm "may be undefined". Can't be though because the app quits if it can't be found
@@ -2903,6 +2905,8 @@ if __name__ == '__main__':
         print(
             'Welcome to FindTheMag and thank you for trying out this tool. Your feedback and suggestions are welcome on the github page : )')
         CHECK_SIDESTAKE_RESULTS = check_sidestake(gridcoin_conf, developer_address, 1)
+        if CHECK_SIDESTAKE_RESULTS:
+            DEV_FEE_MODE='SIDESTAKE'
 
 
     # Get project list from BOINC

@@ -914,7 +914,7 @@ async def run_rpc_command(rpc_client:libs.pyboinc.rpc_client,command:str,arg1:Un
     while current_retries<max_retries:
         current_retries+=1
         sleep(retry_wait)
-        full_command='{} {} {} {}'.format(command,arg1,arg1_val,arg2,arg2_val) # added for debugging purposes
+        full_command='{} {} {} {} {}'.format(command,arg1,arg1_val,arg2,arg2_val) # added for debugging purposes
         log.debug('Running BOINC rpc request '+full_command)
         req = ET.Element(command)
         if arg1 is not None:

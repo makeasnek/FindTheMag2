@@ -2166,12 +2166,12 @@ def should_crunch_for_dev(dev_loop:bool) -> bool:
     if dev_loop:
         log.debug('Should not start dev crunching bc already in dev loop')
         return False
-    if CHECK_SIDESTAKE_RESULTS:
-        log.debug('Should skip dev mode bc CHECK_SIDESTAKE_RESULTS')
-        return False
     if FORCE_DEV_MODE:
         log.debug('Should start dev crunching bc FORCE_DEV_MODE')
         return True
+    if CHECK_SIDESTAKE_RESULTS:
+        log.debug('Should skip dev mode bc CHECK_SIDESTAKE_RESULTS')
+        return False
     total_time_in_hours=max(DATABASE.get('FTMTOTAL', 0), 1) / 60
     dev_time_in_hours=max(DATABASE.get('DEVTIMETOTAL', 0), 1) / 60
     dev_owed_in_hours= max(.01, DEV_FEE) * total_time_in_hours

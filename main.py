@@ -110,7 +110,7 @@ GPU_MODE_DICT = {
 }
 DEV_BOINC_PASSWORD='' # this is only used for printing to table, not used elsewhere
 DEV_LOOP_RUNNING=False
-
+SAVE_STATS_DB={} # keeps cache of saved stats databases so we don't write more often than we need to
 def resolve_url_database(url:str)->str:
     """
     Given a URL or list of URLs, return the canonical version used in DATABASE and other internal references. Note that some projects operate at multiple
@@ -2027,14 +2027,32 @@ def benchmark_check(project_url:str,combined_stats:dict,benchmarking_minimum_wus
             log.debug('Forcing WU fetch on {} due to BENCHMARKING_DELAY_IN_DAYS'.format(project_url))
             return True
     return False
-def save_stats(database:Any,path:str=None)->None:
+def actual_save_stats(database:Any,path:str=None)->None:
     try:
         if not path:
             with open('stats.json', 'w') as fp:
                 json.dump(database, fp, default=json_default)
+                SAVE_STATS_DB['DATABASE'] = DATABASE
         else:
-            with open(path+'.txt', 'w') as fp:
+            with open(path + '.txt', 'w') as fp:
                 json.dump(database, fp, default=json_default)
+                SAVE_STATS_DB[path]=database
+    finally:
+        return
+def save_stats(database:Any,path:str=None)->None:
+    try:
+        if not path:
+            if 'DATABASE' in SAVE_STATS_DB:
+                if database!=SAVE_STATS_DB['DATABASE']:
+                    actual_save_stats(database, path)
+            else:
+                actual_save_stats(database, path)
+        else:
+            if path in SAVE_STATS_DB:
+                if SAVE_STATS_DB[path]!=database:
+                    actual_save_stats(database,path)
+            else:
+                actual_save_stats(database, path)
     except Exception as e:
         log.error('Error saving db {}{}'.format(path,e))
 def custom_sleep(sleep_time:float,boinc_rpc_client,dev_loop:bool=False):
@@ -2341,14 +2359,20 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
                     attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
-                if DUMP_PROJECT_WEIGHTS:
+            if DUMP_PROJECT_WEIGHTS:
+                if not dev_loop:
                     save_stats(FINAL_PROJECT_WEIGHTS, 'FINAL_PROJECT_WEIGHTS')
+                else:
+                    save_stats(FINAL_PROJECT_WEIGHTS, 'FINAL_PROJECT_WEIGHTS_DEV')
             # Get list of projects ordered by priority
             highest_priority_projects, priority_results = get_highest_priority_project(combined_stats=COMBINED_STATS,
                                                                                        project_weights=FINAL_PROJECT_WEIGHTS,
                                                                                        attached_projects=ATTACHED_PROJECT_SET, quiet=True)
-            if DUMP_PROJECT_PRIORITY and not dev_loop:
-                save_stats(priority_results, 'PRIORITY_RESULTS')
+            if DUMP_PROJECT_PRIORITY:
+                if dev_loop:
+                    save_stats(priority_results, 'PRIORITY_RESULTS_DEV')
+                else:
+                    save_stats(priority_results, 'PRIORITY_RESULTS')
             log.debug('Highest priority projects are: '+str(highest_priority_projects))
             # print some pretty stats
             update_table(dev_loop=dev_loop)

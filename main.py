@@ -25,7 +25,9 @@ import requests
 from requests.auth import HTTPBasicAuth
 from typing import List, Union, Dict, Tuple, Set, Any
 import sys,signal
-
+# this is needed for some async stuff
+import nest_asyncio
+nest_asyncio.apply()
 # ignore deprecation warnings in Windows
 import warnings
 warnings.filterwarnings('ignore',category=DeprecationWarning)
@@ -373,12 +375,13 @@ def resolve_url_list_to_database(url_list:List[str])->List[str]:
     return return_list
 
 def shutdown_dev_client(quiet:bool=False)->None:
+    new_loop = asyncio.get_event_loop()  # this is needed in case this function is called while main loop is still waiting for an RPC command etc
     log.info('Attempting to shut down dev client at safe_exit...')
     try:
-        dev_rpc_client = loop.run_until_complete(
+        dev_rpc_client = new_loop.run_until_complete(
             setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
-        authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
-        shutdown_response = loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit'))
+        authorize_response = new_loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+        shutdown_response = new_loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit'))
     except Exception as e:
         log.error('Error shutting down dev client {}'.format(e))
 def safe_exit(arg1,arg2)->None:

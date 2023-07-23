@@ -401,6 +401,8 @@ def safe_exit(arg1,arg2)->None:
         quit()
     # Shutdown developer BOINC client, if running
     shutdown_dev_client()
+    if not should_crunch_for_dev(False) and CRUNCHING_FOR_DEV: # if we are crunching for dev and won't start crunching again on next run
+        dev_cleanup()
 
     # restore crunching settinge pre-dev-mode
     if CRUNCHING_FOR_DEV:
@@ -1572,7 +1574,7 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str], preferred_projects:Dict[str,
         intended_weight=(preferred_project_weights_extract / 100) * total_preferred_weight
         final_project_weights[project_url] += intended_weight
     return combined_stats,final_project_weights,total_preferred_weight,total_mining_weight,dev_project_weights
-async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client)->None:
+async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client=None)->None:
     """
     Cleanup dev installation after use to save disk space, be nice to projects
     @param rpc_client:
@@ -1580,6 +1582,13 @@ async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client)->None:
     """
     log.debug('in dev_cleanup')
     attached_projects=[]
+    if not rpc_client:
+        try:
+            dev_rpc_client = loop.run_until_complete(
+                setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
+        except Exception as e:
+            log.error('Asked to connect to dev client in dev_cleanup but unable to: {}'.format(e))
+            return
     try:
         loop.run_until_complete(rpc_client.authorize())
     except Exception as e:

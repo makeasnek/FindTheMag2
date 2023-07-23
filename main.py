@@ -112,6 +112,15 @@ GPU_MODE_DICT = {
 DEV_BOINC_PASSWORD='' # this is only used for printing to table, not used elsewhere
 DEV_LOOP_RUNNING=False
 SAVE_STATS_DB={} # keeps cache of saved stats databases so we don't write more often than we need to
+# Dictionary for places we query in format key=url, value=Tuple[nickname,regex]. Note they all must match group 2
+PRICE_URL_DICT: Dict[str, Tuple[str, Union[str, re.Pattern]]] = {
+    'https://coinmarketcap.com/currencies/gridcoin/': ('coinmarketcap.com', '("low24h":)(\d*.\d*)'),
+    'https://finance.yahoo.com/quote/GRC-USD/': (
+    'yahoo.com', '(data-field="regularMarketPrice" data-trend="none" data-pricehint="\d" value=")(\d*\.\d*)'),
+    'https://www.coingecko.com/en/coins/gridcoin-research': ('coingecko', re.compile(
+        '(data-coin-id="243" data-coin-symbol="grc" data-target="price.price">\$)(\d*\.\d*)(</span>)',
+        flags=re.MULTILINE | re.IGNORECASE)),
+}
 def resolve_url_database(url:str)->str:
     """
     Given a URL or list of URLs, return the canonical version used in DATABASE and other internal references. Note that some projects operate at multiple
@@ -607,19 +616,13 @@ def get_grc_price(sample_text:str=None)->Union[float,None]:
     Gets average GRC price from three online sources. Returns None if unable to determine
     @sample_text: Used for testing. Just a "view source" of all pages added together
     """
-    # Dictionary for places we query in format key=url, value=Tuple[nickname,regex]. Note they all must match group 2
-    price_url_dict:Dict[str,Tuple[str,Union[str,re.Pattern]]]={
-        'https://coinmarketcap.com/currencies/gridcoin/':('coinmarketcap.com','("low24h":)(\d*.\d*)'),
-        'https://finance.yahoo.com/quote/GRC-USD/':('yahoo.com','(data-field="regularMarketPrice" data-trend="none" data-pricehint="\d" value=")(\d*\.\d*)'),
-        'https://www.coingecko.com/en/coins/gridcoin-research':('coingecko',re.compile('(data-coin-id="243" data-coin-symbol="grc" data-target="price.price">\$)(\d*\.\d*)(</span>)',flags=re.MULTILINE|re.IGNORECASE)),
-    }
     import requests as req
     found_prices=[]
     headers=req.utils.default_headers()
     headers.update( {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
     })
-    for url,info in price_url_dict.items():
+    for url,info in PRICE_URL_DICT.items():
         regex=info[1]
         name=info[0]
         resp=''
@@ -1569,10 +1572,40 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str], preferred_projects:Dict[str,
         intended_weight=(preferred_project_weights_extract / 100) * total_preferred_weight
         final_project_weights[project_url] += intended_weight
     return combined_stats,final_project_weights,total_preferred_weight,total_mining_weight,dev_project_weights
-async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client)->None:
+async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client)->None:
+    """
+    Cleanup dev installation after use to save disk space, be nice to projects
+    @param rpc_client:
+    @return:
+    """
+    log.debug('in dev_cleanup')
+    attached_projects=[]
+    try:
+        loop.run_until_complete(rpc_client.authorize())
+    except Exception as e:
+        log.error('Eror authorizing dev client in dev_cleanup: {}'.format(e))
+    try:
+        loop.run_until_complete(kill_all_unstarted_tasks(rpc_client,True,True))
+    except Exception as e:
+        log.error('Error killing all unstarted tasks in dev_cleanup: {}'.format(e))
+    try:
+        attached_projects,names_dict=loop.run_until_complete(get_attached_projects(rpc_client))
+    except Exception as e:
+        log.error('Error getting project list in in dev_cleanup: {}'.format(e))
+    try:
+        for project in attached_projects:
+            log.debug('in dev_cleanup resetting project {}'.format(project))
+            try:
+                loop.run_until_complete(run_rpc_command(rpc_client,'project_reset',project))
+            except Exception as e:
+                log.error('Error resetting project in dev_cleanup: {}'.format(project))
+    except Exception as e:
+        pass
+async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,started:bool=False,quiet:bool=False)->None:
     """
     Attempts to kill unstarted tasks, returns None if encounters problems
     @param rpc_client:
+    @param started: kill started tasks as well if True
     @return:
     """
     task_list=None
@@ -1595,9 +1628,10 @@ async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client)->None:
             name=task['name']
             # wu_name=task['wu_name']
             project_url=task['project_url'].master_url
-            if 'active_task' not in task:
-                print('Cancelling unstarted task {}'.format(task))
-                log.info('Cancelling unstarted task {}'.format(task))
+            if 'active_task' not in task or started:
+                if not quiet:
+                    print('Cancelling unstarted task {}'.format(task))
+                log.debug('Cancelling unstarted task {}'.format(task))
                 req = ET.Element('abort_result')
                 a = ET.SubElement(req, 'project_url')
                 a.text = project_url
@@ -2538,6 +2572,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                     DEV_LOOP_RUNNING=True
                     update_table(dev_loop=dev_loop)
                     boinc_loop(dev_loop=True,rpc_client=dev_rpc_client,client_rpc_client=rpc_client,time=DATABASE['DEVTIMECOUNTER']) # run the BOINC loop :)
+                    dev_cleanup(dev_rpc_client)
                     update_table(dev_loop=dev_loop)
                     try:
                         authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection

@@ -76,6 +76,7 @@ DUMP_PROJECT_PRIORITY:bool=False # Dump weights adjusted after considering curre
 DUMP_RAC_MAG_RATIOS:bool=False # Dump the RAC:MAG ratios from each Gridcoin project
 DEV_FEE_MODE:str="CRUNCH" # valid values: CRUNCH|SIDESTAKE
 CRUNCHING_FOR_DEV:bool=False
+DEV_EXIT_TEST:False # only used for testing
 
 # Some globals we need. I try to have all globals be ALL CAPS
 FORCE_DEV_MODE=False # used for debugging purposes to force crunching under dev account
@@ -402,16 +403,16 @@ def safe_exit(arg1,arg2)->None:
     if not CONTROL_BOINC:
         quit()
     # Shutdown developer BOINC client, if running
-    shutdown_dev_client()
-    if not should_crunch_for_dev(False) and CRUNCHING_FOR_DEV: # if we are crunching for dev and won't start crunching again on next run
+    if not should_crunch_for_dev(False) and CRUNCHING_FOR_DEV or DEV_EXIT_TEST: # if we are crunching for dev and won't start crunching again on next run
         dev_cleanup()
+    shutdown_dev_client()
 
     # restore crunching settinge pre-dev-mode
     if CRUNCHING_FOR_DEV:
         try:
-            dev_rpc_client = new_loop.run_until_complete(
-                setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
-            authorize_response = new_loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+            rpc_client = new_loop.run_until_complete(
+                setup_connection(BOINC_IP, BOINC_PASSWORD, port=BOINC_PORT))  # setup dev BOINC RPC connection
+            authorize_response = new_loop.run_until_complete(rpc_client.authorize())  # authorize dev RPC connection
             new_loop.run_until_complete(
                 run_rpc_command(rpc_client, 'set_gpu_mode', LAST_KNOWN_GPU_MODE))
             new_loop.run_until_complete(

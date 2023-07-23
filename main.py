@@ -1982,6 +1982,9 @@ def profitability_check(grc_price:float,exchange_fee:float,grc_sell_price:Union[
         grc_sell_price=0.00
     combined_stats_extract=combined_stats.get(project)
     if not combined_stats_extract:
+        log.warning('In profitability check, being asked for projects which doesnt appear to be in combined stats: {}'.format(project))
+        return False
+    if not combined_stats_extract:
         log.error('Error: Unable to calculate profitability for project {} bc we have no stats for it'.format(project))
         return False
     revenue_per_hour = combined_stats_extract['COMPILED_STATS']['AVGMAGPERHOUR']/4 * max(grc_price,grc_sell_price)
@@ -2394,7 +2397,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if ONLY_BOINC_IF_PROFITABLE and not dev_loop:
             profitability_list=[]
             for project in highest_priority_projects:
-                profitability_result=profitability_check(grc_price=grc_price, exchange_fee=EXCHANGE_FEE, host_power_usage=HOST_POWER_USAGE, grc_sell_price=GRC_SELL_PRICE, local_kwh=LOCAL_KWH, project=project, min_profit_per_hour=MIN_PROFIT_PER_HOUR, combined_stats=COMBINED_STATS)
+                profitability_result=profitability_check(grc_price=grc_price, exchange_fee=EXCHANGE_FEE, grc_sell_price=GRC_SELL_PRICE, project=project, min_profit_per_hour=MIN_PROFIT_PER_HOUR, combined_stats=COMBINED_STATS)
                 benchmarking_result=benchmark_check(project_url=project, combined_stats=COMBINED_STATS, benchmarking_minimum_wus=BENCHMARKING_MINIMUM_WUS, benchmarking_minimum_time=BENCHMARKING_MINIMUM_TIME, benchmarking_delay_in_days=BENCHMARKING_DELAY_IN_DAYS, skip_benchmarking=SKIP_BENCHMARKING)
                 profitability_list.append(profitability_result)
                 profitability_list.append(benchmarking_result)

@@ -373,13 +373,12 @@ def resolve_url_list_to_database(url_list:List[str])->List[str]:
     return return_list
 
 def shutdown_dev_client(quiet:bool=False)->None:
-    exit_loop = asyncio.get_event_loop()
     log.info('Attempting to shut down dev client at safe_exit...')
     try:
-        dev_rpc_client = exit_loop.run_until_complete(
+        dev_rpc_client = loop.run_until_complete(
             setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
-        authorize_response = exit_loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
-        shutdown_response = exit_loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit'))
+        authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+        shutdown_response = loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit'))
     except Exception as e:
         log.error('Error shutting down dev client {}'.format(e))
 def safe_exit(arg1,arg2)->None:
@@ -389,7 +388,7 @@ def safe_exit(arg1,arg2)->None:
     """
 
     new_loop = asyncio.get_event_loop() # this is needed in case this function is called while main loop is still waiting for an RPC command etc
-    print_and_log("Program exiting gracefully",'INFO')
+    print_and_log("Program exiting gracefully. Please be patient this may take a few minutes",'INFO')
 
     # Backup most recent database save then save database to json file
     log.debug('Saving database')
@@ -410,9 +409,9 @@ def safe_exit(arg1,arg2)->None:
             dev_rpc_client = new_loop.run_until_complete(
                 setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
             authorize_response = new_loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
-            loop.run_until_complete(
+            new_loop.run_until_complete(
                 run_rpc_command(rpc_client, 'set_gpu_mode', LAST_KNOWN_GPU_MODE))
-            loop.run_until_complete(
+            new_loop.run_until_complete(
                 run_rpc_command(rpc_client, 'set_run_mode', LAST_KNOWN_CPU_MODE))
         except Exception as e:
             log.error('Error restoring crunching status in main client {}'.format(e))

@@ -73,6 +73,7 @@ DUMP_PROJECT_WEIGHTS:bool=False # Dump weights assigned to projects
 DUMP_PROJECT_PRIORITY:bool=False # Dump weights adjusted after considering current and past crunching time
 DUMP_RAC_MAG_RATIOS:bool=False # Dump the RAC:MAG ratios from each Gridcoin project
 DEV_FEE_MODE:str="CRUNCH" # valid values: CRUNCH|SIDESTAKE
+CRUNCHING_FOR_DEV:bool=False
 
 # Some globals we need. I try to have all globals be ALL CAPS
 FORCE_DEV_MODE=False # used for debugging purposes to force crunching under dev account
@@ -367,7 +368,7 @@ def shutdown_dev_client(quiet:bool=False)->None:
     log.info('Attempting to shut down dev client at safe_exit...')
     try:
         dev_rpc_client = exit_loop.run_until_complete(
-            setup_connection(BOINC_IP, BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
+            setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
         authorize_response = exit_loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
         shutdown_response = exit_loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit'))
     except Exception as e:
@@ -391,6 +392,19 @@ def safe_exit(arg1,arg2)->None:
         quit()
     # Shutdown developer BOINC client, if running
     shutdown_dev_client()
+
+    # restore crunching settinge pre-dev-mode
+    if CRUNCHING_FOR_DEV:
+        try:
+            dev_rpc_client = new_loop.run_until_complete(
+                setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
+            authorize_response = new_loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+            loop.run_until_complete(
+                run_rpc_command(rpc_client, 'set_gpu_mode', LAST_KNOWN_GPU_MODE))
+            loop.run_until_complete(
+                run_rpc_command(rpc_client, 'set_run_mode', LAST_KNOWN_CPU_MODE))
+        except Exception as e:
+            log.error('Error restoring crunching status in main client {}'.format(e))
 
     # Restore original BOINC preferences
     if os.path.exists(override_dest_path):
@@ -1480,7 +1494,8 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str], preferred_projects:Dict[str,
 
     # Detect attached projects which are not whitelisted or in PREFERRED_PROJECTS
     if len(unapproved_projects)>0:
-        print('Warning: Projects below were found in your BOINC config but are not on the gridcoin approval list or your preferred projects list. If you want them to be given weight, be sure to add them to your preferred projects')
+        if not quiet:
+            print('Warning: Projects below were found in your BOINC config but are not on the gridcoin approval list or your preferred projects list. If you want them to be given weight, be sure to add them to your preferred projects')
         log.warning(
             'Warning: Projects below were found in your BOINC config but are not on the gridcoin approval list or your preferred projects list. If you want them to be given weight, be sure to add them to your preferred projects' + str(unapproved_projects))
         pprint.pprint(unapproved_projects)
@@ -2288,10 +2303,13 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     global ATTACHED_PROJECT_SET_DEV
     global BOINC_PROJECT_NAMES
     global MAG_RATIOS
+    global CRUNCHING_FOR_DEV
     if dev_loop:
         mode='DEV'
+        CRUNCHING_FOR_DEV=True
     else:
         mode='CLIENT'
+        CRUNCHING_FOR_DEV=False
     if mode not in DATABASE:
         DATABASE[mode]={}
 
@@ -2461,6 +2479,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                             break
         # If we are due to run under dev account, do it
         if should_crunch_for_dev(dev_loop):
+            CRUNCHING_FOR_DEV=True
             dev_boinc_password=setup_dev_boinc() # Setup and start dev boinc
             DEV_BOINC_PASSWORD=dev_boinc_password
             dev_rpc_client=None
@@ -2946,7 +2965,7 @@ if __name__ == '__main__':
     except Exception as e:
         print_and_log('Error getting project URL list from BOINC '+str(e),'ERROR')
 
-    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=True, mag_ratios=MAG_RATIOS)
+    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=False, mag_ratios=MAG_RATIOS)
     log.debug('Printing pretty stats...')
     # calculate starting efficiency stats
     if 'STARTMAGHR' not in DATABASE:

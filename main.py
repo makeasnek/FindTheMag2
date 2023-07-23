@@ -1982,10 +1982,15 @@ def profitability_check(grc_price:float,exchange_fee:float,grc_sell_price:Union[
         grc_sell_price=0.00
     combined_stats_extract=combined_stats.get(project)
     if not combined_stats_extract:
-        log.warning('In profitability check, being asked for projects which doesnt appear to be in combined stats: {}'.format(project))
-        return False
-    if not combined_stats_extract:
         log.error('Error: Unable to calculate profitability for project {} bc we have no stats for it'.format(project))
+        return False
+    if 'COMPILED_STATS' not in combined_stats_extract:
+        log.error('Error: Unable to calculate profitability for project {} bc we have no stats for it (COMPILED_STATS)'.format(project))
+        return False
+    if 'AVGMAGPERHOUR' not in combined_stats_extract['COMPILED_STATS']:
+        log.error(
+            'Error: Unable to calculate profitability for project {} bc we have no stats for it (AVGMAGPERHOUR)'.format(
+                project))
         return False
     revenue_per_hour = combined_stats_extract['COMPILED_STATS']['AVGMAGPERHOUR']/4 * max(grc_price,grc_sell_price)
     exchange_expenses = revenue_per_hour*exchange_fee

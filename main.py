@@ -381,7 +381,7 @@ def shutdown_dev_client(quiet:bool=False)->None:
     try:
         dev_rpc_client = new_loop.run_until_complete(
             setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
-        authorize_response = new_loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+        authorize_response = new_loop.run_until_complete(dev_rpc_client.authorize(DEV_BOINC_PASSWORD))  # authorize dev RPC connection
         shutdown_response = new_loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit'))
     except Exception as e:
         log.error('Error shutting down dev client {}'.format(e))
@@ -403,15 +403,15 @@ def safe_exit(arg1,arg2)->None:
     new_loop = asyncio.get_event_loop()  # this is needed in case this function is called while main loop is still waiting for an RPC command etc
     # Shutdown developer BOINC client, if running
     if not should_crunch_for_dev(False) and CRUNCHING_FOR_DEV or DEV_EXIT_TEST: # if we are crunching for dev and won't start crunching again on next run
-        new_loop.run_until_complete(dev_cleanup())
+        new_loop.run_until_complete(dev_cleanup(rpc_client=None))
     shutdown_dev_client()
 
-    # restore crunching settinge pre-dev-mode
+    # restore crunching settings pre-dev-mode
     if CRUNCHING_FOR_DEV:
         try:
             rpc_client = new_loop.run_until_complete(
                 setup_connection(BOINC_IP, BOINC_PASSWORD, port=BOINC_PORT))  # setup dev BOINC RPC connection
-            authorize_response = new_loop.run_until_complete(rpc_client.authorize())  # authorize dev RPC connection
+            authorize_response = new_loop.run_until_complete(rpc_client.authorize(BOINC_PASSWORD))  # authorize dev RPC connection
             new_loop.run_until_complete(
                 run_rpc_command(rpc_client, 'set_gpu_mode', LAST_KNOWN_GPU_MODE))
             new_loop.run_until_complete(
@@ -1599,9 +1599,9 @@ async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client=None)->None:
         log.error('In dev_cleanup not rpc_client x2')
         return
     try:
-        loop.run_until_complete(rpc_client.authorize())
+        loop.run_until_complete(rpc_client.authorize(DEV_BOINC_PASSWORD))
     except Exception as e:
-        log.error('Eror authorizing dev client in dev_cleanup: {}'.format(e))
+        log.error('Error authorizing dev client in dev_cleanup: {}'.format(e))
     try:
         loop.run_until_complete(kill_all_unstarted_tasks(rpc_client,True,True))
     except Exception as e:
@@ -2564,8 +2564,8 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 dev_rpc_client=None
                 while tries<=tries_max:
                     try:
-                        dev_rpc_client = loop.run_until_complete(setup_connection(BOINC_IP, dev_boinc_password, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
-                        authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
+                        dev_rpc_client = loop.run_until_complete(setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
+                        authorize_response = loop.run_until_complete(dev_rpc_client.authorize(DEV_BOINC_PASSWORD))  # authorize dev RPC connection
                         if not dev_rpc_client:
                             raise Exception('Error connecting to boinc dev client')
                     except Exception as e:

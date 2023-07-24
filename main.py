@@ -441,8 +441,11 @@ def safe_exit(arg1,arg2)->None:
             print('Note that you will need to restart your machine for these changes to take effect')
         else:
             os.remove(override_dest_path)
-    loop.close()
-    new_loop.close()
+    for loop in [loop,new_loop]:
+        try:
+            loop.close()
+        except Exception as e:
+            log.error('Error closing an event loop: {}'.format(e))
     quit()
 async def get_task_list(rpc_client:libs.pyboinc.rpc_client)->list:
     """

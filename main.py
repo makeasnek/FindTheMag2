@@ -1601,7 +1601,7 @@ async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client=None)->None:
     try:
         loop.run_until_complete(rpc_client.authorize(DEV_BOINC_PASSWORD))
     except Exception as e:
-        log.error('Error authorizing dev client in dev_cleanup: {}'.format(e))
+        log.error('Error authorizing dev client in dev_cleanup: {} thinks dev pwd is {}'.format(e,DEV_BOINC_PASSWORD))
     try:
         loop.run_until_complete(kill_all_unstarted_tasks(rpc_client,True,True))
     except Exception as e:

@@ -101,6 +101,7 @@ TESTING:bool=False
 PRINT_URL_LOOKUP_TABLE:Dict[str,str]={} # used to convert urls for printing to table
 MAG_RATIO_SOURCE:Union[str,None]=None # VALID VALUES: WALLET|WEB
 CHECK_SIDESTAKE_RESULTS = False
+loop = asyncio.get_event_loop()
 # Translates BOINC's CPU and GPU Mode replies into English. Note difference between keys integer vs string.
 CPU_MODE_DICT = {
     1: 'always',
@@ -2881,7 +2882,6 @@ if __name__ == '__main__':
     boinc_client = None
     grc_client = None
     gridcoin_conf = None
-    loop = asyncio.get_event_loop()
     try:
         boinc_client = BoincClientConnection(config_dir=BOINC_DATA_DIR)
     except Exception as e:

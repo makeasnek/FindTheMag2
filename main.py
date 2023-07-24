@@ -1601,7 +1601,7 @@ async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client=None)->None:
     try:
         loop.run_until_complete(rpc_client.authorize(DEV_BOINC_PASSWORD))
     except Exception as e:
-        log.error('Error authorizing dev client in dev_cleanup: {} thinks dev pwd is {}'.format(e,DEV_BOINC_PASSWORD))
+        log.error('Error authorizing dev client in dev_cleanup: {}'.format(e))
     try:
         loop.run_until_complete(kill_all_unstarted_tasks(rpc_client,True,True))
     except Exception as e:
@@ -1610,15 +1610,13 @@ async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client=None)->None:
         attached_projects,names_dict=loop.run_until_complete(get_attached_projects(rpc_client))
     except Exception as e:
         log.error('Error getting project list in in dev_cleanup: {}'.format(e))
-    try:
+    if isinstance(attached_projects,list):
         for project in attached_projects:
             log.debug('in dev_cleanup resetting project {}'.format(project))
             try:
                 loop.run_until_complete(run_rpc_command(rpc_client,'project_reset',project))
             except Exception as e:
                 log.error('Error resetting project in dev_cleanup: {}'.format(project))
-    except Exception as e:
-        pass
     shutdown_dev_client()
 async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,started:bool=False,quiet:bool=False)->None:
     """
@@ -2498,9 +2496,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 profitability_list.append(benchmarking_result)
             if True not in profitability_list:
                 log.info('No projects currently profitable and no benchmarking required, sleeping for 1 hour and killing all non-started tasks')
-                tasks_list=loop.run_until_complete(get_task_list(rpc_client))
-                kill_all_unstarted_tasks(rpc_client=rpc_client)
-                nnt_all_projects(rpc_client)
+                try:
+                    tasks_list=loop.run_until_complete(get_task_list(rpc_client))
+                    kill_all_unstarted_tasks(rpc_client=rpc_client)
+                except Exception as e:
+                    pass
+                loop.run_until_complete(nnt_all_projects(rpc_client))
                 DATABASE['TABLE_SLEEP_REASON']= 'No profitable projects and no benchmarking required, sleeping 1 hr, killing all non-started tasks'
                 update_table(dev_loop=dev_loop)
                 sleep(60*60)

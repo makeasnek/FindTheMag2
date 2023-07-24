@@ -390,18 +390,17 @@ def safe_exit(arg1,arg2)->None:
     Function to safely exit tool by saving database, restoring original user preferences, and quitting dev BOINC client.
     arg1/2 required by the signal handler library, but aren't used for anything inside this function
     """
-
-    new_loop = asyncio.get_event_loop() # this is needed in case this function is called while main loop is still waiting for an RPC command etc
     print_and_log("Program exiting gracefully. Please be patient this may take a few minutes",'INFO')
 
     # Backup most recent database save then save database to json file
     log.debug('Saving database')
     shutil.copy('stats.json','stats.json.backup')
     save_stats(DATABASE)
-
     # If BOINC control is not enabled, we can skip the rest of these steps
     if not CONTROL_BOINC:
         quit()
+
+    new_loop = asyncio.get_event_loop()  # this is needed in case this function is called while main loop is still waiting for an RPC command etc
     # Shutdown developer BOINC client, if running
     if not should_crunch_for_dev(False) and CRUNCHING_FOR_DEV or DEV_EXIT_TEST: # if we are crunching for dev and won't start crunching again on next run
         dev_cleanup()
@@ -442,6 +441,8 @@ def safe_exit(arg1,arg2)->None:
             print('Note that you will need to restart your machine for these changes to take effect')
         else:
             os.remove(override_dest_path)
+    loop.close()
+    new_loop.close()
     quit()
 async def get_task_list(rpc_client:libs.pyboinc.rpc_client)->list:
     """

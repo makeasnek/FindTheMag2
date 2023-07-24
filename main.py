@@ -1590,11 +1590,14 @@ async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client=None)->None:
     attached_projects=[]
     if not rpc_client:
         try:
-            dev_rpc_client = loop.run_until_complete(
+            rpc_client = loop.run_until_complete(
                 setup_connection(BOINC_IP, DEV_BOINC_PASSWORD, port=DEV_RPC_PORT))  # setup dev BOINC RPC connection
         except Exception as e:
             log.error('Asked to connect to dev client in dev_cleanup but unable to: {}'.format(e))
             return
+    if not rpc_client:
+        log.error('In dev_cleanup not rpc_client x2')
+        return
     try:
         loop.run_until_complete(rpc_client.authorize())
     except Exception as e:
@@ -1626,7 +1629,7 @@ async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,started:b
     task_list=None
     project_status_reply=None
     try:
-        task_list=get_task_list(rpc_client)
+        task_list=loop.run_until_complete(get_task_list(rpc_client))
     except Exception as e:
         log.error('Error getting task list from BOINC: {}'.format(e))
     if not isinstance(task_list,list):
@@ -2252,6 +2255,17 @@ def project_list_to_project_list(project_list:List[dict])->List[str]:
     for project in project_list:
         return_list.append(project['master_url'])
     return return_list
+def owed_to_dev()->float:
+    """
+
+    @return: Hours currently owed to dev
+    """
+    total_time_in_hours=(max(DATABASE.get('FTMTOTAL', 0), 1) / 60)+max(DATABASE.get('DEVTIMETOTAL', 0), 1) / 60
+    dev_time_in_hours=max(DATABASE.get('DEVTIMETOTAL', 0), 1) / 60
+    dev_owed_in_hours= max(.01, DEV_FEE) * total_time_in_hours
+    discrepancy=dev_owed_in_hours-dev_time_in_hours
+    return discrepancy
+
 def should_crunch_for_dev(dev_loop:bool) -> bool:
     if dev_loop:
         log.debug('Should not start dev crunching bc already in dev loop')
@@ -2262,10 +2276,7 @@ def should_crunch_for_dev(dev_loop:bool) -> bool:
     if CHECK_SIDESTAKE_RESULTS:
         log.debug('Should skip dev mode bc CHECK_SIDESTAKE_RESULTS')
         return False
-    total_time_in_hours=max(DATABASE.get('FTMTOTAL', 0), 1) / 60
-    dev_time_in_hours=max(DATABASE.get('DEVTIMETOTAL', 0), 1) / 60
-    dev_owed_in_hours= max(.01, DEV_FEE) * total_time_in_hours
-    discrepancy=dev_owed_in_hours-dev_time_in_hours
+    discrepancy=owed_to_dev()
     if discrepancy > 100:
         log.debug('Should start dev crunching due to discrepancy: {}'.format(discrepancy))
         return True
@@ -2383,8 +2394,9 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
     }
 
     while True:
+        discrepancy = owed_to_dev()
         # If we have done sufficient crunching in dev mode, exit dev loop. Closing dev client is done after exiting loop.
-        if DATABASE.get('DEVTIMECOUNTER', 0) < 1 and not FORCE_DEV_MODE and dev_loop:
+        if discrepancy<1 and not FORCE_DEV_MODE and dev_loop:
             return None
 
         # Re-authorize in case we have become de-authorized since last run.
@@ -2407,7 +2419,6 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 sleep(30)
             else:
                 break
-
 
         # If we haven't re-calculated stats or fetched mag recently enough, do it
         stats_calc_delta = datetime.datetime.now() - DATABASE.get('STATSLASTCALCULATED',datetime.datetime(1997,3,3))
@@ -2475,7 +2486,7 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 profitability_list.append(benchmarking_result)
             if True not in profitability_list:
                 log.info('No projects currently profitable and no benchmarking required, sleeping for 1 hour and killing all non-started tasks')
-                tasks_list=get_task_list(rpc_client)
+                tasks_list=loop.run_until_complete(get_task_list(rpc_client))
                 kill_all_unstarted_tasks(rpc_client=rpc_client)
                 nnt_all_projects(rpc_client)
                 DATABASE['TABLE_SLEEP_REASON']= 'No profitable projects and no benchmarking required, sleeping 1 hr, killing all non-started tasks'
@@ -2580,8 +2591,9 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                         existing_cpu_mode=LAST_KNOWN_CPU_MODE
                         existing_gpu_mode=LAST_KNOWN_GPU_MODE
                 if existing_cpu_mode and existing_gpu_mode: # we can't do this if we don't know what mode to revert back to
-                    loop.run_until_complete(run_rpc_command(rpc_client,'set_run_mode','never',str(int((DATABASE['DEVTIMECOUNTER']*60)*100))))
-                    loop.run_until_complete(run_rpc_command(rpc_client, 'set_gpu_mode', 'never', str(int((DATABASE['DEVTIMECOUNTER'] * 60) * 100))))
+                    discrepancy=owed_to_dev()
+                    loop.run_until_complete(run_rpc_command(rpc_client,'set_run_mode','never',str(discrepancy*60*60*10)))
+                    loop.run_until_complete(run_rpc_command(rpc_client, 'set_gpu_mode', 'never', str(discrepancy*60*60*10)))
                     log.info('Starting crunching under dev account, entering dev loop')
                     DATABASE['TABLE_SLEEP_REASON']= 'Crunching for developer\'s account, {}% of crunching total'.format(DEV_FEE * 100)
                     DEV_LOOP_RUNNING=True
@@ -2608,6 +2620,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         dont_nnt=None
         if dev_loop:
             project_loop=DEV_PROJECT_WEIGHTS
+            # re-up suspend on main client
+            loop.run_until_complete(
+                run_rpc_command(client_rpc_client, 'set_run_mode', 'never', str(discrepancy * 60 * 60 * 10)))
+            loop.run_until_complete(
+                run_rpc_command(client_rpc_client, 'set_gpu_mode', 'never', str(discrepancy * 60 * 60 * 10)))
+
         else:
             project_loop=highest_priority_projects
         for highest_priority_project in project_loop:

@@ -441,6 +441,29 @@ def test_get_avg_mag_hr():
     }
     result=main.get_avg_mag_hr(combined_stats)
     assert result==2
+def test_owed_to_dev():
+    original_ftm_total=None
+    if main.DATABASE.get('FTMTOTAL'):
+        original_ftm_total=main.DATABASE.get('FTMTOTAL')
+    original_dev_total=None
+    if main.DATABASE.get('DEVTIMETOTAL'):
+        original_dev_total=main.DATABASE.get('DEVTIMETOTAL')
+    main.DEV_FEE=.01
+    # negative hours owed
+    main.DATABASE['FTMTOTAL']=100*60
+    main.DATABASE['DEVTIMETOTAL']=10*60
+    discrepancy=main.owed_to_dev()
+    assert discrepancy==-8.9
+    # 9.01 hr owed
+    main.DATABASE['FTMTOTAL'] = 1000*60
+    main.DATABASE['DEVTIMETOTAL'] = 1*60
+    discrepancy = main.owed_to_dev()
+    assert discrepancy == 9.01
+    # restore original values
+    if original_ftm_total:
+        main.DATABASE['FTMTOTAL']=original_ftm_total
+    if original_dev_total:
+        main.DATABASE['DEVTOTAL']=original_dev_total
 def test_json_default():
     return_dict=main.json_default(datetime.datetime.now())
     assert isinstance(return_dict,dict)

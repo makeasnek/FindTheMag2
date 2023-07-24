@@ -441,6 +441,17 @@ def test_get_avg_mag_hr():
     }
     result=main.get_avg_mag_hr(combined_stats)
     assert result==2
+def test_make_discrepancy_timeout():
+    original_dev_mode=main.FORCE_DEV_MODE
+    main.FORCE_DEV_MODE=True
+    answer=main.make_discrepancy_timeout(-100)
+    assert answer==60
+    main.FORCE_DEV_MODE = False
+    answer = main.make_discrepancy_timeout(-60)
+    assert answer==0
+    answer = main.make_discrepancy_timeout(100)
+    assert answer == 100
+    main.FORCE_DEV_MODE==original_dev_mode
 def test_owed_to_dev():
     original_ftm_total=None
     if main.DATABASE.get('FTMTOTAL'):
@@ -472,6 +483,8 @@ def test_object_hook():
     result=main.object_hook(return_dict)
     assert isinstance(result,datetime.datetime)
 def test_should_crunch_for_dev():
+    original_dev_mode=main.FORCE_DEV_MODE
+    main.DEV_FEE=.01
     # should return false is in dev loop
     assert not main.should_crunch_for_dev(True)
     # should return false if user is sidestaking
@@ -483,7 +496,7 @@ def test_should_crunch_for_dev():
     assert main.should_crunch_for_dev(False)
     # should return True if due to crunch
     main.FORCE_DEV_MODE = False
-    main.DATABASE['FTMTOTAL']=10000*60
+    main.DATABASE['FTMTOTAL']=100000*60
     main.DATABASE['DEVTIMETOTAL']=1*60
     assert main.should_crunch_for_dev(False)
     # should return True if not due to crunch
@@ -491,3 +504,5 @@ def test_should_crunch_for_dev():
     main.DATABASE['FTMTOTAL'] = 98*60
     main.DATABASE['DEVTIMETOTAL'] = 1*60
     assert not main.should_crunch_for_dev(False)
+    # return originals
+    main.FORCE_DEV_MODE=original_dev_mode

@@ -1619,6 +1619,7 @@ async def dev_cleanup(rpc_client: libs.pyboinc.rpc_client=None)->None:
                 log.error('Error resetting project in dev_cleanup: {}'.format(project))
     except Exception as e:
         pass
+    shutdown_dev_client()
 async def kill_all_unstarted_tasks(rpc_client: libs.pyboinc.rpc_client,started:bool=False,quiet:bool=False)->None:
     """
     Attempts to kill unstarted tasks, returns None if encounters problems
@@ -2280,8 +2281,19 @@ def should_crunch_for_dev(dev_loop:bool) -> bool:
     if discrepancy > 100:
         log.debug('Should start dev crunching due to discrepancy: {}'.format(discrepancy))
         return True
-    log.debug('Should not start dev crunching, current counter in hours is: {}, owed is: {}'.format(total_time_in_hours,discrepancy))
+    log.debug('Should not start dev crunching, current owed is: {}'.format(discrepancy))
     return False
+def make_discrepancy_timeout(discrepancy:float)->float:
+    timeout = discrepancy
+    if discrepancy < 0:
+        if FORCE_DEV_MODE:
+            timeout = 60
+        else:
+            timeout=0
+            log.error('Discrepancy is < 0 this should not happen: {}'.format(discrepancy))
+    return timeout
+
+
 def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:str=DATABASE.get('TABLE_STATUS',''),dev_status:bool=False,dev_loop:bool=False):
     """
     Function to update table printed to user.
@@ -2592,20 +2604,17 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                         existing_gpu_mode=LAST_KNOWN_GPU_MODE
                 if existing_cpu_mode and existing_gpu_mode: # we can't do this if we don't know what mode to revert back to
                     discrepancy=owed_to_dev()
-                    loop.run_until_complete(run_rpc_command(rpc_client,'set_run_mode','never',str(discrepancy*60*60*10)))
-                    loop.run_until_complete(run_rpc_command(rpc_client, 'set_gpu_mode', 'never', str(discrepancy*60*60*10)))
+                    timeout=make_discrepancy_timeout(discrepancy)
+                    loop.run_until_complete(run_rpc_command(rpc_client,'set_run_mode','never',str(timeout*60*60*10)))
+                    loop.run_until_complete(run_rpc_command(rpc_client, 'set_gpu_mode', 'never', str(timeout*60*60*10)))
                     log.info('Starting crunching under dev account, entering dev loop')
                     DATABASE['TABLE_SLEEP_REASON']= 'Crunching for developer\'s account, {}% of crunching total'.format(DEV_FEE * 100)
                     DEV_LOOP_RUNNING=True
                     update_table(dev_loop=dev_loop)
                     boinc_loop(dev_loop=True,rpc_client=dev_rpc_client,client_rpc_client=rpc_client,time=DATABASE['DEVTIMECOUNTER']) # run the BOINC loop :)
                     loop.run_until_complete(dev_cleanup(dev_rpc_client))
+                    log.debug('dev_cleanup_called it appears boinc_loop ended')
                     update_table(dev_loop=dev_loop)
-                    try:
-                        authorize_response = loop.run_until_complete(dev_rpc_client.authorize())  # authorize dev RPC connection
-                        loop.run_until_complete(run_rpc_command(dev_rpc_client, 'quit')) # quit dev client
-                    except Exception as e:
-                        print_and_log('Error ending "crunching for dev" portion of tool. Restarting machine will fix this. Error: {}'.format(e),'ERROR')
                     DEV_LOOP_RUNNING=False
                     # re-enable client BOINC
                     loop.run_until_complete(
@@ -2621,10 +2630,11 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
         if dev_loop:
             project_loop=DEV_PROJECT_WEIGHTS
             # re-up suspend on main client
+            timeout=make_discrepancy_timeout(discrepancy)
             loop.run_until_complete(
-                run_rpc_command(client_rpc_client, 'set_run_mode', 'never', str(discrepancy * 60 * 60 * 10)))
+                run_rpc_command(client_rpc_client, 'set_run_mode', 'never', str(timeout * 60 * 60 * 10)))
             loop.run_until_complete(
-                run_rpc_command(client_rpc_client, 'set_gpu_mode', 'never', str(discrepancy * 60 * 60 * 10)))
+                run_rpc_command(client_rpc_client, 'set_gpu_mode', 'never', str(timeout * 60 * 60 * 10)))
 
         else:
             project_loop=highest_priority_projects

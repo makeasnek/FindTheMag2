@@ -75,7 +75,7 @@ DUMP_PROJECT_PRIORITY:bool=False # Dump weights adjusted after considering curre
 DUMP_RAC_MAG_RATIOS:bool=False # Dump the RAC:MAG ratios from each Gridcoin project
 DEV_FEE_MODE:str="CRUNCH" # valid values: CRUNCH|SIDESTAKE
 CRUNCHING_FOR_DEV:bool=False
-DEV_EXIT_TEST:False # only used for testing
+DEV_EXIT_TEST:bool=False # only used for testing
 
 # Some globals we need. I try to have all globals be ALL CAPS
 FORCE_DEV_MODE=False # used for debugging purposes to force crunching under dev account
@@ -718,20 +718,39 @@ def get_approved_project_urls_web(query_result:str=None)->Dict[str,str]:
     DATABASE['GSPROJECTLIST']=return_list
     DATABASE['GSRESOLVERDICT']=project_resolver_dict
     return project_resolver_dict
+def stuck_xfer(xfer:dict)->bool:
+    """
+    Checks if a xfer is stuck. Returns True if so, false if unable to determine or is stuck
+    @param xfer: xfer from xfers-happening
+    @return:
+    """
+    try:
+        if 'status' not in xfer:
+            return False
+        if str(xfer['status'])=='1':
+            if 'persistent_file_xfer' not in xfer:
+                return False
+            if 'num_retries' not in xfer['persistent_file_xfer']:
+                return False
+            if float(xfer['persistent_file_xfer']['num_retries'])>0:
+                return True
+    except Exception as e:
+        log.error('Error in stuck_xfer: {}'.format(e))
+    return False
 def xfers_happening(xfer_list:list)->bool:
     """
     Returns True if any active xfers are happening, false if none are happening, if only stalled xfers exist, or if unable to determine
     """
     # Known statuses:
     # 0 = Active
+    # 1 = happens with stalled xfers, may happen in other scenarios as well
     if isinstance(xfer_list,str):
         return False
     try:
         for xfer in xfer_list:
+            if stuck_xfer(xfer): # ignore stuck xfers
+                continue
             if str(xfer['status'])=='0':
-                if 'persistent_file_xfer' in xfer:
-                    if float(xfer['persistent_file_xfer'].get('num_retries',0))>1:
-                        continue # assume xfers with multiple retries are stalled
                 return True
             else:
                 log.warning('Found xfer with unknown status: ' + str(xfer))
@@ -2098,7 +2117,7 @@ def benchmark_check(project_url:str,combined_stats:dict,benchmarking_minimum_wus
             latest_date=datetimed
         delta=datetime.datetime.now() - latest_date
         if abs(delta.days) > benchmarking_delay_in_days:
-            log.debug('Forcing WU fetch on {} due to BENCHMARKING_DELAY_IN_DAYS'.format(project_url))
+            log.debug('Forcing WU fetch on {} due to BENCHMARKING_DELAY_IN_DAYS latest WU was {}'.format(project_url,latest_date))
             return True
     return False
 def actual_save_stats(database:Any,path:str=None)->None:

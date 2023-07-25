@@ -475,6 +475,21 @@ def test_owed_to_dev():
         main.DATABASE['FTMTOTAL']=original_ftm_total
     if original_dev_total:
         main.DATABASE['DEVTOTAL']=original_dev_total
+def test_stuck_xfer():
+    example_xfer={
+        'status':'1',
+        'persistent_file_xfer':{
+            'num_retries':1,
+        }
+    }
+    assert main.stuck_xfer(example_xfer)
+    example_xfer = {
+        'status': '0',
+        'persistent_file_xfer': {
+            'num_retries': 1,
+        }
+    }
+    assert not main.stuck_xfer(example_xfer)
 def test_json_default():
     return_dict=main.json_default(datetime.datetime.now())
     assert isinstance(return_dict,dict)

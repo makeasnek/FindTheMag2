@@ -782,23 +782,16 @@ def wait_till_no_xfers(rpc_client:libs.pyboinc.rpc_client)->None:
             log.error('Error w/ wait_till_no_xfers, no allow_response')
             sleep(loop_wait_in_seconds)
             continue
+        if isinstance(allow_response,str):
+            cleaned_response=re.sub('\s*','',allow_response)
+            if cleaned_response=='': # There are no transfers, yay!
+                return
         if xfers_happening(allow_response):
             log.debug('xfers happening: {}'.format(str(allow_response)))
             sleep(loop_wait_in_seconds)
             continue
-        # Remove whitespace etc
-        if isinstance(allow_response,list):
-            log.error('Unexpected response1 in wait_till_no_xfers: ' + str(allow_response))
-            sleep(loop_wait_in_seconds)
-            continue
-        elif isinstance(allow_response,str):
-            cleaned_response=re.sub('\s*','',allow_response)
-            if cleaned_response=='': # There are no transfers, yay!
-                return
-            else:
-                log.error('Unexpected response2 in wait_till_no_xfers: ' + str(cleaned_response))
-        log.error('Unexpected response3 in wait_till_no_xfers: ' + str(cleaned_response))
-        sleep(loop_wait_in_seconds)
+        else:
+            return
 
 
 def get_gridcoin_config_parameters(gridcoin_dir:str)->Dict[str, str]:

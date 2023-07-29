@@ -475,6 +475,17 @@ def test_owed_to_dev():
         main.DATABASE['FTMTOTAL']=original_ftm_total
     if original_dev_total:
         main.DATABASE['DEVTOTAL']=original_dev_total
+def test_date_to_date():
+    original_date='06-26-2023'
+    converted=main.date_to_date(original_date)
+    assert converted.year==2023
+    assert converted.month == 6
+    assert converted.day==26
+def test_get_latest_wu_date():
+    dates=['06-26-2023','06-27-2024','06-23-2022']
+    latest_date=main.get_latest_wu_date(dates)
+    assert latest_date.year==2024
+
 def test_stuck_xfer():
     example_xfer={
         'status':'1',
@@ -488,6 +499,17 @@ def test_stuck_xfer():
         'persistent_file_xfer': {
             'num_retries': 1,
         }
+    }
+    assert main.stuck_xfer(example_xfer)
+    example_xfer = {
+        'status': '0',
+        'persistent_file_xfer': {
+            'num_retries': 0,
+        }
+    }
+    assert not main.stuck_xfer(example_xfer)
+    example_xfer = {
+        'status': '0',
     }
     assert not main.stuck_xfer(example_xfer)
 def test_json_default():

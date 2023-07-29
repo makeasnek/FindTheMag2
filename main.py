@@ -727,12 +727,8 @@ def stuck_xfer(xfer:dict)->bool:
     try:
         if 'status' not in xfer:
             return False
-        if str(xfer['status'])=='1':
-            if 'persistent_file_xfer' not in xfer:
-                return False
-            if 'num_retries' not in xfer['persistent_file_xfer']:
-                return False
-            if float(xfer['persistent_file_xfer']['num_retries'])>0:
+        if 'persistent_file_xfer' in xfer:
+            if float(xfer['persistent_file_xfer'].get('num_retries',0))>0:
                 return True
     except Exception as e:
         log.error('Error in stuck_xfer: {}'.format(e))
@@ -2085,7 +2081,6 @@ def date_to_date(date:str)->datetime.datetime:
     """
     Convert date from str to datetime
     """
-    log.debug('in date_to_date: {}'.format(date)) # todo remove me, write test for this function
     split=date.split('-')
     return datetime.datetime(int(split[2]),int(split[0]),int(split[1]))
 
@@ -2095,7 +2090,6 @@ def get_latest_wu_date(combined_stats_extract:List[str])->datetime.datetime:
     @param combined_stats_extract:
     @return:
     """
-    log.debug('COMBINED_STATS_EXTRACT IS {}'.format(combined_stats_extract)) #TODO remove me, write test for this function
     latest_date=datetime.datetime(1993,1,1)
     for date in combined_stats_extract:
         datetimed=date_to_date(date)
@@ -3018,9 +3012,9 @@ if __name__ == '__main__':
     try:
         grc_client = GridcoinClientConnection(rpc_user=rpc_user,rpc_port=rpc_port,rpc_password=gridcoin_rpc_password)
         source_urls = grc_client.get_approved_project_urls()
-        log.debug('Got source_urls from wallet: {}'.format(source_urls)) # TODO remove
+        log.debug('Got source_urls from wallet: {}'.format(source_urls))
         APPROVED_PROJECT_URLS=resolve_url_list_to_database(source_urls)
-        log.debug('Got APPROVED from wallet: {}'.format(APPROVED_PROJECT_URLS))  # TODO remove
+        log.debug('Got APPROVED from wallet: {}'.format(APPROVED_PROJECT_URLS))
         MAG_RATIOS = get_project_mag_ratios(grc_client, LOOKBACK_PERIOD)
         DATABASE['MAGLASTCHECKED']=datetime.datetime.now()
         log.debug('Got MAG_RATIOS from wallet at startup: {}'.format(MAG_RATIOS))

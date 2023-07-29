@@ -2088,16 +2088,31 @@ def profitability_check(grc_price:float,exchange_fee:float,grc_sell_price:Union[
                                                                                               expenses_per_hour,
                                                                                               profit))
     return False
+def date_to_date(date:str)->datetime.datetime:
+    """
+    Convert date from str to datetime
+    """
+    log.debug('in date_to_date: {}'.format(date)) # todo remove me, write test for this function
+    split=date.split('-')
+    return datetime.datetime(int(split[2]),int(split[0]),int(split[1]))
+
+def get_latest_wu_date(combined_stats_extract:List[str])->datetime.datetime:
+    """
+    Given list of WUs, return latest date or 1993 if unable to find one
+    @param combined_stats_extract:
+    @return:
+    """
+    log.debug('COMBINED_STATS_EXTRACT IS {}'.format(combined_stats_extract)) #TODO remove me, write test for this function
+    latest_date=datetime.datetime(1993,1,1)
+    for date in combined_stats_extract:
+        datetimed=date_to_date(date)
+        if datetimed>latest_date:
+            latest_date=datetimed
+    return latest_date
 def benchmark_check(project_url:str,combined_stats:dict,benchmarking_minimum_wus:float,benchmarking_minimum_time:float,benchmarking_delay_in_days:float,skip_benchmarking:bool)->bool:
     """
     Returns True if we should force crunch this project for benchmarking reasons. False otherwise
     """
-    def date_to_date(date:str)->datetime.datetime:
-        """
-        Convert date from str to datetime
-        """
-        split=date.split('-')
-        return datetime.datetime(int(split[2]),int(split[0]),int(split[1]))
     if skip_benchmarking:
         return False
     combined_stats_extract=combined_stats.get(project_url)
@@ -2110,15 +2125,11 @@ def benchmark_check(project_url:str,combined_stats:dict,benchmarking_minimum_wus
     if combined_stats_extract['COMPILED_STATS']['TOTALTASKS']<benchmarking_minimum_wus:
         log.debug('Forcing WU fetch on {} due to benchmarking_minimum_tasks'.format(project_url))
         return True
-    latest_date=datetime.datetime(1993,1,1)
-    for date in combined_stats_extract['WU_HISTORY']:
-        datetimed=date_to_date(date)
-        if datetimed>latest_date:
-            latest_date=datetimed
-        delta=datetime.datetime.now() - latest_date
-        if abs(delta.days) > benchmarking_delay_in_days:
-            log.debug('Forcing WU fetch on {} due to BENCHMARKING_DELAY_IN_DAYS latest WU was {}'.format(project_url,latest_date))
-            return True
+    latest_date=get_latest_wu_date(combined_stats_extract['WU_HISTORY'])
+    delta=datetime.datetime.now() - latest_date
+    if abs(delta.days) > benchmarking_delay_in_days:
+        log.debug('Forcing WU fetch on {} due to BENCHMARKING_DELAY_IN_DAYS latest WU was {}'.format(project_url,latest_date))
+        return True
     return False
 def actual_save_stats(database:Any,path:str=None)->None:
     try:

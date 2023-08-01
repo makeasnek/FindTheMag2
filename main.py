@@ -1412,7 +1412,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
                 profit = revenue_per_hour - expenses_per_hour
                 rounded_revenue_per_hour=str(round(revenue_per_hour,ROUNDING_DICT.get('USD/HR R',3)))
                 rounded_profit_per_hour=str(round(grc_per_hour,ROUNDING_DICT.get('USD/HR P',3)))
-                working_dict[name]['USD/HR R/P']='{}/{}}'.format(rounded_revenue_per_hour,rounded_profit_per_hour)
+                working_dict[name]['USD/HR R/P']='{}/{}'.format(rounded_revenue_per_hour,rounded_profit_per_hour)
             else:
                 working_dict[name]['USD/HR R/P'] = '0'
             del working_dict[name]['MAG/HR']

@@ -2680,12 +2680,14 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             if database_url not in DATABASE[mode]:
                 DATABASE[mode][database_url] = {}
             # skip checking project if we have a backoff counter going and it hasn't been long enough
-            time_since_last_project_check=datetime.datetime.now() - DATABASE[mode][database_url].get('LAST_CHECKED',datetime.datetime(1997, 6, 21, 18, 25, 30))
-            minutes_since_last_project_check = time_since_last_project_check.seconds / 60
-            if minutes_since_last_project_check < DATABASE[mode].get(database_url, {}).get('BACKOFF', 0):
+            last_project_check:datetime.datetime=DATABASE[mode][database_url].get('LAST_CHECKED',datetime.datetime(1997, 6, 21, 18, 25, 30))
+            backoff_period=DATABASE[mode].get(database_url, {}).get('BACKOFF', 0)
+            time_since_last_project_check=datetime.datetime.now() - last_project_check
+            minutes_since_last_project_check = abs(time_since_last_project_check.total_seconds()) / 60
+            if minutes_since_last_project_check < backoff_period:
                 DATABASE['TABLE_STATUS']='Skipping {} due to backoff period...'.format({highest_priority_project})
                 update_table(dev_loop=dev_loop)
-                log.debug('Skipping project {} due to backoff period... minutes_since is {}'.format(database_url,minutes_since_last_project_check))
+                log.debug('Skipping project {} due to backoff period... minutes_since is {} backoff period is {} last check was'.format(database_url,minutes_since_last_project_check,backoff_period,last_project_check))
                 continue
             DATABASE['TABLE_STATUS']='Waiting for xfers to complete..'
             update_table(dev_loop=dev_loop)
@@ -2747,9 +2749,6 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 log.debug('Waiting for any xfers to complete...')
                 dl_response = wait_till_no_xfers(rpc_client)  # wait until all network activity has concluded
 
-                if not dont_nnt: # if we didn't get a backoff signal and we haven't picked a project to leave non-NNTed during sleeping of loop, pick this one for that purpose
-                    dont_nnt=database_url
-
             # re-NNT all projects
             nnt_response = loop.run_until_complete(nnt_all_projects(rpc_client))  # NNT all projects
 
@@ -2763,12 +2762,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
                 update_table(dev_loop=dev_loop)
                 break
 
-        # Allow highest non-backedoff project to be non-NNTd.
+        # Allow highest priority project to be non-NNTd.
         # This enables BOINC to fetch work if it's needed before our sleep period elapses
-        if dont_nnt:
-            allow_this_project=resolve_url_boinc_rpc(dont_nnt,dev_mode=dev_loop)
-            allow_response = loop.run_until_complete(
-                run_rpc_command(rpc_client, 'project_allowmorework', 'project_url', allow_this_project))
+        dont_nnt=resolve_url_database(project_loop[0])
+        allow_this_project=resolve_url_boinc_rpc(dont_nnt,dev_mode=dev_loop)
+        allow_response = loop.run_until_complete(
+            run_rpc_command(rpc_client, 'project_allowmorework', 'project_url', allow_this_project))
         custom_sleep(30,rpc_client,dev_loop=dev_loop)  # There's no reason to loop through all projects more than once every 30 minutes
 def print_and_log(msg:str,log_level:str)->None:
     """

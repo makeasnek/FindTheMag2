@@ -62,6 +62,13 @@ def TEMP_FUNCTION():
 DUMP_PROJECT_WEIGHTS:bool=False # Dump weights assigned to projects
 DUMP_PROJECT_PRIORITY:bool=False # Dump weights adjusted after considering current and past crunching time
 DUMP_RAC_MAG_RATIOS:bool=False # Dump the RAC:MAG ratios from each Gridcoin project
+# how many decimal places to round each stat to which is printed in the output table
+ROUNDING_DICT = {
+    'MAGPERCREDIT': 5,
+    'AVGMAGPERHOUR': 3,
+    'USD/HR R':3,
+    'USD/HR P':3,
+}
 
 
 ##########################################################################################################################################

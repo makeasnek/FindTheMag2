@@ -112,6 +112,10 @@ GPU_MODE_DICT = {
     '2': 'auto',
     '3': 'never'
 }
+ROUNDING_DICT = {
+    'MAGPERCREDIT': 5,
+    'AVGMAGPERHOUR': 3,
+}
 DEV_BOINC_PASSWORD='' # this is only used for printing to table, not used elsewhere
 DEV_LOOP_RUNNING=False
 SAVE_STATS_DB={} # keeps cache of saved stats databases so we don't write more often than we need to
@@ -1397,14 +1401,18 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
         if working_dict[name].get('MAG/HR'):
             grc_per_hour=float(working_dict[name].get('MAG/HR',0))/4
             grc_per_day = (float(working_dict[name].get('MAG/HR', 0)) / 4)*24
-            working_dict[name]['GRC/HR']=str('{:.3f}').format(grc_per_hour)
-            working_dict[name]['GRC/DAY'] = str('{:.3f}').format(grc_per_day)
+            rounded_grc_per_hour=str(round(grc_per_hour,ROUNDING_DICT.get('GRC/HR',3)))
+            rounded_grc_per_day = str(round(grc_per_day, ROUNDING_DICT.get('GRC/HR', 3)))
+            working_dict[name]['GRC/HR']=rounded_grc_per_hour
+            working_dict[name]['GRC/DAY'] = rounded_grc_per_day
             if float(working_dict[name].get('MAG/HR'))!=0:
                 revenue_per_hour = (float(working_dict[name].get('MAG/HR')) / 4) * DATABASE.get('GRCPRICE',0)
                 exchange_expenses = revenue_per_hour * EXCHANGE_FEE
                 expenses_per_hour = exchange_expenses + HOST_COST_PER_HOUR
                 profit = revenue_per_hour - expenses_per_hour
-                working_dict[name]['USD/HR R/P']='{:.4f}/{:.4f}'.format(revenue_per_hour,profit)
+                rounded_revenue_per_hour=str(round(revenue_per_hour,ROUNDING_DICT.get('USD/HR R',3)))
+                rounded_profit_per_hour=str(round(grc_per_hour,ROUNDING_DICT.get('USD/HR P',3)))
+                working_dict[name]['USD/HR R/P']='{}/{}}'.format(rounded_revenue_per_hour,rounded_profit_per_hour)
             else:
                 working_dict[name]['USD/HR R/P'] = '0'
             del working_dict[name]['MAG/HR']
@@ -1414,9 +1422,7 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
         for key,value in stats.items():
             if key not in headings:
                 headings.append(key)
-            if key not in heading_length:
-                heading_length[key]=len(key)+2
-            heading_length[key]=len(key)+2
+            heading_length[key]=len(key)
             if key not in values:
                 values[key]=[]
             if value not in values[key]:
@@ -2309,7 +2315,7 @@ def make_discrepancy_timeout(discrepancy:float)->float:
     return timeout
 
 
-def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:str=DATABASE.get('TABLE_STATUS',''),dev_status:bool=False,dev_loop:bool=False):
+def update_table(sleep_reason:str=None, status:str=None,dev_status:bool=False,dev_loop:bool=False):
     """
     Function to update table printed to user.
     :param status = Most recent status "waiting for xfers, starting crunching on x, etc"
@@ -2317,6 +2323,10 @@ def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:
     # don't update table in dev loop because all our variables reference dev install not main one
     if dev_loop or SKIP_TABLE_UPDATES:
         return
+    if not sleep_reason:
+        sleep_reason=DATABASE.get('TABLE_SLEEP_REASON', '')
+    if not status:
+        status=DATABASE.get('TABLE_STATUS','')
     rename_dict={
         'TOTALTASKS':'TASKS',
         'TOTALTIME(HRS)':'TIME',
@@ -2347,11 +2357,7 @@ def update_table(sleep_reason:str=DATABASE.get('TABLE_SLEEP_REASON',''), status:
             renamed=stat_name
             if stat_name in rename_dict:
                 renamed=rename_dict[stat_name]
-            rounding = 2
-            if stat_name == 'MAGPERCREDIT':
-                rounding = 5
-            if stat_name=='AVGMAGPERHOUR':
-                rounding=3
+            rounding = ROUNDING_DICT.get(stat_name,3)
             table_dict[project_url][renamed] = str(round(float(stat_value), rounding))
         final_project_weights_extract = FINAL_PROJECT_WEIGHTS.get(project_url)
         if final_project_weights_extract:

@@ -1391,8 +1391,14 @@ def print_table(table_dict:Dict[str,Dict[str,str]], sortby:str='GRC/HR', sleep_r
     # convert urls to nice names, add USD/GRC/hr
     for url in list(working_dict.keys()):
         name=project_url_to_name(url,ALL_BOINC_PROJECTS)
+        if not name or name==url:
+            name = project_url_to_name(url, BOINC_PROJECT_NAMES)
+            if not name or name==url:
+                name = project_url_to_name(url, APPROVED_PROJECT_URLS)
         if not name:
             name=url
+
+
         stats=table_dict[url]
         working_dict[name]=stats
         if name!=url:

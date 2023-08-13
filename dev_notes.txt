@@ -1,7 +1,7 @@
 ## URL formats
 There are several URL formats FTM uses.
 - Generally, all URLs should be in the "canonicalized" format created by resolve_url_database(). The canonical format is
- UPPERCASE, with HTTP/HTTPS/WWW removed and any trailing slashes removed.
+ UPPERCASE, with HTTP/HTTPS/WWW. removed and any trailing slashes removed.
 - The URL canonicalizer will also join projects which have multiple attach URLs for the same project.
 - We use non-canonical URLs when speaking with Gridcoin or BOINC RPC since they have their own formats. BOINC is
 particularly picky about capitalization. When we fetch data from these tools, we convert it into canonical format as
@@ -37,8 +37,6 @@ DATABASE format:
 },
 'DEV':{
 }
-
-COMBINED_STATS format:
 
 To diagnose which BOINC clients are up and running:
 Linux: sudo netstat -tuplen|grep boinc

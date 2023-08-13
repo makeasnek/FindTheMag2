@@ -1073,6 +1073,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
     stats_files:List[str] = []
     credit_history_files:List[str] = []
     return_stats = {}
+    template_dict={'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
 
     # find files to search through, add them to lists
     try:
@@ -1092,7 +1093,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
         project_url = project_url_from_stats_file(os.path.basename(statsfile))
         project_url=resolve_url_database(project_url)
         if project_url not in return_stats:
-            return_stats[project_url] = {'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
+            return_stats[project_url] = template_dict
         stat_list = stat_file_to_list(statsfile)
         parsed=parse_stats_file(stat_list)
         return_stats[project_url]['WU_HISTORY']=parsed
@@ -1113,7 +1114,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
                     continue
                 # quick sanity checks
                 if project_url not in return_stats:
-                    return_stats[project_url] = {'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
+                    return_stats[project_url] = template_dict
                 if 'CREDIT_HISTORY' not in return_stats[project_url]:
                     return_stats[project_url]['CREDIT_HISTORY'] = {}
                 if 'COMPILED STATS' not in return_stats[project_url]:
@@ -1143,7 +1144,7 @@ def add_mag_to_combined_stats(combined_stats: dict, mag_ratios: Dict[str, float]
     Add magnitude to combined_stats dict. Adds in dict and returns it as well.
     :param combined_stats: COMBINED_STATS from main.py
     :param mag_ratios: mag ratios returned from get_project_mag_ratios. A dict with project URL as key and mag ratio as value
-    :return: COMBINED_STATS w/ mag ratios added to us, list of projects which are being crunched but not on approved projects list
+    :return: COMBINED_STATS w/ mag ratios added to it, list of projects which are being crunched but not on approved projects list
     """
     unapproved_list=[]
     for project_url, project_stats in combined_stats.items():
@@ -1490,9 +1491,13 @@ def in_list(my_str:str,list:List[str])->bool:
         if search_str==item.upper() or search_str in item.upper():
             return True
     return False
-def generate_stats(APPROVED_PROJECT_URLS:List[str], preferred_projects:Dict[str,float]=None, ignored_projects:List[str]=None, quiet:bool=False, ignore_unattached:bool=False, attached_list:Set[str]=None, mag_ratios:Dict[str,float]=None):
+def generate_stats(approved_project_urls:List[str], preferred_projects:Dict[str,float]=None, ignored_projects:List[str]=None, quiet:bool=False, ignore_unattached:bool=False, attached_list:Set[str]=None, mag_ratios:Dict[str,float]=None):
     if not attached_list:
         attached_list=[]
+    if not approved_project_urls:
+        approved_project_urls=APPROVED_PROJECT_URLS
+    if not mag_ratios:
+        mag_ratios=MAG_RATIOS
     weak_stats=[]
     if not quiet:
         print('Gathering project stats...')
@@ -1512,12 +1517,12 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str], preferred_projects:Dict[str,
         preferred_projects[canonicalized] = weight
     # ignore unattached projects if requested
     if ignore_unattached:
-        for project in APPROVED_PROJECT_URLS:
+        for project in approved_project_urls:
             boincified_url=resolve_url_boinc_rpc(project)
             if boincified_url not in ATTACHED_PROJECT_SET:
                 ignored_projects.append(project)
                 log.warning('Ignoring whitelisted project {} bc not attached'.format(project))
-    combined_stats,unapproved_projects = add_mag_to_combined_stats(combined_stats, mag_ratios, APPROVED_PROJECT_URLS, list(preferred_projects.keys()))
+    combined_stats,unapproved_projects = add_mag_to_combined_stats(combined_stats, mag_ratios, approved_project_urls, list(preferred_projects.keys()))
 
     # Detect attached projects which are not whitelisted or in PREFERRED_PROJECTS
     if len(unapproved_projects)>0:
@@ -1532,14 +1537,14 @@ def generate_stats(APPROVED_PROJECT_URLS:List[str], preferred_projects:Dict[str,
             'No projects have enough completed tasks to determine which is the most efficient. Assigning all projects 1')
         log.warning(
             'No projects have enough completed tasks to determine which is the most efficient. Assigning all projects 1')
-        total_preferred_weight=1000-(len(APPROVED_PROJECT_URLS))+len(preferred_projects)
+        total_preferred_weight= 1000 - (len(approved_project_urls)) + len(preferred_projects)
         total_mining_weight = 0
     else:
         total_preferred_weight = (PREFERRED_PROJECTS_PERCENT / 100) * 1000
         total_mining_weight = 1000 - total_preferred_weight
     total_mining_weight_remaining = total_mining_weight
     # assign weight of 1 to all projects which didn't make the cut
-    for project_url in APPROVED_PROJECT_URLS:
+    for project_url in approved_project_urls:
         preferred_extract=preferred_projects.get(project_url)
         if preferred_extract:
             continue  # exclude preferred projects
@@ -2472,12 +2477,12 @@ def boinc_loop(dev_loop:bool=False,rpc_client=None,client_rpc_client=None,time:i
             # total_time = combined_stats_to_total_time(COMBINED_STATS) # Not sure what this line did but commented out, we'll see if anything breaks
             if dev_loop:
                 COMBINED_STATS_DEV, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, DEV_PROJECT_WEIGHTS = generate_stats(
-                    APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
+                    approved_project_urls=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
                     attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
             else:
                 COMBINED_STATS, FINAL_PROJECT_WEIGHTS, total_preferred_weight, total_mining_weight, DEV_PROJECT_WEIGHTS = generate_stats(
-                    APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
+                    approved_project_urls=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS,
                     ignored_projects=IGNORED_PROJECTS, quiet=True, ignore_unattached=True,
                     attached_list=ATTACHED_PROJECT_SET, mag_ratios=MAG_RATIOS)
             if DUMP_PROJECT_WEIGHTS:
@@ -3010,7 +3015,11 @@ if __name__ == '__main__':
         quit()
     ATTACHED_PROJECT_SET.update(temp_project_set)
     combine_dicts(BOINC_PROJECT_NAMES,temp_project_names)
-    ALL_BOINC_PROJECTS=loop.run_until_complete(get_all_projects(rpc_client))
+    try:
+        ALL_BOINC_PROJECTS=loop.run_until_complete(get_all_projects(rpc_client))
+    except Exception as e:
+        print('Error communicating with BOINC client, exiting')
+        safe_exit(None,None)
 
     # Get project list from Gridcoin wallet and/or gridcoinstats, check sidestakes
     foundation_address = 'bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2'
@@ -3067,7 +3076,8 @@ if __name__ == '__main__':
     except Exception as e:
         print_and_log('Error getting project URL list from BOINC '+str(e),'ERROR')
 
-    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(APPROVED_PROJECT_URLS=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=False, mag_ratios=MAG_RATIOS)
+    COMBINED_STATS,FINAL_PROJECT_WEIGHTS,total_preferred_weight,total_mining_weight,DEV_PROJECT_WEIGHTS=generate_stats(
+        approved_project_urls=APPROVED_PROJECT_URLS, preferred_projects=PREFERRED_PROJECTS, ignored_projects=IGNORED_PROJECTS, quiet=False, mag_ratios=MAG_RATIOS)
     log.debug('Printing pretty stats...')
     # calculate starting efficiency stats
     if 'STARTMAGHR' not in DATABASE:

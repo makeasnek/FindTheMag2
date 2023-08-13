@@ -1093,7 +1093,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
         project_url = project_url_from_stats_file(os.path.basename(statsfile))
         project_url=resolve_url_database(project_url)
         if project_url not in return_stats:
-            return_stats[project_url] = template_dict
+            return_stats[project_url] = copy.deepcopy(template_dict)
         stat_list = stat_file_to_list(statsfile)
         parsed=parse_stats_file(stat_list)
         return_stats[project_url]['WU_HISTORY']=parsed
@@ -1114,7 +1114,7 @@ def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union
                     continue
                 # quick sanity checks
                 if project_url not in return_stats:
-                    return_stats[project_url] = template_dict
+                    return_stats[project_url] = copy.deepcopy(template_dict)
                 if 'CREDIT_HISTORY' not in return_stats[project_url]:
                     return_stats[project_url]['CREDIT_HISTORY'] = {}
                 if 'COMPILED STATS' not in return_stats[project_url]:

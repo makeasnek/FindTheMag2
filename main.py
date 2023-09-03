@@ -3294,7 +3294,7 @@ def update_table(
             table_dict[project_url]["WEIGHT"] = "NA"
     print_table(
         table_dict,
-        sortby="GRC/HR",
+        sortby="GRC/DAY",
         sleep_reason=sleep_reason,
         status=status,
         dev_status=dev_status,

@@ -4383,21 +4383,6 @@ if __name__ == "__main__":
     else:
         original_avg_mag_hr = DATABASE["STARTMAGHR"]
         current_avg_mag_hr = get_avg_mag_hr(COMBINED_STATS)
-        if current_avg_mag_hr > original_avg_mag_hr and original_avg_mag_hr != 0:
-            percent_increase = (
-                (current_avg_mag_hr - original_avg_mag_hr) / original_avg_mag_hr
-            ) * 100
-            print(
-                "When you started using this tool, your average mag/hr was: {:.4f} now it is {:.4f}, a {}% increase!".format(
-                    original_avg_mag_hr, current_avg_mag_hr, percent_increase
-                )
-            )
-        else:
-            print(
-                "When you started using this tool, your average mag/hr was: {:.4f} now it is {:.4f}".format(
-                    original_avg_mag_hr, current_avg_mag_hr
-                )
-            )
     # generate table to print pretty
     table_dict = {}
     for project_url, stats_dict in COMBINED_STATS.items():

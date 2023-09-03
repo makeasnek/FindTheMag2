@@ -1891,7 +1891,7 @@ def center_align(yourstring: str, total_len: int, min_pad: int = 0) -> str:
 
 def print_table(
     table_dict: Dict[str, Dict[str, str]],
-    sortby: str = "GRC/HR",
+    sortby: str = "GRC/DAY",
     sleep_reason: str = DATABASE["TABLE_SLEEP_REASON"],
     status: str = DATABASE["TABLE_STATUS"],
     dev_status: bool = False,
@@ -4394,7 +4394,7 @@ if __name__ == "__main__":
             table_dict[project_url][stat_name] = str(round(float(stat_value), rounding))
     print("")
     if len(table_dict) > 0:
-        print("SOME PRETTY STATS JUST FOR YOU, SORTED BY AVG GRC/HOUR")
+        print("SOME PRETTY STATS JUST FOR YOU, SORTED BY AVG GRC/DAY")
         priority_results = {}
         update_table(table_dict)
         del priority_results  # this is only created temporarily as update_table expects it

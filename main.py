@@ -450,6 +450,20 @@ def safe_exit(arg1,arg2)->None:
     except Exception as e:
         log.error('Error closing an event loop: {}'.format(e))
     quit()
+async def get_stats_helper(rpc_client:libs.pyboinc.rpc_client)->list:
+    """
+    Return stats from BOINC client. Development on this is stalled due to BOINC not returning all stats + projects in testing.
+    """
+    return_value=[]
+    reply = await run_rpc_command(rpc_client,'get_statistics')
+    if not reply:
+        log.error('Error getting boinc stats')
+        return return_value
+    if isinstance(reply,str):
+        log.info('BOINC appears to have no stats... :{}'.format(reply))
+        return return_value
+    job_logs = await run_rpc_command(rpc_client, 'get_old_results')
+    return reply
 async def get_task_list(rpc_client:libs.pyboinc.rpc_client)->list:
     """
     Return list of tasks from BOINC client which are not completed/failed. These
@@ -1064,6 +1078,115 @@ def calculate_credit_averages(my_stats:dict)->Dict[str,Dict[str,float]]:
             'For project {} this host has crunched {} WUs for {} total credit with an average of {} credits per WU. {} hours were spent on these WUs for {} credit/hr'.format(
                 project_url.lower(), total_wus, round(total_credit, 2), round(avg_credit_per_task, 2),
                 round((total_wall_time), 2), round(credits_per_hour, 2)))
+    return return_stats
+async def boinc_client_to_stats(rpc_client: libs.pyboinc.rpc_client=None) -> Union[Dict[str, Dict[str, Union[int, float, Dict[str, Union[float, str]]]]],None]:
+    """
+    Function to gather stats from the BOINC client
+    :param rpc_client: BOINC RPC Client
+    :return: Dict of stats, or None if encounters errors
+    """
+    stats_result=None
+    project_status_reply=None
+    try:
+        stats_result=loop.run_until_complete(get_stats_helper(rpc_client))
+    except Exception as e:
+        log.error('Error getting stats from BOINC in boinc_client_to_stats: {}'.format(e))
+    if not isinstance(stats_result,dict):
+        return None
+    if 'project_statistics' not in stats_result:
+        log.error('Error project_statistics not in stats_result: {}'.format(stats_result))
+        return None
+    for project in stats_result:
+        try:
+            #elapsed_time=task['active_task']['current_cpu_time'].seconds
+            name=task['name']
+            # wu_name=task['wu_name']
+            project_url=task['project_url'].master_url
+            if 'active_task' not in task or started:
+                if not quiet:
+                    print('Cancelling unstarted task {}'.format(task))
+                log.debug('Cancelling unstarted task {}'.format(task))
+                req = ET.Element('abort_result')
+                a = ET.SubElement(req, 'project_url')
+                a.text = project_url
+                b = ET.SubElement(req, 'name')
+                b.text = name
+                response = await rpc_client._request(req)
+                parsed = parse_generic(response)  # returns True if successful
+                a="21"
+            else:
+                #print('Keeping task {}'.format(task))
+                log.debug('Keeping task {}'.format(task))
+        except Exception as e:
+            log.error('Error ending task: {}: {}'.format(task,e))
+    # OLD FUNCTION
+    stats_files:List[str] = []
+    credit_history_files:List[str] = []
+    return_stats = {}
+    template_dict={'CREDIT_HISTORY': {}, 'WU_HISTORY': {}, 'COMPILED_STATS': {}}
+
+    # find files to search through, add them to lists
+    try:
+        for file in os.listdir(config_dir_abs_path):
+            if 'job_log' in file:
+                stats_files.append(os.path.join(config_dir_abs_path, file))
+            if file.startswith('statistics_') and file.endswith('.xml'):
+                credit_history_files.append(os.path.join(config_dir_abs_path, file))
+    except Exception as e:
+        log.error('Error listing stats files: {}'.format(e))
+        return {}
+    log.debug('Found stats_files: ' + str(stats_files))
+    log.debug('Found historical credit info files at: ' + str(credit_history_files))
+
+    # Process stats files
+    for statsfile in stats_files:
+        project_url = project_url_from_stats_file(os.path.basename(statsfile))
+        project_url=resolve_url_database(project_url)
+        if project_url not in return_stats:
+            return_stats[project_url] = copy.deepcopy(template_dict)
+        stat_list = stat_file_to_list(statsfile)
+        parsed=parse_stats_file(stat_list)
+        return_stats[project_url]['WU_HISTORY']=parsed
+
+    # process credit logs
+    for credit_history_file in credit_history_files:
+        project_url = project_url_from_credit_history_file(os.path.basename(credit_history_file))
+        project_url=resolve_url_database(project_url)
+        credithistorylist = credit_history_file_to_list(credit_history_file)
+
+        # add info from credit history files
+        for index, entry in enumerate(credithistorylist):
+            try:
+                # print('In credit_history_file for ' + project_url)
+                # startdate = str(datetime.datetime.fromtimestamp(float(credithistorylist[0]['TIME'])).strftime('%m-%d-%Y'))
+                # lastdate = str( datetime.datetime.fromtimestamp(float(credithistorylist[len(credithistorylist) - 1]['TIME'])).strftime('%m-%d-%Y'))
+                if index == len(credithistorylist) - 1: # Skip the last entry as it's already calculated at the previous entry
+                    continue
+                # quick sanity checks
+                if project_url not in return_stats:
+                    return_stats[project_url] = copy.deepcopy(template_dict)
+                if 'CREDIT_HISTORY' not in return_stats[project_url]:
+                    return_stats[project_url]['CREDIT_HISTORY'] = {}
+                if 'COMPILED STATS' not in return_stats[project_url]:
+                    return_stats[project_url]['COMPILED_STATS'] = {}
+
+                credit_history = return_stats[project_url]['CREDIT_HISTORY']
+                next_entry = credithistorylist[index + 1]
+                current_time = float(entry['TIME'])
+                delta_credits = float(next_entry['HOSTTOTALCREDIT']) - float(entry['HOSTTOTALCREDIT'])
+                # Add found info to combined average stats
+                date = str(datetime.datetime.fromtimestamp(float(current_time)).strftime('%m-%d-%Y'))
+                if date not in credit_history:
+                    credit_history[date] = {}
+                if 'CREDITAWARDED' not in credit_history[date]:
+                    credit_history[date]["CREDITAWARDED"] = 0
+                credit_history[date]['CREDITAWARDED'] += delta_credits
+            except Exception as e:
+                log.error('Error parsing credit history files: {}'.format(e))
+    # find averages
+    found_averages=calculate_credit_averages(return_stats)
+    for url,stats_dict in found_averages.items():
+        combine_dicts(return_stats[url]['COMPILED_STATS'],stats_dict)
     return return_stats
 def config_files_to_stats(config_dir_abs_path: str) -> Dict[str, Dict[str, Union[int, float, Dict[str, Union[float, str]]]]]:
     """
@@ -3103,8 +3226,10 @@ if __name__ == '__main__':
             table_dict[project_url][stat_name]=str(round(float(stat_value),rounding))
     print('')
     if len(table_dict)>0:
-        print('SOME PRETTY STATS JUST FOR YOU, SORTED BY AVERAGE MAG/HOUR')
-        print_table(table_dict,sortby='AVGMAGPERHOUR')
+        print('SOME PRETTY STATS JUST FOR YOU, SORTED BY AVG GRC/HOUR')
+        priority_results={}
+        update_table(table_dict)
+        del priority_results # this is only created temporarily as update_table expects it
     else:
         print('Not enough stats to print a table of them yet, guessing this is a new BOINC install?')
     print('Total project weight will be 1000. We will reserve a minimum .01% of processing power for monitoring each project')

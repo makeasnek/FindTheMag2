@@ -90,3 +90,6 @@ def test_prefs_check(test_setup_connection):
     }
     result1 = loop.run_until_complete(main.prefs_check(RPC_CONNECTION_OBJECT, global_prefs, disk_usage,True))
     assert not result1
+def test_boinc_client_to_stats(test_BoincClientConnection):
+    loop.run_until_complete(main.boinc_client_to_stats(RPC_CONNECTION_OBJECT))
+    a=1

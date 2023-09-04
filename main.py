@@ -380,24 +380,26 @@ def grc_project_name_to_url(
     return None
 
 
-def wait_till_synced(grc_client:GridcoinClientConnection):
+def wait_till_synced(grc_client: GridcoinClientConnection):
     """
     A function to WAIT until client is fully synced
     :param grc_client:
     :return:
     """
     from time import sleep
-    printed=False
+
+    printed = False
     while True:
-        response=grc_client.run_command('getinfo')
-        if isinstance(response,dict):
-            sync_status=response.get('result',{}).get('in_sync')
-            if sync_status==True:
+        response = grc_client.run_command("getinfo")
+        if isinstance(response, dict):
+            sync_status = response.get("result", {}).get("in_sync")
+            if sync_status == True:
                 return
         sleep(1)
-        if printed==False:
-            print('Gridcoin wallet is not fully synced yet. Waiting for full sync...')
-            printed=True
+        if printed == False:
+            print("Gridcoin wallet is not fully synced yet. Waiting for full sync...")
+            printed = True
+
 
 def combine_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> None:
     """

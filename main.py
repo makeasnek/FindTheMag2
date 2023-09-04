@@ -33,7 +33,9 @@ try:
     # ignore deprecation warnings in Windows
     import warnings
 except Exception as e:
-    print('Error loading some required modules. Make sure you have installed the modules in requirements.txt as documented in the README')
+    print(
+        "Error loading some required modules. Make sure you have installed the modules in requirements.txt as documented in the README"
+    )
     print(str(e))
     quit()
 
@@ -1928,6 +1930,59 @@ def print_table(
     dev_status: bool = False,
 ):
     if len(table_dict) == 0:
+        print(
+            "No projects have any assigned credit yet, a pretty table will appear here once you have earned some credit."
+        )
+        # fmt: off
+        print("""
+                                                                              WNNXXXKKXW                     
+                                                                        WNK0OkkxxkkkkdoK                     
+                                                                    WX0kxdolx0XNNWWWNkoK                     
+                                                                WN0kxxk0KX0xdON     NxdX                     
+                                                              NKkxxOKNW    N0xdOXW  KokN                     
+                                                           WXOxxOXW          N0xdOXNko0W                     
+                                                        WKOkdkKN  NKOkkkOKN    N0xdxokN                      
+                                                      WKxdxkXW  W0xdO0K0kdxKW    NOldK                       
+                                                    WKxdOXWW    KdxX     XxdX    Nko0W                       
+                                       W0kkOkkOkkkOkxdkXW       0okW     NkoK   Nko0W                        
+                                      Xkdk0000000OdlxKW         NkdOXWWWXOdkN  Xxd0W                         
+                                    WKddKW     WKxdON            N0xxxkxxk0N WKddKW                          
+                                   NOdkX      N0dxXW         WW    WNXXXNW  NOdkX                            
+                                 WXxd0W      XkldKW       WN0k0W          WKxd0W                             
+                                W0dxKW     WKxdkxdOXW   N0kxx0N         WXkdkXW                              
+                               NkdkN      WKdxXWWKxdOXN0xxk0N         WXkdkKW                                
+                             WKxoOXXKK0OOkxooOW   N0doodONW         WXkdxKW                                  
+                            W0oloxxxkkkO00K0kdkXW N0ddddOXWW      N0xoxKW                                    
+                            WXKKXNNWWW      WKkdkOxd0NN0xdxOXW WXOxdooK                                      
+                                              Xxllo0W   N0OxdOOxdkKXxoK                                      
+                                            N0xdO0xdkXW WXKkoox0XW NkoK                                      
+                                          N0xdON  WKxdkkxxxk0XW    NkoK                                      
+                                        N0xdON      NklxKNWW       NxoK                                      
+                                       WKkON        NkoK         WKkdxX                                      
+                                        WW          XdxN      WXOxxkKN                                       
+                                                   WOoOW   WXOxxkKNW                                         
+                                                   NxdKWX0kxdk0NW                                            
+                                                   Kddkkxxk0XW                                               
+                                                  WOlox0XW                                                   
+                                                  WX0XW                                                      
+
+
+                 _____ _________________   ______________   __________     ________  ________
+                / ___// ____/  _/ ____/ | / / ____/ ____/  /_  __/ __ \   /_  __/ / / / ____/
+                \__ \/ /    / // __/ /  |/ / /   / __/      / / / / / /    / / / /_/ / __/   
+               ___/ / /____/ // /___/ /|  / /___/ /___     / / / /_/ /    / / / __  / /___   
+              /____/\____/___/_____/_/ |_/\____/_____/    /_/  \____/    /_/ /_/ /_/_____/   
+
+                                          __  _______  ____  _   __
+                                         /  |/  / __ \/ __ \/ | / /
+                                        / /|_/ / / / / / / /  |/ / 
+                                       / /  / / /_/ / /_/ / /|  /  
+                                      /_/  /_/\____/\____/_/ |_/                                                                 
+
+
+
+        """)
+        # fmt: on
         return
     headings = []
     heading_length: Dict[str, int] = {}  # length of each heading column
@@ -2772,7 +2827,7 @@ def get_highest_priority_project(
         if not in_list(project, attached_projects):
             log.debug("skipping project bc not attached {}".format(project))
             continue
-        combined_stats_extract = combined_stats.get(project_url)
+        combined_stats_extract = combined_stats.get(project)
         if not combined_stats_extract:
             if not quiet:
                 print(

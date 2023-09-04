@@ -4223,12 +4223,12 @@ if __name__ == "__main__":
             print('Please answer "Y" or "N" without quotes. Then press the enter key')
             answer = input("")
             log.debug("User input: " + answer)
-            while answer not in ["Y", "N"]:
+            while answer not in ["Y", "N", "y", "n"]:
                 print("Error: Y or N not entered. Try again please :)")
                 answer = input("")
-            if answer == "N":
+            if answer == "N" or answer == "n":
                 print("Ok, we won't")
-            else:
+            elif answer== "Y" or answer== "y":
                 with open(
                     os.path.join(GRIDCOIN_DATA_DIR, "gridcoinresearch.conf"), "a"
                 ) as myfile:

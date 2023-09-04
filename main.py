@@ -223,12 +223,9 @@ else:
     )
     handler.setFormatter(formatter)
     log.addHandler(handler)
-    log.error(
-        "+++++++++++++++FTM STARTING+++++++++++++++++")
-    log.error(
-        "+++++++++++++++FTM STARTING+++++++++++++++++")
-    log.error(
-        "+++++++++++++++FTM STARTING+++++++++++++++++")
+    log.error("+++++++++++++++FTM STARTING+++++++++++++++++")
+    log.error("+++++++++++++++FTM STARTING+++++++++++++++++")
+    log.error("+++++++++++++++FTM STARTING+++++++++++++++++")
     log.error(
         "Start FTM log FTM version {} at {}".format(
             VERSION, datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")

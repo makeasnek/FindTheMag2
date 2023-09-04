@@ -380,6 +380,25 @@ def grc_project_name_to_url(
     return None
 
 
+def wait_till_synced(grc_client:GridcoinClientConnection):
+    """
+    A function to WAIT until client is fully synced
+    :param grc_client:
+    :return:
+    """
+    from time import sleep
+    printed=False
+    while True:
+        response=grc_client.run_command('getinfo')
+        if isinstance(response,dict):
+            sync_status=response.get('result',{}).get('in_sync')
+            if sync_status==True:
+                return
+        sleep(1)
+        if printed==False:
+            print('Gridcoin wallet is not fully synced yet. Waiting for full sync...')
+            printed=True
+
 def combine_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> None:
     """
     Given dict1, dict2, add dict2 to dict1, over-writing anything in dict1.
@@ -1744,10 +1763,10 @@ def sidestake_prompt(
         )
         message2 = "What percent would you like to donate to the developers of this tool? Enter a number like 5 for 5%. Please enter whole numbers only"
     answer = input(message1)
-    while answer not in ["Y", "N"]:
+    while answer not in ["Y", "N", "y", "n"]:
         print("Error: Y or N not entered. Try again please :)")
         answer = input("")
-    if answer == "N":
+    if answer == "N" or answer == "n":
         return
     answer = input(message2)
     converted_value = None
@@ -4228,7 +4247,7 @@ if __name__ == "__main__":
                 answer = input("")
             if answer == "N" or answer == "n":
                 print("Ok, we won't")
-            elif answer== "Y" or answer== "y":
+            elif answer == "Y" or answer == "y":
                 with open(
                     os.path.join(GRIDCOIN_DATA_DIR, "gridcoinresearch.conf"), "a"
                 ) as myfile:
@@ -4295,6 +4314,7 @@ if __name__ == "__main__":
         grc_client = GridcoinClientConnection(
             rpc_user=rpc_user, rpc_port=rpc_port, rpc_password=gridcoin_rpc_password
         )
+        wait_till_synced(grc_client)
         source_urls = grc_client.get_approved_project_urls()
         log.debug("Got source_urls from wallet: {}".format(source_urls))
         APPROVED_PROJECT_URLS = resolve_url_list_to_database(source_urls)

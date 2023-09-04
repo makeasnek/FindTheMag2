@@ -1382,127 +1382,128 @@ async def boinc_client_to_stats(
     rpc_client: libs.pyboinc.rpc_client = None,
 ) -> Union[Dict[str, Dict[str, Union[int, float, Dict[str, Union[float, str]]]]], None]:
     """
-    Function to gather stats from the BOINC client
+    Function to gather stats from the BOINC client. Currently not used due to pyBOINC not supporting some calls
     :param rpc_client: BOINC RPC Client
     :return: Dict of stats, or None if encounters errors
     """
-    stats_result = None
-    project_status_reply = None
-    try:
-        stats_result = loop.run_until_complete(get_stats_helper(rpc_client))
-    except Exception as e:
-        log.error(
-            "Error getting stats from BOINC in boinc_client_to_stats: {}".format(e)
-        )
-    if not isinstance(stats_result, dict):
-        return None
-    if "project_statistics" not in stats_result:
-        log.error(
-            "Error project_statistics not in stats_result: {}".format(stats_result)
-        )
-        return None
-    for project in stats_result:
-        try:
-            # elapsed_time=task['active_task']['current_cpu_time'].seconds
-            name = task["name"]
-            # wu_name=task['wu_name']
-            project_url = task["project_url"].master_url
-            if "active_task" not in task or started:
-                if not quiet:
-                    print("Cancelling unstarted task {}".format(task))
-                log.debug("Cancelling unstarted task {}".format(task))
-                req = ET.Element("abort_result")
-                a = ET.SubElement(req, "project_url")
-                a.text = project_url
-                b = ET.SubElement(req, "name")
-                b.text = name
-                response = await rpc_client._request(req)
-                parsed = parse_generic(response)  # returns True if successful
-                a = "21"
-            else:
-                # print('Keeping task {}'.format(task))
-                log.debug("Keeping task {}".format(task))
-        except Exception as e:
-            log.error("Error ending task: {}: {}".format(task, e))
-    # OLD FUNCTION
-    stats_files: List[str] = []
-    credit_history_files: List[str] = []
-    return_stats = {}
-    template_dict = {"CREDIT_HISTORY": {}, "WU_HISTORY": {}, "COMPILED_STATS": {}}
-
-    # find files to search through, add them to lists
-    try:
-        for file in os.listdir(config_dir_abs_path):
-            if "job_log" in file:
-                stats_files.append(os.path.join(config_dir_abs_path, file))
-            if file.startswith("statistics_") and file.endswith(".xml"):
-                credit_history_files.append(os.path.join(config_dir_abs_path, file))
-    except Exception as e:
-        log.error("Error listing stats files: {}".format(e))
-        return {}
-    log.debug("Found stats_files: " + str(stats_files))
-    log.debug("Found historical credit info files at: " + str(credit_history_files))
-
-    # Process stats files
-    for statsfile in stats_files:
-        project_url = project_url_from_stats_file(os.path.basename(statsfile))
-        project_url = resolve_url_database(project_url)
-        if project_url not in return_stats:
-            return_stats[project_url] = copy.deepcopy(template_dict)
-        stat_list = stat_file_to_list(statsfile)
-        parsed = parse_stats_file(stat_list)
-        return_stats[project_url]["WU_HISTORY"] = parsed
-
-    # process credit logs
-    for credit_history_file in credit_history_files:
-        project_url = project_url_from_credit_history_file(
-            os.path.basename(credit_history_file)
-        )
-        project_url = resolve_url_database(project_url)
-        credithistorylist = credit_history_file_to_list(credit_history_file)
-
-        # add info from credit history files
-        for index, entry in enumerate(credithistorylist):
-            try:
-                # print('In credit_history_file for ' + project_url)
-                # startdate = str(datetime.datetime.fromtimestamp(float(credithistorylist[0]['TIME'])).strftime('%m-%d-%Y'))
-                # lastdate = str( datetime.datetime.fromtimestamp(float(credithistorylist[len(credithistorylist) - 1]['TIME'])).strftime('%m-%d-%Y'))
-                if (
-                    index == len(credithistorylist) - 1
-                ):  # Skip the last entry as it's already calculated at the previous entry
-                    continue
-                # quick sanity checks
-                if project_url not in return_stats:
-                    return_stats[project_url] = copy.deepcopy(template_dict)
-                if "CREDIT_HISTORY" not in return_stats[project_url]:
-                    return_stats[project_url]["CREDIT_HISTORY"] = {}
-                if "COMPILED STATS" not in return_stats[project_url]:
-                    return_stats[project_url]["COMPILED_STATS"] = {}
-
-                credit_history = return_stats[project_url]["CREDIT_HISTORY"]
-                next_entry = credithistorylist[index + 1]
-                current_time = float(entry["TIME"])
-                delta_credits = float(next_entry["HOSTTOTALCREDIT"]) - float(
-                    entry["HOSTTOTALCREDIT"]
-                )
-                # Add found info to combined average stats
-                date = str(
-                    datetime.datetime.fromtimestamp(float(current_time)).strftime(
-                        "%m-%d-%Y"
-                    )
-                )
-                if date not in credit_history:
-                    credit_history[date] = {}
-                if "CREDITAWARDED" not in credit_history[date]:
-                    credit_history[date]["CREDITAWARDED"] = 0
-                credit_history[date]["CREDITAWARDED"] += delta_credits
-            except Exception as e:
-                log.error("Error parsing credit history files: {}".format(e))
-    # find averages
-    found_averages = calculate_credit_averages(return_stats)
-    for url, stats_dict in found_averages.items():
-        combine_dicts(return_stats[url]["COMPILED_STATS"], stats_dict)
-    return return_stats
+    pass
+    # stats_result = None
+    # project_status_reply = None
+    # try:
+    #     stats_result = loop.run_until_complete(get_stats_helper(rpc_client))
+    # except Exception as e:
+    #     log.error(
+    #         "Error getting stats from BOINC in boinc_client_to_stats: {}".format(e)
+    #     )
+    # if not isinstance(stats_result, dict):
+    #     return None
+    # if "project_statistics" not in stats_result:
+    #     log.error(
+    #         "Error project_statistics not in stats_result: {}".format(stats_result)
+    #     )
+    #     return None
+    # for project in stats_result:
+    #     try:
+    #         # elapsed_time=task['active_task']['current_cpu_time'].seconds
+    #         name = task["name"]
+    #         # wu_name=task['wu_name']
+    #         project_url = task["project_url"].master_url
+    #         if "active_task" not in task or started:
+    #             if not quiet:
+    #                 print("Cancelling unstarted task {}".format(task))
+    #             log.debug("Cancelling unstarted task {}".format(task))
+    #             req = ET.Element("abort_result")
+    #             a = ET.SubElement(req, "project_url")
+    #             a.text = project_url
+    #             b = ET.SubElement(req, "name")
+    #             b.text = name
+    #             response = await rpc_client._request(req)
+    #             parsed = parse_generic(response)  # returns True if successful
+    #             a = "21"
+    #         else:
+    #             # print('Keeping task {}'.format(task))
+    #             log.debug("Keeping task {}".format(task))
+    #     except Exception as e:
+    #         log.error("Error ending task: {}: {}".format(task, e))
+    # # OLD FUNCTION
+    # stats_files: List[str] = []
+    # credit_history_files: List[str] = []
+    # return_stats = {}
+    # template_dict = {"CREDIT_HISTORY": {}, "WU_HISTORY": {}, "COMPILED_STATS": {}}
+    #
+    # # find files to search through, add them to lists
+    # try:
+    #     for file in os.listdir(config_dir_abs_path):
+    #         if "job_log" in file:
+    #             stats_files.append(os.path.join(config_dir_abs_path, file))
+    #         if file.startswith("statistics_") and file.endswith(".xml"):
+    #             credit_history_files.append(os.path.join(config_dir_abs_path, file))
+    # except Exception as e:
+    #     log.error("Error listing stats files: {}".format(e))
+    #     return {}
+    # log.debug("Found stats_files: " + str(stats_files))
+    # log.debug("Found historical credit info files at: " + str(credit_history_files))
+    #
+    # # Process stats files
+    # for statsfile in stats_files:
+    #     project_url = project_url_from_stats_file(os.path.basename(statsfile))
+    #     project_url = resolve_url_database(project_url)
+    #     if project_url not in return_stats:
+    #         return_stats[project_url] = copy.deepcopy(template_dict)
+    #     stat_list = stat_file_to_list(statsfile)
+    #     parsed = parse_stats_file(stat_list)
+    #     return_stats[project_url]["WU_HISTORY"] = parsed
+    #
+    # # process credit logs
+    # for credit_history_file in credit_history_files:
+    #     project_url = project_url_from_credit_history_file(
+    #         os.path.basename(credit_history_file)
+    #     )
+    #     project_url = resolve_url_database(project_url)
+    #     credithistorylist = credit_history_file_to_list(credit_history_file)
+    #
+    #     # add info from credit history files
+    #     for index, entry in enumerate(credithistorylist):
+    #         try:
+    #             # print('In credit_history_file for ' + project_url)
+    #             # startdate = str(datetime.datetime.fromtimestamp(float(credithistorylist[0]['TIME'])).strftime('%m-%d-%Y'))
+    #             # lastdate = str( datetime.datetime.fromtimestamp(float(credithistorylist[len(credithistorylist) - 1]['TIME'])).strftime('%m-%d-%Y'))
+    #             if (
+    #                 index == len(credithistorylist) - 1
+    #             ):  # Skip the last entry as it's already calculated at the previous entry
+    #                 continue
+    #             # quick sanity checks
+    #             if project_url not in return_stats:
+    #                 return_stats[project_url] = copy.deepcopy(template_dict)
+    #             if "CREDIT_HISTORY" not in return_stats[project_url]:
+    #                 return_stats[project_url]["CREDIT_HISTORY"] = {}
+    #             if "COMPILED STATS" not in return_stats[project_url]:
+    #                 return_stats[project_url]["COMPILED_STATS"] = {}
+    #
+    #             credit_history = return_stats[project_url]["CREDIT_HISTORY"]
+    #             next_entry = credithistorylist[index + 1]
+    #             current_time = float(entry["TIME"])
+    #             delta_credits = float(next_entry["HOSTTOTALCREDIT"]) - float(
+    #                 entry["HOSTTOTALCREDIT"]
+    #             )
+    #             # Add found info to combined average stats
+    #             date = str(
+    #                 datetime.datetime.fromtimestamp(float(current_time)).strftime(
+    #                     "%m-%d-%Y"
+    #                 )
+    #             )
+    #             if date not in credit_history:
+    #                 credit_history[date] = {}
+    #             if "CREDITAWARDED" not in credit_history[date]:
+    #                 credit_history[date]["CREDITAWARDED"] = 0
+    #             credit_history[date]["CREDITAWARDED"] += delta_credits
+    #         except Exception as e:
+    #             log.error("Error parsing credit history files: {}".format(e))
+    # # find averages
+    # found_averages = calculate_credit_averages(return_stats)
+    # for url, stats_dict in found_averages.items():
+    #     combine_dicts(return_stats[url]["COMPILED_STATS"], stats_dict)
+    # return return_stats
 
 
 def config_files_to_stats(

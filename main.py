@@ -4391,6 +4391,7 @@ if __name__ == "__main__":
         grc_client = GridcoinClientConnection(
             rpc_user=rpc_user, rpc_port=rpc_port, rpc_password=gridcoin_rpc_password
         )
+        source_urls = grc_client.get_approved_project_urls() # this is just to test if the client is connectable
         wait_till_synced(grc_client)
         source_urls = grc_client.get_approved_project_urls()
         log.debug("Got source_urls from wallet: {}".format(source_urls))

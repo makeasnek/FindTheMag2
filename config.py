@@ -48,6 +48,9 @@ SKIP_TABLE_UPDATES: bool = False  # If true, don't print table updates. Useful f
 ##########################################################################################################################################
 ############      TEMPERATURE SETTINGS. EDIT THESE IF YOU WANT TO CONTROL THE BOINC CLIENT ACCORDING TO TEMPERATURE           ############
 ##########################################################################################################################################
+# You can use this section to start and stop BOINC crunching based on temperature. This can be the temperature of your CPU, the ambient
+# air temperature, or any other source you like. You can pull in temp data from a URL, a command line command, or even a
+# custom python function.
 ENABLE_TEMP_CONTROL = False  # Enable controlling BOINC based on temp. Default: False
 START_TEMP = (
     65  # Start crunching if temp > this number, whole numbers only! Default: 65.

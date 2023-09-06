@@ -2012,23 +2012,21 @@ def print_table(
             working_dict[name]["GRC/HR"] = rounded_grc_per_hour
             working_dict[name]["GRC/DAY"] = rounded_grc_per_day
             if float(working_dict[name].get("MAG/HR")) != 0:
-                revenue_per_hour = (
-                    float(working_dict[name].get("MAG/HR")) / 4
-                ) * DATABASE.get("GRCPRICE", 0)
-                exchange_expenses = revenue_per_hour * EXCHANGE_FEE
-                expenses_per_hour = exchange_expenses + HOST_COST_PER_HOUR
-                profit = revenue_per_hour - expenses_per_hour
-                rounded_revenue_per_hour = str(
-                    round(revenue_per_hour, ROUNDING_DICT.get("USD/HR R", 3))
+                revenue_per_day = (grc_per_day) * DATABASE.get("GRCPRICE", 0)
+                exchange_expenses = revenue_per_day * EXCHANGE_FEE
+                expenses_per_day = exchange_expenses + (HOST_COST_PER_HOUR * 24)
+                profit = revenue_per_day - expenses_per_day
+                rounded_revenue_per_day = str(
+                    round(revenue_per_day, ROUNDING_DICT.get("USD/DAY R", 3))
                 )
-                rounded_profit_per_hour = str(
-                    round(grc_per_hour, ROUNDING_DICT.get("USD/HR P", 3))
+                rounded_profit_per_day = str(
+                    round(profit, ROUNDING_DICT.get("USD/DAY P", 3))
                 )
-                working_dict[name]["USD/HR R/P"] = "{}/{}".format(
-                    rounded_revenue_per_hour, rounded_profit_per_hour
+                working_dict[name]["USD/DAY R/P"] = "{}/{}".format(
+                    rounded_revenue_per_day, rounded_profit_per_day
                 )
             else:
-                working_dict[name]["USD/HR R/P"] = "0"
+                working_dict[name]["USD/DAY R/P"] = "0"
             del working_dict[name]["MAG/HR"]
 
     # figure out table headings
@@ -2116,14 +2114,26 @@ def print_table(
         "Hours crunched for you vs dev: {:.1f}|{:.1f} ".format(
             DATABASE["FTMTOTAL"] / 60, DATABASE["DEVTIMETOTAL"] / 60
         )
+        + " Dev fee mode: {}".format(DEV_FEE_MODE.lower())
     )
-    print("Dev fee mode: {}".format(DEV_FEE_MODE.lower()))
     # print final line
     if not CHECK_SIDESTAKE_RESULTS:
         print(
             "Consider donating to this app's development directly or via sidestake: RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K. Sidestaking means you can skip crunching for dev"
         )
     print("Use Ctrl+C to exit FTM and return BOINC to previous config")
+    print(
+        'HOURSOFF= How far off we are between "intended" (based on weight) and "actual crunch time"'
+    )
+    print(
+        "ATIME and ACTIME are average wall time and CPU time per task, totals displayed as WTIME/CPUTIME"
+    )
+    print(
+        "RWTIME is wall-time crunched during window (default is 60 days). Windows help FTM track changes in how projects award credit"
+    )
+    print(
+        "USD/DAY R/P is revenue and profit per day in USD. Uses electrical costs from your user_config.py"
+    )
     print("*" * table_width)
 
 
@@ -3361,10 +3371,10 @@ def update_table(
         priority_results_extract = priority_results.get(project_url)
         if priority_results_extract:
             table_dict[project_url]["HOURSOFF"] = str(
-                round(float(priority_results_extract), 3)
+                round(float(priority_results_extract), 2)
             )
         else:
-            table_dict[project_url]["HOURSOFF"] = str(round(float(0), 3))
+            table_dict[project_url]["HOURSOFF"] = str(round(float(0), 2))
         for stat_name, stat_value in stats_dict["COMPILED_STATS"].items():
             if stat_name in ignore_list:
                 continue
@@ -3377,7 +3387,7 @@ def update_table(
         if final_project_weights_extract:
             table_dict[project_url]["WEIGHT"] = str(final_project_weights_extract)
         else:
-            table_dict[project_url]["WEIGHT"] = "NA"
+            table_dict[project_url]["WEIGHT"] = "0"
     print_table(
         table_dict,
         sortby="GRC/DAY",

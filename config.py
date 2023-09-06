@@ -80,8 +80,16 @@ DUMP_RAC_MAG_RATIOS: bool = False  # Dump the RAC:MAG ratios from each Gridcoin 
 ROUNDING_DICT = {
     "MAGPERCREDIT": 5,
     "AVGMAGPERHOUR": 3,
-    "USD/HR R": 3,
-    "USD/HR P": 3,
+    "USD/DAY R": 3,
+    "USD/DAY P": 3,
+    "ATIME":1,
+    "ACTIME":1,
+    "ACPT":1,
+    "TASKS":0,
+    "WTIME":1,
+    "CPUTIME":1,
+    "CREDIT/HR":1,
+    "R-WTIME":1,
 }
 
 

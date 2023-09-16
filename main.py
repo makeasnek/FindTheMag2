@@ -3355,7 +3355,7 @@ def update_table(
         "TOTALCPUTIME(HRS)": "CPUTIME",
         "AVGCREDITPERHOUR": "CREDIT/HR",
         "AVGMAGPERHOUR": "MAG/HR",
-        "XDAYWALLTIME": "R-WTIME",
+        "XDAYWALLTIME": "RWTIME",
         "AVGWALLTIME": "ATIME",
         "AVGCREDITPERTASK": "ACPT",
         "TOTALWALLTIME": "WTIME",
@@ -4494,7 +4494,7 @@ if __name__ == "__main__":
     if len(table_dict) > 0:
         print("SOME PRETTY STATS JUST FOR YOU, SORTED BY AVG GRC/DAY")
         priority_results = {}
-        update_table(table_dict)
+        update_table()
         del priority_results  # this is only created temporarily as update_table expects it
     else:
         print(

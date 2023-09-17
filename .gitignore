@@ -1,5 +1,7 @@
 /notes.txt
+/temp.py
 /debug.log
+*/debug.log
 /stats.json
 /stats.json.backup
 /global_prefs_override.xml
@@ -7,3 +9,4 @@
 /.idea/
 /venv/
 scratch.py
+/user_config.py

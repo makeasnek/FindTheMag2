@@ -1,0 +1,17 @@
+<project_statistics>
+    <master_url>https://escatter11.fullerton.edu/nfs/</master_url>
+    <daily_statistics>
+        <day>1686873600.000000</day>
+        <user_total_credit>348.000000</user_total_credit>
+        <user_expavg_credit>18.828188</user_expavg_credit>
+        <host_total_credit>348.000000</host_total_credit>
+        <host_expavg_credit>18.828376</host_expavg_credit>
+    </daily_statistics>
+    <daily_statistics>
+        <day>1689465600.000000</day>
+        <user_total_credit>348.000000</user_total_credit>
+        <user_expavg_credit>0.092474</user_expavg_credit>
+        <host_total_credit>348.000000</host_total_credit>
+        <host_expavg_credit>0.092475</host_expavg_credit>
+    </daily_statistics>
+</project_statistics>

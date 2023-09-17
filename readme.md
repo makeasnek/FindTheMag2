@@ -182,6 +182,11 @@ if you are able to crunch GPU workunits since they generally grant more credit p
 ultimately the efficiency of crunching GPU vs CPU is up to the project and how they make their WUs. If you are using this
 tool to directly control BOINC, it will work to make sure your CPU and GPU are always as fully utilized as possible.
 
+
+<b>FTM keeps requesting tasks from or crunching a project even though it's not the highest priority?</b>
+
+Probably because it's the only project with GPU support. FTM will keep going down the list of projects and requesting tasks until both your CPU *and* GPU cache are full. To avoid this, you can disable GPU crunching in BOINC. Be sure to exit FTM first before disabling in BOINC, as when FTM exits it will restore BOINC's settings to whatever they were when FTM started.
+
 <b>What about if my hardware changes? If I add/remove a CPU/GPU?</b>
 
 If you add hardware, FTM's estimate of each project's profitability will gradually approach the "new" number. If you remove hardware, there is a chance it never will, particularly if you have removed a GPU and not replaced it with another. This is because FTM will keep trying to request from GPU-only projects, get no new WUs, and therefore never update its stats. For this reason, if you remove a GPU, I would suggest removing and re-adding the projects in BOINC reinstalling FTM to reset your stats.

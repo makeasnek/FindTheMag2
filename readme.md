@@ -12,7 +12,7 @@ crunching. If you ask it to, it will also control BOINC to crunch projects accor
 preferences. It even has options to only crunch according to profitability and/or temperature.
 
 You can group BOINC projects into two groups: 
- * ♥ ️_Preferred_ projects are ones which you want to crunch regardless of how much GRC they get you. 
+ * ♥ ️ _Preferred_ projects are ones which you want to crunch regardless of how much GRC they get you. 
  * 🤑 _Mining_ projects are projects which you are willing to crunch, but only if they get you the maximum 
 amount of GRC possible. In the event that your preferred project(s) happen to be the most efficient to mine, FindTheMag will 
 assign all project weight to them.

@@ -69,6 +69,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
 - Python 3.8 or higher is required. A fully synced Gridcoin wallet is strongly suggested.
 
 <h4>Windows</h4>
+
  - Download the latest version of python from python.org. Enable the "install to system path" option while installing.
  - In command prompt, run the command `python -m pip install --upgrade pip`
  - In command prompt, run the command `pip install -r "C:\Users\user\Downloads\FindTheMag-master\requirements.txt"` (or wherever you saved this tool)

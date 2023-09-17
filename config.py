@@ -26,9 +26,7 @@ IGNORED_PROJECTS = [
 ##########################################################################################################################################
 ##############    PROFITABILITY SETTINGS. EDIT THESE IF YOU WANT PROFITABILITY TAKEN INTO ACCOUNT WHEN SUGGESTING WEIGHTS   ##############
 ##########################################################################################################################################
-ONLY_BOINC_IF_PROFITABLE = (
-    False  # suspend BOINC completely whenever crunching is not profitable
-)
+ONLY_BOINC_IF_PROFITABLE = False  # suspend BOINC completely whenever crunching is not profitable
 ONLY_MINE_IF_PROFITABLE = False  # only run non-preferred projects when doing so is profitable. Benchmarking will still occur.
 LOCAL_KWH = 0.1542  # your local price of energy per kwh in USD. Default: 0.1542 (US National average). You can find this on your electric bill.
 GRC_SELL_PRICE = None  # the price you intend to sell your mined GRC at. Leave None to use "current price" or put in USD value of 1 GRC. This is used to determine if mining is "profitable" or not
@@ -40,7 +38,7 @@ MIN_PROFIT_PER_HOUR = 0.00  # mining is only "profitable" if it generates greate
 ##############      BOINC CONTROLLER. EDIT THESE IF YOU WANT TO CONTROL THE BOINC CLIENT ACCORDING TO SUGGESTED WEIGHTS     ##############
 ##########################################################################################################################################
 CONTROL_BOINC = True  # Set to True to use this as your BOINC manager and directly manage the BOINC client. You can still use BOINC Manager/boinctui to monitor its progress. Default: False
-# Dev fee: I hope you'll see that this is only a portion of the efficency gain this tool will give you.
+# Dev fee: I hope you'll see that this is only a portion of the efficiency gain this tool will give you.
 DEV_FEE = 0.05  # % of processing power to donate to developer, .05=5%, .10 = 10%, etc. This also gets sidestaked to the Gridcoin foundation and gridcoinstats as this script relies on them for some stats if you don't have the wallet installed. Minimum is .01. All energy still goes to science, you just crunch under the developer's account. Note this is skipped if you have sidestaking to dev enabled, which I suggest doing for simplicity. It will also save you up to 10GB of disk space.
 SCRIPTED_RUN: bool = False  # If True, skip steps where we ask user for input and instead handle everything automatically.
 SKIP_TABLE_UPDATES: bool = False  # If true, don't print table updates. Useful for scripted runs to reduce output.
@@ -52,9 +50,7 @@ SKIP_TABLE_UPDATES: bool = False  # If true, don't print table updates. Useful f
 # air temperature, or any other source you like. You can pull in temp data from a URL, a command line command, or even a
 # custom python function.
 ENABLE_TEMP_CONTROL = False  # Enable controlling BOINC based on temp. Default: False
-START_TEMP = (
-    65  # Start crunching if temp > this number, whole numbers only! Default: 65.
-)
+START_TEMP = 65  # Start crunching if temp > this number, whole numbers only! Default: 65.
 STOP_TEMP = 75  # Stop crunching is temp > this number, whole numbers only! Default: 75
 # Methods of fetching temp data, only use one!
 TEMP_URL = None  # URL to fetch temperature data from, Default: None. # Note this will check temperature quite frequently. This is fine for your smart thermostats on a local IP but not great for publicly-accesible data points. Example: 'https://mytempcheck.com'
@@ -75,9 +71,7 @@ def TEMP_FUNCTION():
 # If these options are enabled, they will periodically dump the contents of some internal variables to text files in the FTM directory
 # Set to True to enable
 DUMP_PROJECT_WEIGHTS: bool = False  # Dump weights assigned to projects
-DUMP_PROJECT_PRIORITY: bool = (
-    False  # Dump weights adjusted after considering current and past crunching time
-)
+DUMP_PROJECT_PRIORITY: bool = False  # Dump weights adjusted after considering current and past crunching time
 DUMP_RAC_MAG_RATIOS: bool = False  # Dump the RAC:MAG ratios from each Gridcoin project
 # how many decimal places to round each stat to which is printed in the output table
 ROUNDING_DICT = {
@@ -103,9 +97,7 @@ LOOKBACK_PERIOD = 30  # Number of days to look back to calculate credit -> MAG r
 ABORT_UNSTARTED_TASKS = False  # when we start controlling BOINC, should we abort unstarted tasks? Default is False, it's nicer to projects this way.
 BOINC_DATA_DIR = None  # Example: '/var/lib/boinc-client' or 'C:\\ProgramData\\BOINC\\'. Only needed if in a non-standard location, otherwise None.
 GRIDCOIN_DATA_DIR = None  # Example: '/home/user/.GridcoinResearch' or 'C:\\Users\\username\\AppData\\Roaming\\GridcoinResearch\\'. Only needed if in a non-standard location, otherwise None
-RECALCULATE_STATS_INTERVAL = (
-    60  # Interval in minutes to re-calculate stats. Default: 60
-)
+RECALCULATE_STATS_INTERVAL = 60  # Interval in minutes to re-calculate stats. Default: 60
 PRICE_CHECK_INTERVAL = 1440  # how often to check GRC price in minutes, minimum delay of 60 minutes between checks. Default is 1440 (24 hrs)
 LOG_LEVEL = "WARNING"  # Options are: 'DEBUG','INFO','WARNING','ERROR','NONE', default is 'WARNING'
 MAX_LOGFILE_SIZE_IN_MB = 10  # Default: 10

@@ -1,4 +1,7 @@
 # FindTheMag
+
+![screenshot](https://github.com/makeasnek/FindTheMag2/assets/90811423/3751e97f-8b6c-48f7-9c8d-cffeca0d701c)
+
 **New users: Scroll down to QuickStart instructions**
 
 **FindTheMag v3.0 Released Sep 2023.** This release comes with many usability and stability improvements. 

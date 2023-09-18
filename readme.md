@@ -7,6 +7,7 @@ names have changed. I suggest downloading FTM into a new directory to avoid any 
 And of course, customize your config file! To do this, copy the new config.py to a file named user_config.py and make your
 edits there.
 
+# About this tool
 FindTheMag is a powerful utility which prints statistics from your BOINC client and offers suggestions to optimize your
 crunching. If you ask it to, it will also control BOINC to crunch projects according to your
 preferences. It even has options to only crunch according to profitability and/or temperature.

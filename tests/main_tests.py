@@ -1,3 +1,8 @@
+import sys
+import os
+
+sys.path.append(os.getcwd() + '/..')
+
 import json
 
 import pytest, main, datetime
@@ -875,15 +880,15 @@ def test_add_mag_to_combined_stats():
     assert return2 == [
         "ESCATTER11.FULLERTON.EDU/NFS",
         "RECHENKRAFT.NET/YOYO",
+        'GENE.DISI.UNITN.IT/TEST',
+        'UNIVERSEATHOME.PL/UNIVERSE',
+        'SIDOCK.SI/SIDOCK',
         "BOINC.MULTI-POOL.INFO/LATINSQUARES",
         "BOINC.BAKERLAB.ORG/ROSETTA",
-        "UNIVERSEATHOME.PL/UNIVERSE",
         "MILKYWAY.CS.RPI.EDU/MILKYWAY",
+        'GPUGRID.NET',
         "EINSTEIN.PHYS.UWM.EDU",
-        "SRBASE.MY-FIREWALL.ORG/SR5",
-        "GPUGRID.NET",
-        "GENE.DISI.UNITN.IT/TEST",
-        "SIDOCK.SI/SIDOCK",
+        "SRBASE.MY-FIREWALL.ORG/SR5"
     ]
     assert return1 == expected_return_1
 

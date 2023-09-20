@@ -5,8 +5,6 @@ sys.path.append(os.getcwd() + '/..')
 
 import json
 
-from unittest import TestCase
-
 import pytest, main, datetime
 from typing import Dict, List, Union, Any, Tuple
 

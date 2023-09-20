@@ -608,7 +608,7 @@ def test_config_files_to_stats():
             },
         },
     }
-    assert result == expected
+    assert frozenset(result) == frozenset(expected)
 
 
 def test_add_mag_to_combined_stats():

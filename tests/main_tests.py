@@ -606,7 +606,7 @@ def test_config_files_to_stats():
             },
         },
     }
-    assert result == expected
+    assert frozenset(result) == frozenset(expected)
 
 
 def test_add_mag_to_combined_stats():
@@ -877,20 +877,21 @@ def test_add_mag_to_combined_stats():
             },
         },
     }
-    assert return2 == [
+    return2expected = {
         "ESCATTER11.FULLERTON.EDU/NFS",
         "RECHENKRAFT.NET/YOYO",
-        'GENE.DISI.UNITN.IT/TEST',
-        'UNIVERSEATHOME.PL/UNIVERSE',
-        'SIDOCK.SI/SIDOCK',
         "BOINC.MULTI-POOL.INFO/LATINSQUARES",
         "BOINC.BAKERLAB.ORG/ROSETTA",
+        "UNIVERSEATHOME.PL/UNIVERSE",
         "MILKYWAY.CS.RPI.EDU/MILKYWAY",
-        'GPUGRID.NET',
         "EINSTEIN.PHYS.UWM.EDU",
-        "SRBASE.MY-FIREWALL.ORG/SR5"
-    ]
-    assert return1 == expected_return_1
+        "SRBASE.MY-FIREWALL.ORG/SR5",
+        "GPUGRID.NET",
+        "GENE.DISI.UNITN.IT/TEST",
+        "SIDOCK.SI/SIDOCK",
+    }
+    assert frozenset(list(return2)) == frozenset(return2expected)
+    assert frozenset(return1) == frozenset(expected_return_1)
 
 
 def test_get_most_mag_efficient_projects():

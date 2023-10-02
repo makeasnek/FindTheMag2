@@ -207,7 +207,7 @@ I don't know, current candidates are Jeffrey and Stargazer.
 
 <b>What does "The following projects do not have enough stats to be calculated accurately" mean?</b>
 
-It means you have completed less than 10 tasks for this project. At ten tasks, under ideal circumstances, we could get within 10% of the correct "credits per hour" estimation which is needed to determine mag per hour. So if less than 10 WUs have been completed, we don't even try to make an estimate.
+It means you have completed less than 10 tasks for this project. At ten tasks, under ideal circumstances, we could get within 90% of the correct "credits per hour" estimation which is needed to determine mag per hour. So if less than 10 WUs have been completed, we don't even try to make an estimate.
 
 <b>What if I can't run the Gridcoin wallet on my machine? For example, due to space limitations on my Raspberry Pi?</b>
 

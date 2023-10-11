@@ -1829,7 +1829,7 @@ def get_project_mag_ratios(
     return_dict = None
     try:
         if not response:
-            command_result = grc_client.run_command("superblocks", [30, True])
+            command_result = grc_client.run_command("superblocks", [lookback_period, True])
             response = command_result
         if not response:
             raise ConnectionError("Issues w superblocks command")

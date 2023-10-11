@@ -2298,7 +2298,7 @@ def generate_stats(
         dev_project_weights[project_url] = per_efficient_project_dev
     # Assign weight to preferred projects
     for project_url, weight in preferred_projects.items():
-        print("PREFERRED_PROJECTS  :{}".format(preferred_projects))
+        log.error("PREFERRED_PROJECTS  :{}".format(preferred_projects))
         final_project_weights_extract = final_project_weights.get(project_url)
         preferred_project_weights_extract = preferred_projects.get(project_url)
         if not final_project_weights_extract:

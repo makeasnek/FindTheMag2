@@ -243,6 +243,7 @@ else:
 # canonicalize URLs given to us by user
 old_preferred_projects = copy.deepcopy(PREFERRED_PROJECTS)
 PREFERRED_PROJECTS = {}
+log.error('OLDPP is {}'.format(old_preferred_projects))
 for url, amount in old_preferred_projects.items():
     canonicalized = resolve_url_database(url)
     PREFERRED_PROJECTS[canonicalized] = amount
@@ -2297,7 +2298,6 @@ def generate_stats(
         final_project_weights[project_url] += per_efficient_project
         dev_project_weights[project_url] = per_efficient_project_dev
     # Assign weight to preferred projects
-    log.error("xPREFERRED_PROJECTS  :{}".format(preferred_projects))
     for project_url, weight in preferred_projects.items():
         final_project_weights_extract = final_project_weights.get(project_url)
         preferred_project_weights_extract = preferred_projects.get(project_url)

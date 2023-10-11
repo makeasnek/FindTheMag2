@@ -1831,7 +1831,7 @@ def get_project_mag_ratios(
     return_dict = None
     try:
         if not response:
-            command_result = grc_client.run_command("superblocks", [30, True])
+            command_result = grc_client.run_command("superblocks", [lookback_period, True])
             response = command_result
         if not response:
             raise ConnectionError("Issues w superblocks command")
@@ -2174,11 +2174,15 @@ def generate_stats(
     final_project_weights = {}
     dev_project_weights = {}
     # Canonicalize PREFERRED_PROJECTS list
+    to_del=[]
     for url in preferred_projects.keys():
         weight = preferred_projects[url]
-        del preferred_projects[url]
         canonicalized = resolve_url_database(url)
+        if canonicalized!=url:
+            to_del.append(url)
         preferred_projects[canonicalized] = weight
+    for url in to_del:
+        del preferred_projects[url]
     # ignore unattached projects if requested
     if ignore_unattached:
         for project in approved_project_urls:

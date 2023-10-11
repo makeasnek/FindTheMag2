@@ -243,7 +243,6 @@ else:
 # canonicalize URLs given to us by user
 old_preferred_projects = copy.deepcopy(PREFERRED_PROJECTS)
 PREFERRED_PROJECTS = {}
-log.error('OLDPP is {}'.format(old_preferred_projects))
 for url, amount in old_preferred_projects.items():
     canonicalized = resolve_url_database(url)
     PREFERRED_PROJECTS[canonicalized] = amount
@@ -251,6 +250,7 @@ for url in list(IGNORED_PROJECTS):
     IGNORED_PROJECTS.remove(url)
     canonicalized = resolve_url_database(url)
     IGNORED_PROJECTS.append(canonicalized)
+log.error('NEWPP is {}'.format(PREFERRED_PROJECTS))
 
 # if user has no preferred projects, their % of crunching should be 0
 if len(PREFERRED_PROJECTS) == 0:

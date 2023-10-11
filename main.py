@@ -2172,11 +2172,14 @@ def generate_stats(
     final_project_weights = {}
     dev_project_weights = {}
     # Canonicalize PREFERRED_PROJECTS list
+    to_del=[]
     for url in preferred_projects.keys():
         weight = preferred_projects[url]
-        del preferred_projects[url]
+        to_del.append(url)
         canonicalized = resolve_url_database(url)
         preferred_projects[canonicalized] = weight
+    for url in to_del:
+        del preferred_projects[url]
     # ignore unattached projects if requested
     if ignore_unattached:
         for project in approved_project_urls:

@@ -250,7 +250,6 @@ for url in list(IGNORED_PROJECTS):
     IGNORED_PROJECTS.remove(url)
     canonicalized = resolve_url_database(url)
     IGNORED_PROJECTS.append(canonicalized)
-log.error('NEWPP is {}'.format(PREFERRED_PROJECTS))
 
 # if user has no preferred projects, their % of crunching should be 0
 if len(PREFERRED_PROJECTS) == 0:
@@ -2176,8 +2175,9 @@ def generate_stats(
     to_del=[]
     for url in preferred_projects.keys():
         weight = preferred_projects[url]
-        to_del.append(url)
         canonicalized = resolve_url_database(url)
+        if canonicalized!=url:
+            to_del.append(url)
         preferred_projects[canonicalized] = weight
     for url in to_del:
         del preferred_projects[url]

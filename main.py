@@ -736,15 +736,14 @@ async def is_boinc_crunching(rpc_client: libs.pyboinc.rpc_client) -> bool:
     Queries BOINC client as to crunching status. Returns True is BOINC client
     is crunching, false otherwise.
 
-    Raises:
-        Exception: An error occured attempting to check the BOINC client crunching status.
-
     Args:
         rpc_client:
     
     Returns:
         True if crunching, or False if not crunching or unsure.
-        
+
+    Raises:
+        Exception: An error occured attempting to check the BOINC client crunching status.
     """
     try:
         reply = await run_rpc_command(rpc_client, "get_cc_status")
@@ -803,12 +802,12 @@ def temp_check() -> bool:
     """Checks if temperature is within acceptable limit.
 
     Confirms if we should keep crunching based on temperature, or not.
-    
-    Raises:
-        Exception: An error occured attempting to read the temperature.
 
     Returns:
         True if we should keep crunching, False otherwise.
+    
+    Raises:
+        Exception: An error occured attempting to read the temperature.
     """
     if not ENABLE_TEMP_CONTROL:
         return True
@@ -866,14 +865,14 @@ def update_fetch(
         update_text: Used for testing purposes. Default: None
         current_ver: Added for testing purposes. Default: None
 
-    Raises:
-        Exception: An error occured when attempting to parse the retrieved update file.
-
     Returns:
         A tuple consisting of:
             A bool, set to True if and update is available.
             A bool, set to True if the update is a security update.
             A string containing update related information.
+
+    Raises:
+        Exception: An error occured when attempting to parse the retrieved update file.
     """
     update_return = False
     return_string = ""
@@ -982,11 +981,11 @@ def get_grc_price(sample_text: str = None) -> Union[float, None]:
         sample_text: Used for testing. 
                      Typicaly a "view source" of all pages added together.
 
-    Raises:
-        Exception: An error occurred accessing an online GRC price source.
-
     Returns:
         Average GCR price in decimal, or None if unable to determine price.
+
+    Raises:
+        Exception: An error occurred accessing an online GRC price source.
     """
     import requests as req
 
@@ -1036,12 +1035,12 @@ def get_approved_project_urls_web(query_result: str = None) -> Dict[str, str]:
     Args:
         query_result: Used for testing.
 
+    Returns:
+        A dictionary mapping base URLs to project names.
+
     Raises:
         Exception: An error occurred fetching stats data from the website.
         Exception: An error occurred parsing data from the source website.
-
-    Returns:
-        A dictionary mapping base URLs to project names.
     """
     # Check if cache is available
     if "GSPROJECTLIST" in DATABASE and "GSRESOLVERDICT" in DATABASE:
@@ -1131,12 +1130,12 @@ def xfers_happening(xfer_list: list) -> bool:
     Args:
         xfer_list: List of transfers.
 
-    Raises:
-        Exception: An error occurred parsing entry in transfer list.
-
     Returns:
         True if any active xfers are happening, False if none are happening, or
         if only stalled xfers exist, or if unable to determine.
+
+    Raises:
+        Exception: An error occurred parsing entry in transfer list.
     """
     # Known statuses:
     # 0 = Active
@@ -1214,12 +1213,12 @@ def get_gridcoin_config_parameters(gridcoin_dir: str) -> Dict[str, str]:
 
     Args:
         gridcoin_dir: Absolute path to a gridcoin config directory.
-    
-    Raises: 
-        Exception: An error occurred while parsing the config file.
 
     Returns:
         A dictionary of all config parameters found, 
+    
+    Raises: 
+        Exception: An error occurred while parsing the config file.
     """
     return_dict = dict()
     dupes = {}
@@ -1376,12 +1375,12 @@ def stat_file_to_list(
         stat_file_abs_path: BOINC client statistics log file with absolute path
         content: Added for testing purposes.
 
+    Returns:
+        List dictionaries, each a BOINC task with statistics. 
+
     Raises:
         Exception: An error occurred when attempting to read a BOINC job log file.
         Exception: An error occurred when attempting to parse a BOINC job log file.
-
-    Returns:
-        List dictionaries, each a BOINC task with statistics. 
     """
     stats_list = []
     try:
@@ -1460,11 +1459,11 @@ async def run_rpc_command(
         arg2: Optional parameter for BOINC command.
         arg2_val: Value for optional parameter.
 
-    Raises:
-        Exception: An error occurred attempting to communicated with the BOINC client.
-
     Returns: 
         Response from BOINC client, or None if unsuccessful.
+
+    Raises:
+        Exception: An error occurred attempting to communicated with the BOINC client.
     """
     max_retries = 3
     retry_wait = 5
@@ -1517,12 +1516,12 @@ def credit_history_file_to_list(credithistoryfileabspath: str) -> List[Dict[str,
     Args:
         credithistoryfileabspath: Filename with absolute path.
 
-    Raises:
-        Exception: An error occurred attempting to read and parse the credit history file.
-
     Returns:
         List of dicionaries with the following keys:
             TIME,USERTOTALCREDIT,USERRAC,HOSTTOTALCREDIT,HOSTRAC
+
+    Raises:
+        Exception: An error occurred attempting to read and parse the credit history file.
     """
     statslist = []
     try:
@@ -1777,13 +1776,13 @@ def config_files_to_stats(
     Args:
         config_dir_abs_path: Absolute path to BOINC data directory.
 
-    Raises:
-        Exception: An error occurred retrieving list of statistics files.
-        Exception: An error occurred parsing credit history files.
-
     Returns: 
         Dictionary of statistics in format COMBINED_STATS_EXAMPLE in main.py, or
         an empty dictionary if unable to retrieve a list of statistics files.
+
+    Raises:
+        Exception: An error occurred retrieving list of statistics files.
+        Exception: An error occurred parsing credit history files.
     """
     stats_files: List[str] = []
     credit_history_files: List[str] = []
@@ -2123,14 +2122,14 @@ def get_project_mag_ratios(
         response: Used for testing purposes.
         grc_projects: Set to None, unless for testing purposes. When testing
             This is the output of the 'listprojects' command run on the Gridcoin client. 
-
-    Raises:
-        Exception: An error occurred attempting to communicate with the Gridcoin client.
     
     Returns:
         A dictionary with the key as project URL and value as project magnitude ratio 
         (mag per unit of RAC).
         A value of None is returned in the event of an exception and no cached data.
+
+    Raises:
+        Exception: An error occurred attempting to communicate with the Gridcoin client.
     """
     global PROJECT_MAG_RATIOS_CACHE
     projects = {}

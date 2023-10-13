@@ -11,14 +11,13 @@ Note that this client is Async, based on asyncio
 import asyncio
 from socket import AF_INET
 import xml.etree.ElementTree as ET
-
+import sys
 
 GUI_RPC_DEFAULT_PORT = 31416
 REPLY_TAG = "boinc_gui_rpc_reply"
 REQUEST_TAG = "boinc_gui_rpc_request"
 END_OF_MESSAGE = b"\x03"
 BOINC_ENCODING = "ISO-8859-1"
-
 
 class _RPCClientRaw:
     """

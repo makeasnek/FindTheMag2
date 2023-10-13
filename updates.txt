@@ -4,3 +4,5 @@
 2.0,0,Main version
 2.1,0,Update is strongly suggested fixes several major bugs in project handling
 2.2,1,FindTheMag critical security update please see Github for more info
+2.3,0,Various usability improvements and crash fixes
+3.0,0,Massive improvements in stability and new config file format

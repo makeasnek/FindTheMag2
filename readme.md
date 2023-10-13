@@ -1,26 +1,28 @@
 # FindTheMag
-**IMPORTANT: SECURITY UPDATE APR 7 2023.** If you used FindTheMag to enable RPC on your Gridcoin client prior to this 
-date, it set an incorrect flag in your gridcoinresearch.conf file. Edit this file to remove the line starting with 
-allowip. This line allowed other machines on your LAN (or the wider internet if your machine is not behind a NAT/firewall.
-99% of home user are) to talk to your wallet's RPC port. **It did NOT enable access to your wallet** since commands 
-were only able to be issued from localhost, but that port never should have been open in the first place. My apologies 
-for the error on my part. In my defense, the documentation for this on the Gridcoin site was pretty confusing. It has 
-now been fixed there as well.
 
+![screenshot](https://github.com/makeasnek/FindTheMag2/assets/90811423/3751e97f-8b6c-48f7-9c8d-cffeca0d701c)
+
+**New users: Scroll down to QuickStart instructions**
+
+**FindTheMag v3.0 Released Sep 2023.** This release comes with many usability and stability improvements. 
+If you are an existing FTM user, you will need to re-make your config file as many variable
+names have changed. I suggest downloading FTM into a new directory to avoid any conflicts with the old version.
+And of course, customize your config file! To do this, copy the new config.py to a file named user_config.py and make your
+edits there.
+
+# About this tool
 FindTheMag is a powerful utility which prints statistics from your BOINC client and offers suggestions to optimize your
 crunching. If you ask it to, it will also control BOINC to crunch projects according to your
 preferences. It even has options to only crunch according to profitability and/or temperature.
 
 You can group BOINC projects into two groups: 
- * _Preferred_ projects are ones which you want to crunch regardless of how much GRC they get you. 
- * _Mining_ projects are projects which you are willing to crunch, but only if they get you the maximum 
+ * ♥ ️ _Preferred_ projects are ones which you want to crunch regardless of how much GRC they get you. 
+ * 🤑 _Mining_ projects are projects which you are willing to crunch, but only if they get you the maximum 
 amount of GRC possible. In the event that your preferred project(s) happen to be the most efficient to mine, FindTheMag will 
 assign all project weight to them.
 
 FindTheMag uses your own BOINC client's stats to determine which projects get the most credit per hour on your machine. 
-It then figures out which projects earn you the most Gridcoin. [Quickmag](http://quickmag.ml/cgi-bin/script.cgi) is a 
-similar tool which will estimate the most profitable projects for your hardware based on the performance of other 
-crunchers with similar hardware. It's useful and elegant. You should check it out.
+It then figures out which projects earn you the most Gridcoin.
 
 <b>If you find this tool useful</b>, consider sidestaking or donating
 some GRC to me at RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K
@@ -32,7 +34,7 @@ to use a small portion of your processing power (total of 1% of all crunching ti
 It is strongly suggested to have the Gridcoin wallet running on your machine (fully synced). If you do not have it 
 installed, it will try to fetch statistics from gridcoinstats.eu. This is less reliable in case of network issues and 
 is limited to once per day. The wallet doesn't need any coins in it, just an up-to-date copy of the blockchain. Your
-machine also requires **python 3.8 or higher**, though earlier versions may work they are unsupported. If you just 
+machine also requires **python 3.8 or higher**, earlier versions will not work. If you just 
 installed BOINC, this tool takes about 48 hours to start working as we have to wait for projects to grant you credit 
 for your work. Though really a week's worth of data is about the minimum you'd need to get useful information from this
 tool.
@@ -51,7 +53,8 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
    * You can still use this tool to find out the mag/hr of various projects and "no new tasks" projects you have no interest in crunching either because of low mag/hr or because they are not your preferred projects. This can be done locally on your BOINC client.
 
 <b>If you use this utility to directly control your BOINC crunching:</b>
- * **5% of your processing power will be donated to development**. I hope you will see that this is only a small portion of the efficiency gain that this tool brings you. And that this tool represents many hundreds of hours of work. You may set a custom dev fee in the config, but it cannot be smaller than 1%. This donated processing power is accomplished by crunching projects under the developer's login. Don't worry, all crunching power still goes towards science!
+ * **After around 1000 hours of crunching with FTM, 5% of your processing power will be donated to development unless you have a sidestake setup**. I hope you will see that this is only a small portion of the efficiency gain that this tool brings you. And that this tool represents many hundreds of hours of work. You may set a custom dev fee in the user_config, but it cannot be smaller than 1%. This donated processing power is accomplished by crunching projects under the developer's login. Don't worry, all crunching power still goes towards science!
+ * **You can skip the dev fee by having a sidestake setup to the dev, which FTM will help you set up (if you want it) at first run**
  * You will see most of your project set to "no new tasks" except one, this is how FTM controls BOINC. Your "highest priority project" determined by expected crunch time vs actual (determined by project weight) will have tasks requested, and FTM will continue requesting tasks for each project until the work cache is full.
  * You can continue to use tools like BOINC Manager or BOINCTUI to monitor your crunching
  * You can stop the script at any time and regain manual control of your BOINC client, it will be reset to the settings which existed before FTM was run. This means that if you edit BOINC's preferences (such as computing preferences) while FTM is running, FTM will reset those settings upon being closed.
@@ -65,13 +68,17 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
  * The secondary BOINC installed used to crunch for dev will respect the same settings your normal BOINC install is set to (whether or not to use GPU, # of cores, etc)
 
 ## Quickstart instructions
-<b>For all platforms</b>: Open the `config.py` file in a text editor and change the settings you want.
+<b>For all platforms</b>: 
+- Copy the `config.py` to `user_config.py` and change the settings you want in `user_config.py`.
+- Python 3.8 or higher is required. A fully synced Gridcoin wallet is strongly suggested.
+
 <h4>Windows</h4>
 
  - Download the latest version of python from python.org. Enable the "install to system path" option while installing.
  - In command prompt, run the command `python -m pip install --upgrade pip`
- - In command prompt, run the command `pip install -r "C:\Users\user\Downloads\FindTheMag-master\requirements.txt"` (or wherever you saved this tool)
- - Double-click on main.py or run `python "C:\path\to\main.py"` from command prompt. We suggest the second method as it will display errors if the program exits unexpectedly
+ - In command prompt, run `"cd C:\users\username\Downloads\FindTheMag-master"` or wherever you saved the tool
+ - In command prompt, run the command `pip install -r requirements.txt`
+ - Double-click on main.py or run `python main.py` from command prompt. We suggest the second method as it will display errors if the program exits unexpectedly
 
 <h4>Linux</h4>
 
@@ -89,7 +96,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
 
 ### Notes on profitability:
 This tool can be configured to only crunch when "profitable" based on Gridcoin's latest price. In order for this calculation to work correctly, you must input 
-your local electric rates and rig wattage information into the file named `config.py`. 
+your local electric rates and rig wattage information into the user_config file. 
 
 When you first run the tool, it will dedicate a minimum of 10 hours (or 5 WUs whichever comes first) of crunching to each project in "benchmarking"
 mode. This is crucial to determining the profitability of a project since the amount of credit you earn on
@@ -115,7 +122,7 @@ This behaviour is expected, it will leave the highest priority project to "allow
 
 <b>I have no tasks?</b>
 
-This is probably because you set ONLY_BOINC_IF_PROFITABLE to True in your config.py and no profitable projects were attached. Otherwise, if your projects actually have tasks available, it's a bug please report it.
+This is probably because you set ONLY_BOINC_IF_PROFITABLE to True in your user_config.py and no profitable projects were attached. Otherwise, if your projects actually have tasks available, it's a bug please report it.
 
 <b>My BOINC client doesn't seem to be crunching according to the weight I assigned?</b>
 
@@ -125,7 +132,7 @@ you have recently assigned a weight of "one" to while your other projects add up
 weight, if you have been crunching for six months and the project previously had a weight of zero, BOINC may fetch a
 bunch of work-units to catch up so that it will have crunched that amount of weight over that entire time period. So for
 that day, it may appear as if the project has a weight of 1000, but that's because it's average weight is still <1 and
-it needs to catch up. You can configure the size of this window in the config file if you are directly controlling BOINC with FTM.
+it needs to catch up. You can configure the size of this window in the user_config file if you are directly controlling BOINC with FTM.
 
 <b>How does it determine the most profitable project?</b>
 
@@ -151,7 +158,7 @@ continue to update as projects change how their applications and credit assignme
 
 <b>What if there's a project I <i>never</i> want to crunch?</b>
 
-If you have a grudge against a particular project, you can add it to the ignore list in the config file.
+If you have a grudge against a particular project, you can add it to the ignore list in the user_config file.
 
 <b>What if there is more than one "most profitable" project?</b>
 
@@ -165,9 +172,10 @@ continue even if one project runs out of work.
 
 <b>Why don't you just say "crunch this project and if there's no work available, crunch this other project?"</b>
 
-This isn't possible, because the BOINC client doesn't have this ability, nor the ability to have projects be in groups. It's open source
-though so feel free to contribute to the BOINC project. This is actually how the BOINC control function of this tool
-works though, so if you use FTM to directly control BOINC, it will always prioritize the "most wanted" project depending on whether most wanted is most profitable,
+There are two answers to this question depending on how you use FTM.
+- Setting weight manually via project websites or account managers: This isn't possible, because the BOINC client doesn't have this ability, nor the ability to have projects be in groups. It's open source
+though so feel free to contribute to the BOINC project. 
+- If you use FTM to directly control BOINC, it will always prioritize the "most wanted" project depending on whether most wanted is most profitable,
 in your preferred projects list, etc.
 
 <b>What about CPUs or GPUs? Or different applications?</b>
@@ -175,8 +183,13 @@ in your preferred projects list, etc.
 This tool doesn't know about GPUs or different apps, it just calculates an average credits/hour over all work units sent
 to you by the project. It is generally adviseable to disable CPU tasks in your preferences on the project site 
 if you are able to crunch GPU workunits since they generally grant more credit per watt and more credit per hour. But
-ultimate the efficiency of crunching GPU vs CPU is up to the project and how they make their WUs. If you are using this
+ultimately the efficiency of crunching GPU vs CPU is up to the project and how they make their WUs. If you are using this
 tool to directly control BOINC, it will work to make sure your CPU and GPU are always as fully utilized as possible.
+
+
+<b>FTM keeps requesting tasks from or crunching a project even though it's not the highest priority?</b>
+
+Probably because it's the only project with GPU support. FTM will keep going down the list of projects and requesting tasks until both your CPU *and* GPU cache are full. To avoid this, you can disable GPU crunching in BOINC. Be sure to exit FTM first before disabling in BOINC, as when FTM exits it will restore BOINC's settings to whatever they were when FTM started.
 
 <b>What about if my hardware changes? If I add/remove a CPU/GPU?</b>
 
@@ -188,18 +201,6 @@ It's up to you, but it uses a 30-day average to calculate RAC:MAG ratios, so run
 much benefit. It's lightweight and doesn't hammer the BOINC project servers though, so feel free to run it as often as
 you want!
 
-<b>How do I interpret the table printed to console?</b>
-
-Most columns are fairly self-explanatory, here's the ones that might be a bit confusing:
- - HOURSOFF - Hours we are off from our target # of hours crunching this project based on given project weight. Positive numbers mean we have crunched this project more than desired, negative numbers means we need to crunch this project more. Project w/ the highest negative number is assigned highest priority and the list proceeds from there.
- - WTIME/CPUTIME - Wall time is how long a WU takes to complete, CPU time is how much time the CPU logs doing it. The same WU will take different amount of time depending on clock speed, what other work is being processed, etc. Walltime is used for all calculations 
- - USD/HR R/P - USD earned per hour crunching this project, followed by gross revenue and profit.
- - WEIGHT - Crunching weight assigned to project. Weight of 1 means it will only be occasionally assigned weight for benchmarking according to user prefs
- - R-WTIME - Recent walltime within window defined in config.py (default 60 days). This is time used to calculate difference between "intended" crunching hours and actual crunching hours to set project priority.
- - ATIME - Average walltime per workunit
- - ACTIME - Average CPU time per workunit
- - ACPT - Average credit per task
-
 <b>What are you going to name the pony?</b>
 
 I don't know, current candidates are Jeffrey and Stargazer.
@@ -210,7 +211,15 @@ It means you have completed less than 10 tasks for this project. At ten tasks, u
 
 <b>What if I can't run the Gridcoin wallet on my machine? For example, due to space limitations on my Raspberry Pi?</b>
 
-As of FindTheMag 2.0, it will fetch the latest stats from Gridcoinstats.eu. You can also generate stats from non-local BOINC clients by gathering their log files and pointing the tool at them. You can copy your BOINC data directory to a machine that has the wallet running and point the script to it. Note that you don't need to copy any subfolders in the BOINC directory, just the root directory and files directly beneath it.
+As of FindTheMag 2.0, it will fetch the latest stats from Gridcoinstats.eu. You can also generate stats from non-local BOINC clients by gathering their log files and pointing the tool at them. You can copy your BOINC data directory to a machine that has the wallet running and point the script to it. Note that you don't need to copy any subfolders in the BOINC directory, just the root directory and files directly beneath it. [Syncthing](https://syncthing.net/) is a great tool for this.
+
+<b>Any other tips for efficient crunching?</b>
+
+Underclocking your CPU and GPU can improve the amount of compute you get
+per watt. You will get work done slower, but often for a significant
+decrease in power usage. Note that some projects like GPUGrid and Folding@home provide a bonus
+for fast return of work so that must be factored in as well. In order of how profitable projects are, it tends to be (from most to least profitable) Math,
+Physics, Health augmented by CPU/GPU ability.
 
 <h3>Legal</h3>
 

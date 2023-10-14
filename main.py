@@ -2962,11 +2962,21 @@ def get_project_mag_ratios_from_url(
         return None
     try:
         loaded_json = json.loads(resp.text)
+        if not loaded_json:
+            raise Exception
+        if len(loaded_json)==0:
+            raise  Exception
         response = get_project_mag_ratios_from_response(
             loaded_json, lookback_period, project_resolver_dict
         )
     except Exception as e:
         log.error("E in get_project_mag_ratios_from_url:{}".format(e))
+        if len(PROJECT_MAG_RATIOS_CACHE) > 0:
+            print_and_log(
+                "Error communicating with gridcoinstats for magnitude info, using cached data",
+                "ERROR",
+            )
+            return PROJECT_MAG_RATIOS_CACHE
         return None
     else:
         return response
@@ -4388,9 +4398,6 @@ if __name__ == "__main__":
     # Get project list from Gridcoin wallet and/or gridcoinstats, check sidestakes
     foundation_address = "bc3NA8e8E3EoTL1qhRmeprbjWcmuoZ26A2"
     developer_address = "RzUgcntbFm8PeSJpauk6a44qbtu92dpw3K"
-    MAG_RATIOS = (
-        {}
-    )  # added to prevent pycharm "may be undefined". Can't be though because the app quits if it can't be found
     try:
         grc_client = GridcoinClientConnection(
             rpc_user=rpc_user, rpc_port=rpc_port, rpc_password=gridcoin_rpc_password

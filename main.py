@@ -89,7 +89,8 @@ DUMP_PROJECT_PRIORITY: bool = (
     False  # Dump weights adjusted after considering current and past crunching time
 )
 DUMP_RAC_MAG_RATIOS: bool = False  # Dump the RAC:MAG ratios from each Gridcoin project
-DEV_FEE_MODE: str = "CRUNCH"  # Valid values: CRUNCH|SIDESTAKE
+DUMP_DATABASE: bool = False # Dump the DATABASE
+DEV_FEE_MODE: str = "CRUNCH"  # valid values: CRUNCH|SIDESTAKE
 CRUNCHING_FOR_DEV: bool = False
 DEV_EXIT_TEST: bool = False  # Only used for testing
 
@@ -2284,6 +2285,7 @@ def print_table(
     sleep_reason: str = DATABASE["TABLE_SLEEP_REASON"],
     status: str = DATABASE["TABLE_STATUS"],
     dev_status: bool = False,
+    clear: bool = False,
 ):
     """Outputs to console a text based table with current status and statistics.
 
@@ -3723,6 +3725,7 @@ def update_table(
     status: str = None,
     dev_status: bool = False,
     dev_loop: bool = False,
+    clear:bool = True,
 ):
     """
     Function to update table printed to user.
@@ -3750,8 +3753,9 @@ def update_table(
         "AVGCPUTIME": "ACTIME",
     }
     ignore_list = ["MAGPERCREDIT"]
-    # Generate table to print pretty
-    os.system("cls" if os.name == "nt" else "clear")  # Clear terminal
+    # generate table to print pretty
+    if clear:
+        os.system("cls" if os.name == "nt" else "clear")  # clear terminal
     table_dict = {}
     for project_url, stats_dict in COMBINED_STATS.items():
         table_dict[project_url] = {}
@@ -3781,6 +3785,7 @@ def update_table(
         sleep_reason=sleep_reason,
         status=status,
         dev_status=dev_status,
+        clear=clear,
     )
 
 
@@ -3828,6 +3833,8 @@ def boinc_loop(
         CRUNCHING_FOR_DEV = False
     if mode not in DATABASE:
         DATABASE[mode] = {}
+    if DUMP_DATABASE:
+        save_stats(DATABASE,'DATABASE_DUMP')
 
     # Note yoyo@home does not support weak auth so it can't be added here
     # URLs must be in canonicalized database format
@@ -4903,9 +4910,9 @@ if __name__ == "__main__":
     print("")
     if len(table_dict) > 0:
         print("SOME PRETTY STATS JUST FOR YOU, SORTED BY AVG GRC/DAY")
-        priority_results = {} # Temp variable as update_table expects it to exist.
-        update_table()
-        del priority_results  # Cleanup temp variable created above.
+        priority_results = {}
+        update_table(clear=False)
+        del priority_results  # this is only created temporarily as update_table expects it
     else:
         print(
             "Not enough stats to print a table of them yet, guessing this is a new BOINC install?"

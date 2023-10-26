@@ -1,4 +1,7 @@
 # FindTheMag
+
+![screenshot](https://github.com/makeasnek/FindTheMag2/assets/90811423/3751e97f-8b6c-48f7-9c8d-cffeca0d701c)
+
 **New users: Scroll down to QuickStart instructions**
 
 **FindTheMag v3.0 Released Sep 2023.** This release comes with many usability and stability improvements. 
@@ -7,13 +10,14 @@ names have changed. I suggest downloading FTM into a new directory to avoid any 
 And of course, customize your config file! To do this, copy the new config.py to a file named user_config.py and make your
 edits there.
 
+# About this tool
 FindTheMag is a powerful utility which prints statistics from your BOINC client and offers suggestions to optimize your
 crunching. If you ask it to, it will also control BOINC to crunch projects according to your
 preferences. It even has options to only crunch according to profitability and/or temperature.
 
 You can group BOINC projects into two groups: 
- * ♥️_Preferred_ projects are ones which you want to crunch regardless of how much GRC they get you. 
- * 🤑_Mining_ projects are projects which you are willing to crunch, but only if they get you the maximum 
+ * ♥ ️ _Preferred_ projects are ones which you want to crunch regardless of how much GRC they get you. 
+ * 🤑 _Mining_ projects are projects which you are willing to crunch, but only if they get you the maximum 
 amount of GRC possible. In the event that your preferred project(s) happen to be the most efficient to mine, FindTheMag will 
 assign all project weight to them.
 
@@ -69,10 +73,12 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
 - Python 3.8 or higher is required. A fully synced Gridcoin wallet is strongly suggested.
 
 <h4>Windows</h4>
+
  - Download the latest version of python from python.org. Enable the "install to system path" option while installing.
  - In command prompt, run the command `python -m pip install --upgrade pip`
- - In command prompt, run the command `pip install -r "C:\Users\user\Downloads\FindTheMag-master\requirements.txt"` (or wherever you saved this tool)
- - Double-click on main.py or run `python "C:\path\to\main.py"` from command prompt. We suggest the second method as it will display errors if the program exits unexpectedly
+ - In command prompt, run `"cd C:\users\username\Downloads\FindTheMag-master"` or wherever you saved the tool
+ - In command prompt, run the command `pip install -r requirements.txt`
+ - Double-click on main.py or run `python main.py` from command prompt. We suggest the second method as it will display errors if the program exits unexpectedly
 
 <h4>Linux</h4>
 
@@ -179,6 +185,11 @@ to you by the project. It is generally adviseable to disable CPU tasks in your p
 if you are able to crunch GPU workunits since they generally grant more credit per watt and more credit per hour. But
 ultimately the efficiency of crunching GPU vs CPU is up to the project and how they make their WUs. If you are using this
 tool to directly control BOINC, it will work to make sure your CPU and GPU are always as fully utilized as possible.
+
+
+<b>FTM keeps requesting tasks from or crunching a project even though it's not the highest priority?</b>
+
+Probably because it's the only project with GPU support. FTM will keep going down the list of projects and requesting tasks until both your CPU *and* GPU cache are full. To avoid this, you can disable GPU crunching in BOINC. Be sure to exit FTM first before disabling in BOINC, as when FTM exits it will restore BOINC's settings to whatever they were when FTM started.
 
 <b>What about if my hardware changes? If I add/remove a CPU/GPU?</b>
 

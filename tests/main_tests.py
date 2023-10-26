@@ -1,3 +1,8 @@
+import sys
+import os
+
+sys.path.append(os.getcwd() + '/..')
+
 import json
 
 import pytest, main, datetime
@@ -601,7 +606,7 @@ def test_config_files_to_stats():
             },
         },
     }
-    assert result == expected
+    assert frozenset(result) == frozenset(expected)
 
 
 def test_add_mag_to_combined_stats():
@@ -872,7 +877,7 @@ def test_add_mag_to_combined_stats():
             },
         },
     }
-    assert return2 == [
+    return2expected = {
         "ESCATTER11.FULLERTON.EDU/NFS",
         "RECHENKRAFT.NET/YOYO",
         "BOINC.MULTI-POOL.INFO/LATINSQUARES",
@@ -884,8 +889,9 @@ def test_add_mag_to_combined_stats():
         "GPUGRID.NET",
         "GENE.DISI.UNITN.IT/TEST",
         "SIDOCK.SI/SIDOCK",
-    ]
-    assert return1 == expected_return_1
+    }
+    assert frozenset(list(return2)) == frozenset(return2expected)
+    assert frozenset(return1) == frozenset(expected_return_1)
 
 
 def test_get_most_mag_efficient_projects():

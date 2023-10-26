@@ -262,6 +262,8 @@ if not BOINC_DATA_DIR:
     if FOUND_PLATFORM == "Linux":
         if os.path.isdir("/var/lib/boinc-client"):
             BOINC_DATA_DIR = "/var/lib/boinc-client"
+        elif os.path.isdir("/var/lib/boinc"):
+            BOINC_DATA_DIR = "/var/lib/boinc"
         else:
             BOINC_DATA_DIR = os.path.join(Path.home(), "BOINC/")
     elif FOUND_PLATFORM == "Darwin":

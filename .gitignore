@@ -10,3 +10,9 @@
 /venv/
 scratch.py
 /user_config.py
+/tests/__pycache__
+/__pycache__
+/bin
+/lib
+/lib64
+pyvenv.cfg

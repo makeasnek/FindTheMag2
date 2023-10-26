@@ -1929,6 +1929,7 @@ def print_table(
     sleep_reason: str = DATABASE["TABLE_SLEEP_REASON"],
     status: str = DATABASE["TABLE_STATUS"],
     dev_status: bool = False,
+    clear: bool = False,
 ):
     if len(table_dict) == 0:
         print(
@@ -3352,6 +3353,7 @@ def update_table(
     status: str = None,
     dev_status: bool = False,
     dev_loop: bool = False,
+    clear:bool = True,
 ):
     """
     Function to update table printed to user.
@@ -3379,7 +3381,8 @@ def update_table(
     }
     ignore_list = ["MAGPERCREDIT"]
     # generate table to print pretty
-    os.system("cls" if os.name == "nt" else "clear")  # clear terminal
+    if clear:
+        os.system("cls" if os.name == "nt" else "clear")  # clear terminal
     table_dict = {}
     for project_url, stats_dict in COMBINED_STATS.items():
         table_dict[project_url] = {}
@@ -3409,6 +3412,7 @@ def update_table(
         sleep_reason=sleep_reason,
         status=status,
         dev_status=dev_status,
+        clear=clear,
     )
 
 
@@ -4508,7 +4512,7 @@ if __name__ == "__main__":
     if len(table_dict) > 0:
         print("SOME PRETTY STATS JUST FOR YOU, SORTED BY AVG GRC/DAY")
         priority_results = {}
-        update_table()
+        update_table(clear=False)
         del priority_results  # this is only created temporarily as update_table expects it
     else:
         print(

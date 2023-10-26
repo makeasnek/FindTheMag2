@@ -86,6 +86,7 @@ DUMP_PROJECT_PRIORITY: bool = (
     False  # Dump weights adjusted after considering current and past crunching time
 )
 DUMP_RAC_MAG_RATIOS: bool = False  # Dump the RAC:MAG ratios from each Gridcoin project
+DUMP_DATABASE: bool = False # Dump the DATABASE
 DEV_FEE_MODE: str = "CRUNCH"  # valid values: CRUNCH|SIDESTAKE
 CRUNCHING_FOR_DEV: bool = False
 DEV_EXIT_TEST: bool = False  # only used for testing
@@ -3453,6 +3454,8 @@ def boinc_loop(
         CRUNCHING_FOR_DEV = False
     if mode not in DATABASE:
         DATABASE[mode] = {}
+    if DUMP_DATABASE:
+        save_stats(DATABASE,'DATABASE_DUMP')
 
     # Note yoyo@home does not support weak auth so it can't be added here
     # URLs must be in canonicalized database format

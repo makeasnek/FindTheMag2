@@ -4569,6 +4569,7 @@ if __name__ == "__main__":
                 DATABASE = create_default_database()
                 save_stats(DATABASE)
     else:
+        log.warning('No stats file found, making new one...')
         DATABASE = create_default_database()
         save_stats(DATABASE)
 

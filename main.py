@@ -3500,19 +3500,22 @@ def actual_save_stats(database: Any, path: str = None) -> None:
 
 
 def save_stats(database: Any, path: str = None) -> None:
+    """
+    Caching function to save a database. If the database
+    has changed, save it, otherwise don't.
+    """
+    if not path:
+        path='DATABASE'
     try:
-        if not path:
-            if "DATABASE" in SAVE_STATS_DB:
-                if database != SAVE_STATS_DB["DATABASE"]:
-                    actual_save_stats(database, path)
-            else:
+        if path in SAVE_STATS_DB:
+            if SAVE_STATS_DB[path] != database:
+                log.debug('Saving DB {}'.format(path))
                 actual_save_stats(database, path)
+            else:
+                log.debug('Skipping save of DB {}'.format(path))
         else:
-            if path in SAVE_STATS_DB:
-                if SAVE_STATS_DB[path] != database:
-                    actual_save_stats(database, path)
-            else:
-                actual_save_stats(database, path)
+            log.debug('Saving DB bc not in SAVE_STATS_DB {}'.format(path))
+            actual_save_stats(database, path)
     except Exception as e:
         log.error("Error saving db {}{}".format(path, e))
 

@@ -3486,13 +3486,20 @@ def benchmark_check(
 
 
 def actual_save_stats(database: Any, path: str = None) -> None:
+    """
+    Save a JSON database file. Normally saves to given path.txt unless the path is "stats"
+    in which case it saves to stats.json
+    """
+    if path:
+        if path=='stats':
+            path='stats.json'
     try:
         if not path:
-            with open("stats.json", "w") as fp:
+            with open(path+'.txt', "w") as fp:
                 json.dump(database, fp, default=json_default)
                 SAVE_STATS_DB["DATABASE"] = DATABASE
         else:
-            with open(path + ".txt", "w") as fp:
+            with open(path, "w") as fp:
                 json.dump(database, fp, default=json_default)
                 SAVE_STATS_DB[path] = database
     finally:
@@ -3505,7 +3512,7 @@ def save_stats(database: Any, path: str = None) -> None:
     has changed, save it, otherwise don't.
     """
     if not path:
-        path='DATABASE'
+        path='stats'
     try:
         if path in SAVE_STATS_DB:
             if SAVE_STATS_DB[path] != database:

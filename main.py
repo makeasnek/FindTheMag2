@@ -148,16 +148,16 @@ SAVE_STATS_DB = (
 PRICE_URL_DICT: Dict[str, Tuple[str, Union[str, re.Pattern]]] = {
     "https://coinmarketcap.com/currencies/gridcoin/": (
         "coinmarketcap.com",
-        '("low24h":)(\d*.\d*)',
+        r'("low24h":)(\d*.\d*)',
     ),
     "https://finance.yahoo.com/quote/GRC-USD/": (
         "yahoo.com",
-        '(data-field="regularMarketPrice" data-trend="none" data-pricehint="\d" value=")(\d*\.\d*)',
+        r'(data-field="regularMarketPrice" data-trend="none" data-pricehint="\d" value=")(\d*\.\d*)',
     ),
     "https://www.coingecko.com/en/coins/gridcoin-research": (
         "coingecko",
         re.compile(
-            '(data-coin-id="243" data-coin-symbol="grc" data-target="price.price">\$)(\d*\.\d*)(</span>)',
+            r'(data-coin-id="243" data-coin-symbol="grc" data-target="price.price">\$)(\d*\.\d*)(</span>)',
             flags=re.MULTILINE | re.IGNORECASE,
         ),
     ),
@@ -274,7 +274,7 @@ if not BOINC_DATA_DIR:
     elif FOUND_PLATFORM == "Darwin":
         BOINC_DATA_DIR = os.path.join("/Library/Application Support/BOINC Data/")
     else:
-        BOINC_DATA_DIR = "C:\ProgramData\BOINC\\"
+        BOINC_DATA_DIR = "C:\\ProgramData\\BOINC\\"
 if not GRIDCOIN_DATA_DIR:
     if FOUND_PLATFORM == "Linux":
         GRIDCOIN_DATA_DIR = os.path.join(Path.home(), ".GridcoinResearch/")
@@ -284,7 +284,7 @@ if not GRIDCOIN_DATA_DIR:
         )
     else:
         GRIDCOIN_DATA_DIR = os.path.join(
-            Path.home(), "AppData\Roaming\GridcoinResearch\\"
+            Path.home(), "AppData\\Roaming\\GridcoinResearch\\"
         )
 
 
@@ -1193,7 +1193,7 @@ def wait_till_no_xfers(rpc_client: libs.pyboinc.rpc_client) -> None:
             sleep(loop_wait_in_seconds)
             continue
         if isinstance(allow_response, str):
-            cleaned_response = re.sub("\s*", "", allow_response)
+            cleaned_response = re.sub(r"\s*", "", allow_response)
             if cleaned_response == "":  # There are no transfers, yay!
                 return
         if xfers_happening(allow_response):
@@ -2305,7 +2305,7 @@ def print_table(
             "No projects have any assigned credit yet, a pretty table will appear here once you have earned some credit."
         )
         # fmt: off
-        print("""
+        print(r"""
                                                                               WNNXXXKKXW                     
                                                                         WNK0OkkxxkkkkdoK                     
                                                                     WX0kxdolx0XNNWWWNkoK                     

@@ -89,7 +89,7 @@ DUMP_PROJECT_PRIORITY: bool = (
     False  # Dump weights adjusted after considering current and past crunching time
 )
 DUMP_RAC_MAG_RATIOS: bool = False  # Dump the RAC:MAG ratios from each Gridcoin project
-DUMP_DATABASE: bool = False # Dump the DATABASE
+DUMP_DATABASE: bool = False  # Dump the DATABASE
 DEV_FEE_MODE: str = "CRUNCH"  # valid values: CRUNCH|SIDESTAKE
 CRUNCHING_FOR_DEV: bool = False
 DEV_EXIT_TEST: bool = False  # Only used for testing
@@ -130,7 +130,7 @@ PRINT_URL_LOOKUP_TABLE: Dict[
 MAG_RATIO_SOURCE: Union[str, None] = None  # Valid values: WALLET|WEB
 CHECK_SIDESTAKE_RESULTS = False
 loop = asyncio.get_event_loop()
-# Translates BOINC's CPU and GPU Mode replies into English. Note difference between 
+# Translates BOINC's CPU and GPU Mode replies into English. Note difference between
 # keys integer vs string.
 CPU_MODE_DICT = {1: "always", 2: "auto", 3: "never"}
 GPU_MODE_DICT = {"1": "always", "2": "auto", "3": "never"}
@@ -143,7 +143,7 @@ DEV_LOOP_RUNNING = False
 SAVE_STATS_DB = (
     {}
 )  # Keeps cache of saved stats databases so we don't write more often than we need too
-# Dictionary for places we query in format key=url, value=Tuple[nickname,regex]. 
+# Dictionary for places we query in format key=url, value=Tuple[nickname,regex].
 # Note they all must match group 2
 PRICE_URL_DICT: Dict[str, Tuple[str, Union[str, re.Pattern]]] = {
     "https://coinmarketcap.com/currencies/gridcoin/": (
@@ -291,7 +291,7 @@ if not GRIDCOIN_DATA_DIR:
 class GridcoinClientConnection:
     """Allows connecting to a Gridcoin wallet and issuing RPC commands.
 
-    A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently 
+    A class for connecting to a Gridcoin wallet and issuing RPC commands. Currently
     quite barebones.
 
     Attributes:
@@ -345,8 +345,8 @@ class GridcoinClientConnection:
             command:
             arguments:
 
-        Returns: 
-            Response from command exectution as a dictionary of json, or None if 
+        Returns:
+            Response from command exectution as a dictionary of json, or None if
             an error was encounted while connecting to the Gridcoin wallet instance.
         """
         if not arguments:
@@ -384,7 +384,7 @@ class GridcoinClientConnection:
         Retrieves the list of projects from the local Gridcoin wallet that are
         approved for earning Gridcoin.
 
-        Returns: 
+        Returns:
             A list of UPPERCASED project URLs using gridcoin command listprojects
         """
         return_list = []
@@ -399,7 +399,7 @@ class BoincClientConnection:
 
     A simple class for grepping BOINC config files etc. Doesn't do any RPC communication
 
-    Note: Usage of it should be wrapped in try/except clauses as it does not 
+    Note: Usage of it should be wrapped in try/except clauses as it does not
           do any error handling internally.
 
     Attributes:
@@ -419,13 +419,13 @@ class BoincClientConnection:
 
     def get_project_list(self) -> List[str]:
         """Retrieve the list of projects supported by the BOINC client
-         
+
         Constructs a list of all projects known by the BOINC client. This may include
         more projects than those currently attached to the BOINC client. This may also
-        not include some projects currently attached, if they are projects not included 
+        not include some projects currently attached, if they are projects not included
         with BOINC by default.
 
-        Returns: List of project URLs. 
+        Returns: List of project URLs.
         """
         project_list_file = os.path.join(self.config_dir, "all_projects_list.xml")
         return_list = []
@@ -562,17 +562,15 @@ def shutdown_dev_client(quiet: bool = False) -> None:
 
     Sends RPC quit command to running dev BOINC client.
 
-    Args: 
+    Args:
         quiet:
 
-    Raises: 
+    Raises:
         Exception: An error occured shutting down the dev BOINC client.
     """
-    # This is needed in case this function is called while main loop is still 
+    # This is needed in case this function is called while main loop is still
     # waiting for an RPC command etc
-    new_loop = (
-        asyncio.get_event_loop()
-    )  
+    new_loop = asyncio.get_event_loop()
     log.info("Attempting to shut down dev client at safe_exit...")
     try:
         dev_rpc_client = new_loop.run_until_complete(
@@ -591,11 +589,11 @@ def shutdown_dev_client(quiet: bool = False) -> None:
 def safe_exit(arg1, arg2) -> None:
     """Safely exit Find The Mag.
 
-    Safely exit tool by saving database, restoring original user preferences, 
+    Safely exit tool by saving database, restoring original user preferences,
     and quitting dev BOINC client.
-    
-    Args: arg1 and arg2: 
-        Required by the signal handler library, 
+
+    Args: arg1 and arg2:
+        Required by the signal handler library,
         but aren't used for anything inside this function
     """
     print_and_log(
@@ -704,8 +702,8 @@ async def get_task_list(rpc_client: libs.pyboinc.rpc_client) -> list:
 
     Return list of tasks from BOINC client which are not completed/failed. These
     can be active tasks, tasks waiting to be started, or paused tasks.
-    
-    Args: 
+
+    Args:
         rpc_client:
 
     Returns:
@@ -739,7 +737,7 @@ async def is_boinc_crunching(rpc_client: libs.pyboinc.rpc_client) -> bool:
 
     Args:
         rpc_client:
-    
+
     Returns:
         True if crunching, or False if not crunching or unsure.
 
@@ -750,7 +748,7 @@ async def is_boinc_crunching(rpc_client: libs.pyboinc.rpc_client) -> bool:
         reply = await run_rpc_command(rpc_client, "get_cc_status")
         task_suspend_reason = int(reply["task_suspend_reason"])
         if task_suspend_reason != 0:
-            # These are documented at 
+            # These are documented at
             # https://github.com/BOINC/boinc/blob/73a7754e7fd1ae3b7bf337e8dd42a7a0b42cf3d2/android/BOINC/app/src/main/java/edu/berkeley/boinc/utils/BOINCDefs.kt
             log.debug(
                 "Determined BOINC client is not crunching task_suspend_reason: {}".format(
@@ -783,14 +781,14 @@ async def setup_connection(
     """Create BOINC RPC client connection.
 
     Sets up a BOINC RPC client connection
-    
+
     Args:
         boinc_ip:
         boinc_password:
         port:
 
     Returns:
-        
+
     """
     rpc_client = None
     if not boinc_ip:
@@ -806,7 +804,7 @@ def temp_check() -> bool:
 
     Returns:
         True if we should keep crunching, False otherwise.
-    
+
     Raises:
         Exception: An error occured attempting to read the temperature.
     """
@@ -1030,7 +1028,7 @@ def get_grc_price(sample_text: str = None) -> Union[float, None]:
 def get_approved_project_urls_web(query_result: str = None) -> Dict[str, str]:
     """List of projects currently witelised by Gridcoin.
 
-    Gets current whitelist from the Gridcoinstats website. Limits fetching 
+    Gets current whitelist from the Gridcoinstats website. Limits fetching
     from website to once every 24 hours through caching list in database.
 
     Args:
@@ -1209,16 +1207,16 @@ def get_gridcoin_config_parameters(gridcoin_dir: str) -> Dict[str, str]:
 
        Parses Gridcoin configuration .json and .conf file for configuration parameters.
        Preference is given to those in the json file over those in the to the conf file.
-       
+
        Note that sidestakes become a list as there may be multiple.
 
     Args:
         gridcoin_dir: Absolute path to a gridcoin config directory.
 
     Returns:
-        A dictionary of all config parameters found, 
-    
-    Raises: 
+        A dictionary of all config parameters found,
+
+    Raises:
         Exception: An error occurred while parsing the config file.
     """
     return_dict = dict()
@@ -1297,7 +1295,7 @@ def check_sidestake(
         config_params: config_params from get_config_parameters
         address: address to check
         minval: minimum value to pass check
-    
+
     Returns:
         True if given address is sidestaked for more than the given minium.
     """
@@ -1320,7 +1318,7 @@ def project_url_from_stats_file(statsfilename: str) -> str:
     """Guess a projec url using stats file name.
 
     Guess a project URL from the name of a stats file.
-    
+
     Args:
         statsfilename:
 
@@ -1343,7 +1341,7 @@ def project_url_from_credit_history_file(filename: str) -> str:
         filename:
 
     Returns:
-        URL for project associated with stats file, or credit history 
+        URL for project associated with stats file, or credit history
         file name if URL unknown.
     """
     filename = filename.replace("statistics_", "")
@@ -1357,11 +1355,11 @@ def stat_file_to_list(
 ) -> List[Dict[str, str]]:
     """Retrieve a list of tasks and related stats from BOINC client log file.
 
-    Turns a BOINC job log into list of dictionaries we can use, each dictionary 
-    is a task. 
+    Turns a BOINC job log into list of dictionaries we can use, each dictionary
+    is a task.
     Dictionaries have the following keys:
         STARTTIME,ESTTIME,CPUTIME,ESTIMATEDFLOPS,TASKNAME,WALLTIME,EXITCODE
-    
+
     Note that ESTIMATEDFLOPS comes from the project and EXITCODE will always be zero.
     All values and keys in dicts are strings.
 
@@ -1377,7 +1375,7 @@ def stat_file_to_list(
         content: Added for testing purposes.
 
     Returns:
-        List dictionaries, each a BOINC task with statistics. 
+        List dictionaries, each a BOINC task with statistics.
 
     Raises:
         Exception: An error occurred when attempting to read a BOINC job log file.
@@ -1451,8 +1449,8 @@ async def run_rpc_command(
 
     Attempts to communicate with the BOINC client multiple times based on internal
     parameters.
-    
-    Args: 
+
+    Args:
         rpc_client: Connection to BOINC client instance.
         command: Command to be executed by the BOINC client.
         arg1: Optional parameter for BOINC command.
@@ -1460,7 +1458,7 @@ async def run_rpc_command(
         arg2: Optional parameter for BOINC command.
         arg2_val: Value for optional parameter.
 
-    Returns: 
+    Returns:
         Response from BOINC client, or None if unsuccessful.
 
     Raises:
@@ -1507,13 +1505,13 @@ async def run_rpc_command(
 def credit_history_file_to_list(credithistoryfileabspath: str) -> List[Dict[str, str]]:
     """Retrieve BOINC credit history
 
-    Turns a BOINC credit history file into list of dictionaries we can use. 
+    Turns a BOINC credit history file into list of dictionaries we can use.
 
     Dictionaries have keys below:
         TIME,USERTOTALCREDIT,USERRAC,HOSTTOTALCREDIT,HOSTRAC
-    
+
     Note that ESTIMATEDFLOPS comes from the project and EXITCODE will always be zero.
-    
+
     Args:
         credithistoryfileabspath: Filename with absolute path.
 
@@ -1777,7 +1775,7 @@ def config_files_to_stats(
     Args:
         config_dir_abs_path: Absolute path to BOINC data directory.
 
-    Returns: 
+    Returns:
         Dictionary of statistics in format COMBINED_STATS_EXAMPLE in main.py, or
         an empty dictionary if unable to retrieve a list of statistics files.
 
@@ -1875,13 +1873,13 @@ def add_mag_to_combined_stats(
 
     Args:
         combined_stats: COMBINED_STATS from main.py.
-        mag_ratios: Magnitude ratios returned from get_project_mag_ratios. 
+        mag_ratios: Magnitude ratios returned from get_project_mag_ratios.
             A dictionary with project URL as key and magnitude ratio as value
         approved_projects:
         preferred_projects:
 
     Returns: A tuple consisting of:
-        COMBINED_STATS with magnitude ratios added to it, 
+        COMBINED_STATS with magnitude ratios added to it,
         list of projects which are being crunched but not on approved projects list.
     """
     unapproved_list = []
@@ -1941,14 +1939,14 @@ def get_most_mag_efficient_projects(
 ) -> List[str]:
     """Determines most magnitude efficient project(s).
 
-    Given combinedstats, determines most mag efficient project(s). This is the #1 
-    most efficient project and any other projects which are within percentdiff of 
+    Given combinedstats, determines most mag efficient project(s). This is the #1
+    most efficient project and any other projects which are within percentdiff of
     that number.
-    
+
     Args:
         combinedstats: combinedstats dict
         percentdiff: Maximum percent diff
-    
+
     Returns:
         List of project URLs, or empty list if none are found.
     """
@@ -2031,7 +2029,7 @@ def sidestake_prompt(
     and the entered percentage.
 
     Args:
-        check_sidestake_results: 
+        check_sidestake_results:
             True - sidestaking is currently enabled.
             False - sidestaking currently not enabled.
         check_type:
@@ -2041,7 +2039,7 @@ def sidestake_prompt(
 
     Raises:
         Exception: An error occurred while parsing the user's entered answer.
-        Exception: An error occurred attempting to access the Gridcoin wallet 
+        Exception: An error occurred attempting to access the Gridcoin wallet
             configuration file.
     """
     # If user is sidestaking, skip rest of this function
@@ -2122,10 +2120,10 @@ def get_project_mag_ratios(
         lookback_period: Number of superblocks to look back to determine average.
         response: Used for testing purposes.
         grc_projects: Set to None, unless for testing purposes. When testing
-            This is the output of the 'listprojects' command run on the Gridcoin client. 
-    
+            This is the output of the 'listprojects' command run on the Gridcoin client.
+
     Returns:
-        A dictionary with the key as project URL and value as project magnitude ratio 
+        A dictionary with the key as project URL and value as project magnitude ratio
         (mag per unit of RAC).
         A value of None is returned in the event of an exception and no cached data.
 
@@ -2137,7 +2135,9 @@ def get_project_mag_ratios(
     return_dict = None
     try:
         if not response:
-            command_result = grc_client.run_command("superblocks", [lookback_period, True])
+            command_result = grc_client.run_command(
+                "superblocks", [lookback_period, True]
+            )
             response = command_result
         if not response:
             raise ConnectionError("Issues w superblocks command")
@@ -2178,8 +2178,8 @@ def project_url_to_name_boinc(url: str, project_names: dict = None):
         project_names: Dictionary of project names with the key as the project URL,
             from the BOINC client database..
 
-    Returns: 
-        The human-readable project name associated with the specified URL, or 
+    Returns:
+        The human-readable project name associated with the specified URL, or
         the converted specified URL if the project is not found.
     """
     if not project_names:
@@ -2202,8 +2202,8 @@ def project_url_to_name(url: str, project_names: Dict[str, str] = None):
         project_names: Dictionary of project names with the key as the project URL,
             from the BOINC client database..
 
-    Returns: 
-        The human-readable project name associated with the specified URL, or 
+    Returns:
+        The human-readable project name associated with the specified URL, or
         the converted specified URL if the project is not found.
     """
     if not project_names:
@@ -2230,14 +2230,14 @@ def left_align(yourstring: str, total_len: int, min_pad: int = 0) -> str:
     this: 'examplestring  '.
 
     Returns:
-        Left-aligned string of total_len with min_pad padding of spaces on the 
+        Left-aligned string of total_len with min_pad padding of spaces on the
         right of the text.
 
     TODO:
-        Confirm that returned string should be shorter than total_len based on 
-        the value of min_pad, or should the length always be total_len. 
-        Example ("yourstring",15,1) returns 'yourstring    ' where the length 
-        is actually 14 instead 15. 
+        Confirm that returned string should be shorter than total_len based on
+        the value of min_pad, or should the length always be total_len.
+        Example ("yourstring",15,1) returns 'yourstring    ' where the length
+        is actually 14 instead 15.
     """
     if len(yourstring) >= total_len - min_pad:
         yourstring = yourstring[0 : total_len - (min_pad)]
@@ -2248,9 +2248,9 @@ def left_align(yourstring: str, total_len: int, min_pad: int = 0) -> str:
 
 def center_align(yourstring: str, total_len: int, min_pad: int = 0) -> str:
     """Center-aligns specified string using given length and padding.
-    
+
     Constructs a string of length total_len with yourstring center-aligned and
-    padded with spaces on the left and right. Padding includes at least min_pad 
+    padded with spaces on the left and right. Padding includes at least min_pad
     spaces, truncating yourstring if required.
 
     If the padding can not be equal on both sides, then an additional +1 padding is
@@ -2260,14 +2260,14 @@ def center_align(yourstring: str, total_len: int, min_pad: int = 0) -> str:
     this: ' examplestring '.
 
     Returns:
-        Center-aligned string of total_len with min_pad padding of spaces on the 
+        Center-aligned string of total_len with min_pad padding of spaces on the
         left and right of the text.
 
     TODO:
-        Confirm that returned string should be shorter than total_len based on 
-        the value of min_pad, or should the length always be total_len. 
-        Example ("yourstring",15,1) returns '  yourstring  ' where the length 
-        is actually 14 instead 15. 
+        Confirm that returned string should be shorter than total_len based on
+        the value of min_pad, or should the length always be total_len.
+        Example ("yourstring",15,1) returns '  yourstring  ' where the length
+        is actually 14 instead 15.
     """
     total_min_pad = min_pad * 2
     room_for_string = total_len - total_min_pad
@@ -2543,11 +2543,11 @@ def generate_stats(
     final_project_weights = {}
     dev_project_weights = {}
     # Canonicalize PREFERRED_PROJECTS list
-    to_del=[]
+    to_del = []
     for url in preferred_projects.keys():
         weight = preferred_projects[url]
         canonicalized = resolve_url_database(url)
-        if canonicalized!=url:
+        if canonicalized != url:
             to_del.append(url)
         preferred_projects[canonicalized] = weight
     for url in to_del:
@@ -2895,7 +2895,7 @@ def cache_full(project_name: str, messages) -> bool:
                     else:
                         if (
                             not gpu_full
-                        ):  # If GPU is not mentioned in log, this would always 
+                        ):  # If GPU is not mentioned in log, this would always
                             # happen so using this to stop erroneous messages
                             log.debug(
                                 "GPU cache appears not full {}".format(message["body"])
@@ -2941,7 +2941,7 @@ def project_backoff(project_name: str, messages) -> bool:
     Returns TRUE if project should be backed off. False otherwise or if unable to determine
     """
     # Phrases which indicate project SHOULD be backed off
-    # - removed 'project requested delay' from positive phrases because 
+    # - removed 'project requested delay' from positive phrases because
     #   projects always provide this, even if work was provided!
     positive_phrases = [
         "PROJECT HAS NO TASKS AVAILABLE",
@@ -3090,7 +3090,7 @@ async def get_attached_projects(
             found_projects.append(project.master_url)
             if isinstance(
                 project.project_name, bool
-            ):  # This happens if project is "attached" but unable to communicate 
+            ):  # This happens if project is "attached" but unable to communicate
                 # with the project due to it being down or some other issue
                 project_names[project.master_url] = project.master_url
             else:
@@ -3338,8 +3338,8 @@ def get_project_mag_ratios_from_url(
         loaded_json = json.loads(resp.text)
         if not loaded_json:
             raise Exception
-        if len(loaded_json)==0:
-            raise  Exception
+        if len(loaded_json) == 0:
+            raise Exception
         response = get_project_mag_ratios_from_response(
             loaded_json, lookback_period, project_resolver_dict
         )
@@ -3491,11 +3491,11 @@ def actual_save_stats(database: Any, path: str = None) -> None:
     in which case it saves to stats.json
     """
     if path:
-        if path=='stats':
-            path='stats.json'
+        if path == "stats":
+            path = "stats.json"
     try:
         if not path:
-            with open(path+'.txt', "w") as fp:
+            with open(path + ".txt", "w") as fp:
                 json.dump(database, fp, default=json_default)
                 SAVE_STATS_DB["DATABASE"] = DATABASE
         else:
@@ -3512,16 +3512,16 @@ def save_stats(database: Any, path: str = None) -> None:
     has changed, save it, otherwise don't.
     """
     if not path:
-        path='stats'
+        path = "stats"
     try:
         if path in SAVE_STATS_DB:
             if SAVE_STATS_DB[path] != database:
-                log.debug('Saving DB {}'.format(path))
+                log.debug("Saving DB {}".format(path))
                 actual_save_stats(database, path)
             else:
-                log.debug('Skipping save of DB {}'.format(path))
+                log.debug("Skipping save of DB {}".format(path))
         else:
-            log.debug('Saving DB bc not in SAVE_STATS_DB {}'.format(path))
+            log.debug("Saving DB bc not in SAVE_STATS_DB {}".format(path))
             actual_save_stats(database, path)
     except Exception as e:
         log.error("Error saving db {}{}".format(path, e))
@@ -3736,13 +3736,13 @@ def update_table(
     status: str = None,
     dev_status: bool = False,
     dev_loop: bool = False,
-    clear:bool = True,
+    clear: bool = True,
 ):
     """
     Function to update table printed to user.
     :param status = Most recent status "waiting for xfers, starting crunching on x, etc"
     """
-    # Don't update table in dev loop because all our variables reference 
+    # Don't update table in dev loop because all our variables reference
     # dev install, not main one
     if dev_loop or SKIP_TABLE_UPDATES:
         return
@@ -3810,13 +3810,13 @@ def boinc_loop(
     :param client_rpc_client client BOINC rpc client, as it must be accessed in dev mode and kept in suspend
     :param time How long to crunch for. Only used by dev mode at the moment
     """
-    # If we are not passed this variable, it means we are not crunching for dev, 
+    # If we are not passed this variable, it means we are not crunching for dev,
     # so we fallback to global BOINC rpc
     if not client_rpc_client:
         client_rpc_client = rpc_client
     existing_cpu_mode = None
     existing_gpu_mode = None
-    # These variables are referenced outside the loop 
+    # These variables are referenced outside the loop
     # (or in recursive calls of the loop) so should be made global
     global COMBINED_STATS
     global COMBINED_STATS_DEV
@@ -3845,7 +3845,7 @@ def boinc_loop(
     if mode not in DATABASE:
         DATABASE[mode] = {}
     if DUMP_DATABASE:
-        save_stats(DATABASE,'DATABASE_DUMP')
+        save_stats(DATABASE, "DATABASE_DUMP")
 
     # Note yoyo@home does not support weak auth so it can't be added here
     # URLs must be in canonicalized database format
@@ -3869,7 +3869,7 @@ def boinc_loop(
 
     while True:
         discrepancy = owed_to_dev()
-        # If we have done sufficient crunching in dev mode, exit dev loop. 
+        # If we have done sufficient crunching in dev mode, exit dev loop.
         # Closing dev client is done after exiting loop.
         if discrepancy < 1 and not FORCE_DEV_MODE and dev_loop:
             return None
@@ -3927,7 +3927,7 @@ def boinc_loop(
             DATABASE["STATSLASTCALCULATED"] = datetime.datetime.now()
             COMBINED_STATS = config_files_to_stats(BOINC_DATA_DIR)
             # Not sure what this line did but commented out, we'll see if anything breaks
-            #total_time = combined_stats_to_total_time(COMBINED_STATS) 
+            # total_time = combined_stats_to_total_time(COMBINED_STATS)
             if dev_loop:
                 (
                     COMBINED_STATS_DEV,
@@ -4004,7 +4004,7 @@ def boinc_loop(
                 DATABASE["GRCPRICE"] = grc_price
         else:
             grc_price = DATABASE["GRCPRICE"]
-        # Check profitability of all projects, if none profitable 
+        # Check profitability of all projects, if none profitable
         # (and user doesn't want unprofitable crunching), sleep for 1hr
         if ONLY_BOINC_IF_PROFITABLE and not dev_loop:
             profitability_list = []
@@ -4044,7 +4044,7 @@ def boinc_loop(
                 sleep(60 * 60)
                 continue
 
-        # If we have enabled temperature control, verify that crunching is 
+        # If we have enabled temperature control, verify that crunching is
         # allowed at current temp
         if ENABLE_TEMP_CONTROL:
             # Get BOINC's starting CPU and GPU modes
@@ -4080,7 +4080,7 @@ def boinc_loop(
                 if not temp_check():
                     while True:  # Keep sleeping until we pass a temp check
                         log.debug("Sleeping due to temperature")
-                        # Put BOINC into sleep mode, automatically reverting if 
+                        # Put BOINC into sleep mode, automatically reverting if
                         # script closes unexpectedly
                         sleep_interval = str(int(((60 * TEMP_SLEEP_TIME) + 60)))
                         loop.run_until_complete(
@@ -4118,7 +4118,7 @@ def boinc_loop(
             if dev_boinc_password == "ERROR":
                 log.error("Error setting up crunching to developer account")
             else:
-                # Setup dev RPC connection, it may take a few tries while we 
+                # Setup dev RPC connection, it may take a few tries while we
                 # wait for it to come online
                 tries = 1
                 tries_max = 5
@@ -4146,11 +4146,11 @@ def boinc_loop(
                     if tries > tries_max:
                         log.error("Giving up on connecting to BOINC dev client")
             if dev_rpc_client:
-                # Set main BOINC to suspend until we're done crunching in dev mode. 
-                # It will automatically re-enable itself in 100x the time if nothing 
+                # Set main BOINC to suspend until we're done crunching in dev mode.
+                # It will automatically re-enable itself in 100x the time if nothing
                 # is done.
-                # This allows for non-graceful exits of this script to not brick 
-                # client's BOINC and considerations that dev account may not be 
+                # This allows for non-graceful exits of this script to not brick
+                # client's BOINC and considerations that dev account may not be
                 # crunching full time if client is actively using computer.
                 existing_mode_info = loop.run_until_complete(
                     run_rpc_command(rpc_client, "get_cc_status")
@@ -4227,7 +4227,7 @@ def boinc_loop(
                 else:
                     log.error("Unable to start dev mode due to unknown last mode")
 
-        # Loop through each project in order of priority and request new tasks if 
+        # Loop through each project in order of priority and request new tasks if
         # not backed off stopping looping if cache becomes full
         dont_nnt = None
         if dev_loop:
@@ -4290,7 +4290,7 @@ def boinc_loop(
                     )
                 )
                 continue
-            # If user has set to only mine highest mag project if profitable and 
+            # If user has set to only mine highest mag project if profitable and
             # it's not profitable or in benchmarking mode, skip
             if (
                 ONLY_MINE_IF_PROFITABLE
@@ -4312,7 +4312,7 @@ def boinc_loop(
                 continue
             if database_url not in DATABASE[mode]:
                 DATABASE[mode][database_url] = {}
-            # Skip checking project if we have a backoff counter going and it 
+            # Skip checking project if we have a backoff counter going and it
             # hasn't been long enough
             last_project_check: datetime.datetime = DATABASE[mode][database_url].get(
                 "LAST_CHECKED", datetime.datetime(1997, 6, 21, 18, 25, 30)
@@ -4352,11 +4352,11 @@ def boinc_loop(
 
                 # On first run, there is no project list
                 if isinstance(get_project_list, list):
-                    # Convert to simple list of strings so we can check if 
+                    # Convert to simple list of strings so we can check if
                     # project URL is in list
                     converted_project_list = project_list_to_project_list(
                         get_project_list
-                    )  
+                    )
                 else:
                     log.warning(
                         "Dev BOINC shows empty project list, this is normal on first run"
@@ -4433,15 +4433,13 @@ def boinc_loop(
                 + str(boincified_url)
             )
             log.debug("Update response is {}".format(update_response))
-            # Give BOINC time to update w project, I don't know a less hacky way to 
+            # Give BOINC time to update w project, I don't know a less hacky way to
             # do this, suggestions are welcome
-            sleep(
-                15
-            )  
+            sleep(15)
             DATABASE[mode][database_url]["LAST_CHECKED"] = datetime.datetime.now()
             # Check if project should be backed off. If so, back it off.
             # This is an exponentially increasing backoff with a maximum time of 1 day
-            # Projects are backed off if they request it, if they are 
+            # Projects are backed off if they request it, if they are
             # unresponsive/down, or if no work is available
             backoff_response = loop.run_until_complete(
                 check_log_entries_for_backoff(rpc_client, project_name=project_name)
@@ -4478,7 +4476,7 @@ def boinc_loop(
                 break
 
         # Allow highest priority project to be non-NNTd.
-        # This enables BOINC to fetch work if it's needed before our 
+        # This enables BOINC to fetch work if it's needed before our
         # sleep period elapses
         dont_nnt = resolve_url_database(project_loop[0])
         allow_this_project = resolve_url_boinc_rpc(dont_nnt, dev_mode=dev_loop)
@@ -4488,9 +4486,7 @@ def boinc_loop(
             )
         )
         # There's no reason to loop through all projects more than once every 30 minutes
-        custom_sleep(
-            30, rpc_client, dev_loop=dev_loop
-        )  
+        custom_sleep(30, rpc_client, dev_loop=dev_loop)
 
 
 def print_and_log(msg: str, log_level: str) -> None:
@@ -4549,11 +4545,9 @@ if __name__ == "__main__":
     override_path = os.path.join(BOINC_DATA_DIR, "global_prefs_override.xml")
     override_dest_path = os.path.join(os.getcwd(), "global_prefs_override_backup.xml")
 
-    # Shut down dev client is it's running. This is useful if program shuts 
+    # Shut down dev client is it's running. This is useful if program shuts
     # down unexpectedly
-    shutdown_dev_client(
-        quiet=True
-    )  
+    shutdown_dev_client(quiet=True)
 
     # Load long-term stats
     if os.path.exists("stats.json"):
@@ -4581,7 +4575,7 @@ if __name__ == "__main__":
                 DATABASE = create_default_database()
                 save_stats(DATABASE)
     else:
-        log.warning('No stats file found, making new one...')
+        log.warning("No stats file found, making new one...")
         DATABASE = create_default_database()
         save_stats(DATABASE)
 
@@ -4796,11 +4790,11 @@ if __name__ == "__main__":
     if not rpc_client:
         print_and_log("Error: Unable to connect to BOINC client, quitting now", "ERROR")
         quit()
-    # Get project list from BOINC client directly. This is needed for 
+    # Get project list from BOINC client directly. This is needed for
     # correct capitalization
     temp_project_set, temp_project_names = loop.run_until_complete(
         get_attached_projects(rpc_client)
-    )  
+    )
     if not temp_project_set or not temp_project_names:
         print_and_log(
             "Error connecting to BOINC client, unable to get project list.", "ERROR"
@@ -4822,7 +4816,7 @@ if __name__ == "__main__":
             rpc_user=rpc_user, rpc_port=rpc_port, rpc_password=gridcoin_rpc_password
         )
         # Test if the client is connectable
-        source_urls = grc_client.get_approved_project_urls() 
+        source_urls = grc_client.get_approved_project_urls()
         wait_till_synced(grc_client)
         source_urls = grc_client.get_approved_project_urls()
         log.debug("Got source_urls from wallet: {}".format(source_urls))
@@ -5027,11 +5021,9 @@ if __name__ == "__main__":
     highest_priority_project = ""
     highest_priority_projects = []
     # Force calculation of stats at first run since they are not cached in DB
-    DATABASE["STATSLASTCALCULATED"] = datetime.datetime(
-        1997, 3, 3
-    )  
-    # While we don't have enough tasks, continue cycling through project list and 
-    # updating. If we have cycled through all projects, get_highest_priority_project 
+    DATABASE["STATSLASTCALCULATED"] = datetime.datetime(1997, 3, 3)
+    # While we don't have enough tasks, continue cycling through project list and
+    # updating. If we have cycled through all projects, get_highest_priority_project
     # will stall to prevent requesting too often
     boinc_loop(False, rpc_client)
     # Restore user prefs

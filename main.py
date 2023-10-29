@@ -4318,7 +4318,7 @@ def boinc_loop(
                 DATABASE[
                     "TABLE_STATUS"
                 ] = "Skipping {} due to backoff period...".format(
-                    {highest_priority_project}
+                    highest_priority_project
                 )
                 update_table(dev_loop=dev_loop)
                 log.debug(

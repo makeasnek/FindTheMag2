@@ -4536,6 +4536,10 @@ if __name__ == "__main__":
     del python_minor
     del python_major
     log.debug("Python version {}".format(platform.python_version()))
+    # These must be declared early in case the user ctrl+Cs the script.
+    # This way, safe_exit can use these paths
+    override_path = os.path.join(BOINC_DATA_DIR, "global_prefs_override.xml")
+    override_dest_path = os.path.join(os.getcwd(), "global_prefs_override_backup.xml")
 
     # Shut down dev client is it's running. This is useful if program shuts 
     # down unexpectedly
@@ -4626,8 +4630,6 @@ if __name__ == "__main__":
         )
         input("Press enter to continue or CTRL+C to quit")
         wallet_running = False
-    override_path = os.path.join(BOINC_DATA_DIR, "global_prefs_override.xml")
-    override_dest_path = os.path.join(os.getcwd(), "global_prefs_override_backup.xml")
 
     try:
         os.access(override_path, os.W_OK)

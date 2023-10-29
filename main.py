@@ -3525,6 +3525,7 @@ def save_stats(database: Any, path: str = None) -> None:
             actual_save_stats(database, path)
     except Exception as e:
         log.error("Error saving db {}{}".format(path, e))
+    SAVE_STATS_DB[path] = copy.deepcopy(database)
 
 
 def custom_sleep(sleep_time: float, boinc_rpc_client, dev_loop: bool = False):

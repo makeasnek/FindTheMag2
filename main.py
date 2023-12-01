@@ -1883,8 +1883,11 @@ def add_mag_to_combined_stats(
         list of projects which are being crunched but not on approved projects list.
     """
     unapproved_list = []
+    if not mag_ratios:
+        log.error('In add_mag_to_combined_ratios but mag_ratios is empty. Setting all mag ratios to zero.')
+        mag_ratios={}
     for project_url, project_stats in combined_stats.items():
-        found_mag_ratio = mag_ratios.get(project_url)
+        found_mag_ratio = mag_ratios.get(project_url,0)
         if not found_mag_ratio:
             if project_url not in approved_projects:
                 if project_url not in preferred_projects:

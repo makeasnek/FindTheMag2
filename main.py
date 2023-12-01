@@ -72,7 +72,7 @@ BENCHMARKING_MINIMUM_TIME: float = 10
 BENCHMARKING_DELAY_IN_DAYS: float = 160
 SKIP_BENCHMARKING: bool = False
 DEV_FEE: float = 0.05
-VERSION = 3.0
+VERSION = 3.1
 DEV_RPC_PORT = 31418
 LOG_LEVEL = "WARNING"
 START_TEMP: int = 65
@@ -4534,15 +4534,15 @@ if __name__ == "__main__":
     python_minor = sys.version_info.minor
     if python_major < 3:
         print(
-            "Error: This program requires python 3.6 or higher to run, you are running it as Python {}".format(
+            "Error: This program requires python 3.8 or higher to run, you are running it as Python {}".format(
                 platform.python_version()
             )
         )
         input("Press enter to exit")
         quit()
-    elif python_major == 3 and python_minor < 6:
+    elif python_major == 3 and python_minor < 8:
         print(
-            "Error: This program requires python 3.6 or higher to run, you are running it as Python {}".format(
+            "Error: This program requires python 3.8 or higher to run, you are running it as Python {}".format(
                 platform.python_version()
             )
         )

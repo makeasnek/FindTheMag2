@@ -3374,7 +3374,7 @@ def profitability_check(
     """
     if not grc_sell_price:
         grc_sell_price = 0.00
-    if not grc_price:
+    if not isinstance(grc_price,float) and not isinstance(grc_price,int):
         return False
     combined_stats_extract = combined_stats.get(project)
     if not combined_stats_extract:

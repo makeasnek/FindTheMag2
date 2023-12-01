@@ -2858,6 +2858,11 @@ def cache_full(project_name: str, messages) -> bool:
         if difference.seconds > 60 * 5:  # If message is > 5 min old, skip
             continue
         uppered_message_body = message["body"].upper()
+        if (
+            """NOT REQUESTING TASKS: "NO NEW TASKS" REQUESTED VIA MANAGER"""
+            in uppered_message_body
+        ):
+            continue
         if uppered_project == message["project"].upper():
             if (
                 "CPU: JOB CACHE FULL" in uppered_message_body
@@ -3365,10 +3370,12 @@ def profitability_check(
     combined_stats: dict,
 ) -> bool:
     """
-    Returns True if crunching is profitable right now. False otherwise.
+    Returns True if crunching is profitable right now. False if otherwise or unable to determine.
     """
     if not grc_sell_price:
         grc_sell_price = 0.00
+    if not grc_price:
+        return False
     combined_stats_extract = combined_stats.get(project)
     if not combined_stats_extract:
         log.error(

@@ -73,6 +73,7 @@ def TEMP_FUNCTION():
 DUMP_PROJECT_WEIGHTS: bool = False  # Dump weights assigned to projects
 DUMP_PROJECT_PRIORITY: bool = False  # Dump weights adjusted after considering current and past crunching time
 DUMP_RAC_MAG_RATIOS: bool = False  # Dump the RAC:MAG ratios from each Gridcoin project
+DUMP_DATABASE:bool = False # Dump the DATABASE
 # how many decimal places to round each stat to which is printed in the output table
 ROUNDING_DICT = {
     "MAGPERCREDIT": 5,
@@ -101,7 +102,7 @@ RECALCULATE_STATS_INTERVAL = 60  # Interval in minutes to re-calculate stats. De
 PRICE_CHECK_INTERVAL = 1440  # how often to check GRC price in minutes, minimum delay of 60 minutes between checks. Default is 1440 (24 hrs)
 LOG_LEVEL = "WARNING"  # Options are: 'DEBUG','INFO','WARNING','ERROR','NONE', default is 'WARNING'
 MAX_LOGFILE_SIZE_IN_MB = 10  # Default: 10
-ROLLING_WEIGHT_WINDOW = 60  # Use stats up to x days old for calculating intended weights vs actual crunch time, Default: 60. Note that "benchmarking" is applied to total time, not windowed time. Benchmarking will take 1% of ALL crunching time across ALL time history. This enables you set smaller "windows" and get faster reaction to weight changes without over-doing benchmarking.
+ROLLING_WEIGHT_WINDOW = 90  # Use stats up to x days old for calculating intended weights vs actual crunch time, Default: 90. Note that "benchmarking" is applied to total time, not windowed time. Benchmarking will take 1% of ALL crunching time across ALL time history. This enables you set smaller "windows" and get faster reaction to weight changes without over-doing benchmarking.
 
 # BENCHMARKING SETTINGS:
 # Benchmarking is needed to determine profitability of a project. It is strongly suggested you keep these settings as they are, they are sane defaults.

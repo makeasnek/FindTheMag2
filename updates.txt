@@ -6,3 +6,4 @@
 2.2,1,FindTheMag critical security update please see Github for more info
 2.3,0,Various usability improvements and crash fixes
 3.0,0,Massive improvements in stability and new config file format
+3.1,0,Stability improvements to reduce crashes

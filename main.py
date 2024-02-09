@@ -72,7 +72,7 @@ BENCHMARKING_MINIMUM_TIME: float = 10
 BENCHMARKING_DELAY_IN_DAYS: float = 160
 SKIP_BENCHMARKING: bool = False
 DEV_FEE: float = 0.05
-VERSION = 3.1
+VERSION = 3.2
 DEV_RPC_PORT = 31418
 LOG_LEVEL = "WARNING"
 START_TEMP: int = 65
@@ -1008,9 +1008,14 @@ def get_grc_price(sample_text: str = None) -> Union[float, None]:
                 log.error("Error fetching stats from {}: {}".format(name, e))
         regex_result = re.search(regex, resp)
         if regex_result:
-            answer = float(regex_result.group(2))
-            log.info("Found GRC price of {} from {}".format(answer, name))
-            found_prices.append(answer)
+            try:
+                answer = float(regex_result.group(2))
+            except Exception as e:
+                DATABASE["TABLE_STATUS"] = "Error getting info from {}".format(name)
+                print_and_log("Error getting info from {}".format(name), "ERROR")
+            else:
+                log.info("Found GRC price of {} from {}".format(answer, name))
+                found_prices.append(answer)
         else:
             DATABASE["TABLE_STATUS"] = "Error getting info from {}".format(name)
             print_and_log("Error getting info from {}".format(name), "ERROR")

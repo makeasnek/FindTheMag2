@@ -146,10 +146,6 @@ SAVE_STATS_DB = (
 # Dictionary for places we query in format key=url, value=Tuple[nickname,regex].
 # Note they all must match group 2
 PRICE_URL_DICT: Dict[str, Tuple[str, Union[str, re.Pattern]]] = {
-    "https://coinmarketcap.com/currencies/gridcoin/": (
-        "coinmarketcap.com",
-        r'("low24h":)(\d*.\d*)',
-    ),
     "https://finance.yahoo.com/quote/GRC-USD/": (
         "yahoo.com",
         r'(data-field="regularMarketPrice" data-trend="none" data-pricehint="\d" value=")(\d*\.\d*)',

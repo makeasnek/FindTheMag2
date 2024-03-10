@@ -4269,6 +4269,9 @@ def boinc_loop(
         else:
             project_loop = highest_priority_projects
         for highest_priority_project in project_loop:
+            if highest_priority_project in IGNORED_PROJECTS:
+                log.debug('Skipping project bc in ignore list: {}'.format(highest_priority_project))
+                continue
             boincified_url = resolve_url_boinc_rpc(
                 highest_priority_project, dev_mode=dev_loop
             )

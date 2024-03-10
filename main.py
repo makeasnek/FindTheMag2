@@ -3299,7 +3299,7 @@ def get_project_mag_ratios_from_response(
             total_magnitude = superblock["total_magnitude"]
             total_projects = superblock["total_projects"]
             mag_per_project = total_magnitude / total_projects
-        for project_name, project_stats in superblock["Contract Contents"][
+        for project_name, project_stats in superblock["contract_contents"][
             "projects"
         ].items():
             if project_name not in projects:

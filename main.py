@@ -4014,7 +4014,8 @@ def boinc_loop(
             if grc_price:
                 DATABASE["GRCPRICE"] = grc_price
         else:
-            grc_price = DATABASE["GRCPRICE"]
+            grc_price = DATABASE.get("GRCPRICE",0)
+
         # Check profitability of all projects, if none profitable
         # (and user doesn't want unprofitable crunching), sleep for 1hr
         if ONLY_BOINC_IF_PROFITABLE and not dev_loop:

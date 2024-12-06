@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "findthemag2-3-4"
+version = "3.4"
+description = "A tool to determine optimal projects for Gridcoin & BOINC crunchers. Maximize your magnitude!"
+authors = ["makeasnek"]
+license = "AGPL-3.0"
+readme = "README.md"
+packages = [{include = "findthemag2_3"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+certifi = "^2024.8.30"
+charset-normalizer = "^3.4.0"
+datetime = "^5.5"
+exceptiongroup = "^1.2.2"
+idna = "^3.10"
+iniconfig = "^2.0.0"
+packaging = "^24.2"
+pluggy = "^1.5.0"
+pytest = "^8.3.4"
+pytz = "^2024.2"
+requests = "^2.32.3"
+tomli = "^2.2.1"
+urllib3 = "^2.2.3"
+xmltodict = "^0.14.2"
+zope-interface = "^7.2"
+nest-asyncio = "^1.6.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

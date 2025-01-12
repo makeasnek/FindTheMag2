@@ -76,7 +76,7 @@ Special thanks to <a href="https://github.com/nielstron/pyboinc">PyBOINC</a> whi
 
  - Download the latest version of python from python.org. Enable the "install to system path" option while installing.
  - In command prompt, run the command `python -m pip install --upgrade pip`
- - In command prompt, run `"cd C:\users\username\Downloads\FindTheMag-master"` or wherever you saved the tool
+ - In command prompt, run `cd C:\users\username\Downloads\FindTheMag-master` or wherever you saved the tool
  - In command prompt, run the command `pip install -r requirements.txt`
  - Double-click on main.py or run `python main.py` from command prompt. We suggest the second method as it will display errors if the program exits unexpectedly
 

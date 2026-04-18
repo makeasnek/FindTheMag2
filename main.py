@@ -3273,6 +3273,9 @@ def get_project_mag_ratios_from_response(
     for project_name, project_racs in projects.items():
         average_rac = sum(project_racs) / len(project_racs)
         project_url = grc_project_name_to_url(project_name, project_resolver_dict)
+        if project_url is None:
+            log.debug("Could not resolve URL for project '{}', skipping mag ratio".format(project_name))
+            continue
         canonical_url = resolve_url_database(project_url)
         return_dict[canonical_url] = mag_per_project / average_rac
     PROJECT_MAG_RATIOS_CACHE = return_dict

@@ -776,6 +776,10 @@ async def setup_connection(
     if not boinc_ip:
         boinc_ip = "127.0.0.1"
     rpc_client = await init_rpc_client(boinc_ip, boinc_password, port=port)
+
+    if not await rpc_client.authorize():
+        raise ConnectionError("BOINC RPC authorization failed")
+
     return rpc_client
 
 
